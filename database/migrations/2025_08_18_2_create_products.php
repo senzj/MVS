@@ -15,6 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
+            $table->integer('stocks');
+            $table->integer('sold')->default(0); // Track how many items have been sold
+            $table->boolean('is_in_stock')->default(true);
+            $table->string('category')->nullable(); // Category of the product
             $table->decimal('price', 10, 2);
             $table->timestamps();
         });

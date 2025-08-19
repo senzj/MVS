@@ -4,10 +4,10 @@ namespace App\Livewire\Order;
 
 use Livewire\Component;
 
-class Orders extends Component
+class History extends Component
 {
     public function render()
     {
-        return view('livewire.order.orders');
+        return view('livewire.order.history');
     }
 }

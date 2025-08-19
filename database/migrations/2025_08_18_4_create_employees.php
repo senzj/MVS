@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->string('contact_number')->nullable();
+            $table->boolean('is_archived')->default(false);
             $table->timestamps();
         });
     }

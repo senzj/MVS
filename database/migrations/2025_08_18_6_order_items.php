@@ -19,6 +19,9 @@ return new class extends Migration
             $table->decimal('unit_price', 10, 2);
             $table->decimal('total_price', 10, 2);
             $table->timestamps();
+
+            // indexes for better performance
+            $table->index(['order_id', 'product_id']);
         });
     }
 

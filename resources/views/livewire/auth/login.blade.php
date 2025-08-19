@@ -12,8 +12,11 @@ use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
 
 new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class extends Component {
-    #[Validate('required|string|email')]
-    public string $email = '';
+    // #[Validate('required|string|email')]
+    // public string $email = '';
+
+    #[Validate('required|string')]
+    public string $username = '';
 
     #[Validate('required|string')]
     public string $password = '';
@@ -29,12 +32,18 @@ new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class ex
 
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
-            RateLimiter::hit($this->throttleKey());
+        if (! Auth::attempt([
+            'username' => $this->username,
+            'password' => $this->password
+        ], 
+            $this->remember)) {
+            
+                RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
+                'username' => __('auth.failed'),
                 'password' => __('auth.password'),
+                // 'email' => __('auth.email'),
             ]);
         }
 
@@ -70,9 +79,10 @@ new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class ex
      */
     protected function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->email).'|'.request()->ip());
+        return Str::transliterate(Str::lower($this->username).'|'.request()->ip());
     }
-}; ?>
+}; 
+?>
 
 <div class="flex flex-col gap-6">
     <x-auth-header :title="__('Log in to your account')" :description="__('Enter your email and password below to log in')" />
@@ -81,15 +91,16 @@ new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class ex
     <x-auth-session-status class="text-center" :status="session('status')" />
 
     <form method="POST" wire:submit="login" class="flex flex-col gap-6">
-        {{-- Email Address --}}
+
+        {{-- Username --}}
         <flux:input
-            wire:model="email"
-            :label="__('Email address')"
-            type="email"
+            wire:model="username"
+            :label="__('Username')"
+            type="text"
             required
             autofocus
-            autocomplete="email"
-            placeholder="example@email.com"
+            autocomplete="username"
+            placeholder="Please Enter Your Username"
         />
 
         {{-- Password --}}
@@ -98,7 +109,7 @@ new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class ex
             :label="__('Password')"
             type="password"
             required
-            placeholder="Password"
+            placeholder="Please Enter Your Password"
             autocomplete="current-password"
             viewable
         />

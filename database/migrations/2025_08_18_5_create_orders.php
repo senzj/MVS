@@ -17,7 +17,8 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // staff who encoded
             $table->foreignId('delivery_id')->nullable()->constrained('users')->onDelete('set null'); // delivery boy
             $table->enum('payment_type', ['cash', 'gcash'])->nullable();
-            $table->enum('status', ['pending', 'paid', 'delivered', 'completed', 'cancelled'])->default('pending');
+            $table->enum('status', ['pending', 'delivered', 'completed', 'cancelled'])->default('pending');
+            $table->boolean('is_paid')->default(false);
             $table->string('receipt_number')->unique();
             $table->timestamps();
         });

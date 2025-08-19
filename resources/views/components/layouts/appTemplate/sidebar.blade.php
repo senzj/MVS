@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
+        <meta charset="utf-8">
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
@@ -13,7 +14,7 @@
                 <x-app-logo />
             </a>
 
-            {{-- nav group --}}
+            {{-- main nav group --}}
             <flux:navlist variant="outline">
                 <flux:navlist.group :heading="__('Shop')" class="grid">
                     
@@ -25,6 +26,7 @@
 
                 </flux:navlist.group>
 
+                {{-- management nav group --}}
                 <flux:navlist.group :heading="__('Management')" class="grid mt-2.5">
                     {{-- products --}}
                     <flux:navlist.item icon="shopping-bag" :href="route('products')" :current="request()->routeIs('products')" wire:navigate>{{ __('Products') }}</flux:navlist.item>
@@ -35,6 +37,17 @@
                     {{-- employees --}}
                     <flux:navlist.item icon="users" :href="route('employees')" :current="request()->routeIs('employees')" wire:navigate>{{ __('Employees') }}</flux:navlist.item>
                 </flux:navlist.group>
+
+                {{-- records nav group --}}
+                <flux:navlist.group :heading="__('Records')" class="grid mt-2.5">
+                    {{-- sales --}}
+                    {{-- <flux:navlist.item icon="chart-bar" :href="route('sales')" :current="request()->routeIs('sales')" wire:navigate>{{ __('Sales') }}</flux:navlist.item> --}}
+
+                    {{-- orders history --}}
+                    <flux:navlist.item icon="clock" :href="route('orders.history')" :current="request()->routeIs('orders.history')" wire:navigate>{{ __('Orders History') }}</flux:navlist.item>
+
+                </flux:navlist.group>
+
             </flux:navlist>
 
             {{-- add space  --}}
