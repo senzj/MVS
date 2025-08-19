@@ -51,7 +51,7 @@
                 </div>
                 <div class="ml-4">
                     <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                        {{ $allProducts->where('stocks', '>', 10)->count() }}
+                        {{ $allProducts->where('stocks', '>=', 10)->count() }}
                     </div>
                     <div class="text-sm text-zinc-600 dark:text-zinc-400">In Stock</div>
                 </div>
@@ -65,7 +65,7 @@
                 </div>
                 <div class="ml-4">
                     <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                        {{ $allProducts->where('stocks', '<=', 10)->where('stocks', '>', 0)->count() }}
+                        {{ $allProducts->where('stocks', '<', 10)->where('stocks', '>', 0)->count() }}
                     </div>
                     <div class="text-sm text-zinc-600 dark:text-zinc-400">Low Stock</div>
                 </div>
@@ -79,7 +79,7 @@
                 </div>
                 <div class="ml-4">
                     <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                        {{ $allProducts->where('stocks', '<=', 0)->count() }}
+                        {{ $allProducts->where('stocks', '==', 0)->count() }}
                     </div>
                     <div class="text-sm text-zinc-600 dark:text-zinc-400">Out of Stock</div>
                 </div>

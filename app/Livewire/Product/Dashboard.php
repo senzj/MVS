@@ -210,10 +210,10 @@ class Dashboard extends Component
         if (!empty($this->stockFilter)) {
             switch ($this->stockFilter) {
                 case 'in_stock':
-                    $query->where('stocks', '>', 10);
+                    $query->where('stocks', '>=', 10);
                     break;
                 case 'low_stock':
-                    $query->where('stocks', '<=', 10)->where('stocks', '>', 0);
+                    $query->where('stocks', '<', 10);
                     break;
                 case 'out_of_stock':
                     $query->where('stocks', '<=', 0);

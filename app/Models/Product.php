@@ -49,12 +49,16 @@ class Product extends Model
 
     public function getStockStatusAttribute()
     {
-        if ($this->stocks <= 0) {
+        if ($this->stocks == 0) {
             return 'out_of_stock';
-        } elseif ($this->stocks <= 10) { // You can adjust this threshold
+            
+        } elseif ($this->stocks < 10) { // You can adjust this threshold
             return 'low_stock';
+
+        } else {
+            return 'in_stock';
         }
-        return 'in_stock';
+        
     }
 
     public function getStockStatusColorAttribute()
