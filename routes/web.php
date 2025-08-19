@@ -22,16 +22,16 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
 
     // Orders route
-    Volt::route('orders', 'orders')->name('orders');
+    Volt::route('orders', 'order.dashboard')->name('orders');
 
     // Products route
-    Volt::route('products', 'products')->name('products');
+    Volt::route('products', 'product.dashboard')->name('products');
 
     // Customers route
-    Volt::route('customers', 'customers')->name('customers');
+    Volt::route('customers', 'customer.dashboard')->name('customers');
 
     // Employee route
-    Volt::route('employees', 'employees')->name('employees');
+    Volt::route('employees', 'employee.dashboard')->name('employees');
 });
 
 require __DIR__.'/auth.php';

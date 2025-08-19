@@ -27,13 +27,13 @@
 
                 <flux:navlist.group :heading="__('Management')" class="grid mt-2.5">
                     {{-- products --}}
-                    <flux:navlist.item icon="shopping-bag" wire:navigate>{{ __('Products') }}</flux:navlist.item>
+                    <flux:navlist.item icon="shopping-bag" :href="route('products')" :current="request()->routeIs('products')" wire:navigate>{{ __('Products') }}</flux:navlist.item>
 
                     {{-- customers --}}
-                    <flux:navlist.item icon="identification" wire:navigate>{{ __('Customers') }}</flux:navlist.item>
+                    <flux:navlist.item icon="identification" :href="route('customers')" :current="request()->routeIs('customers')" wire:navigate>{{ __('Customers') }}</flux:navlist.item>
 
                     {{-- employees --}}
-                    <flux:navlist.item icon="users" wire:navigate>{{ __('Employees') }}</flux:navlist.item>
+                    <flux:navlist.item icon="users" :href="route('employees')" :current="request()->routeIs('employees')" wire:navigate>{{ __('Employees') }}</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
 
