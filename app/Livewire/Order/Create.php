@@ -307,14 +307,15 @@ class Create extends Component
                 ]);
             }
 
-            // Create order items
+            // Create order items with both unit_price and total_price
             foreach ($this->orderItems as $item) {
                 if ($item['product_id'] && $item['quantity'] > 0) {
                     OrderItem::create([
                         'order_id' => $order->id,
                         'product_id' => $item['product_id'],
                         'quantity' => $item['quantity'],
-                        'price' => $item['price'],
+                        'unit_price' => $item['price'], // Unit price of the product
+                        'total_price' => $item['total'], // Total for this line item (quantity × unit_price)
                     ]);
                 }
             }

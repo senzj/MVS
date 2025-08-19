@@ -10,7 +10,13 @@ class OrderItem extends Model
         'order_id', //fk to orders table
         'product_id', //fk to products table
         'quantity',
-        'price',
+        'unit_price', // Add this - individual product price
+        'total_price', // This stays - total for this line item
+    ];
+
+    protected $casts = [
+        'unit_price' => 'decimal:2',
+        'total_price' => 'decimal:2',
     ];
 
     // relations
@@ -22,5 +28,11 @@ class OrderItem extends Model
     public function product()
     {
         return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    // Accessor to get unit price from product if not stored
+    public function getUnitPriceAttribute($value)
+    {
+        return $value ?? $this->product?->price ?? 0;
     }
 }
