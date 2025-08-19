@@ -11,6 +11,7 @@
                 <x-app-logo />
             </a>
 
+            {{-- dashboard --}}
             <flux:navbar class="-mb-px max-lg:hidden">
                 <flux:navbar.item icon="layout-grid" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
                     {{ __('Dashboard') }}
@@ -31,7 +32,7 @@
                         target="_blank"
                         :label="__('Repository')"
                     />
-                </flux:tooltip>asdasds
+                </flux:tooltip>
                 <flux:tooltip :content="__('Documentation')" position="bottom">
                     <flux:navbar.item
                         class="h-10 max-lg:hidden [&>div>svg]:size-5"
@@ -43,7 +44,7 @@
                 </flux:tooltip>
             </flux:navbar>
 
-            <!-- Desktop User Menu -->
+            {{-- Desktop User Menu --}}
             <flux:dropdown position="top" align="end">
                 <flux:profile
                     class="cursor-pointer"
@@ -86,9 +87,10 @@
                     </form>
                 </flux:menu>
             </flux:dropdown>
+
         </flux:header>
 
-        <!-- Mobile Menu -->
+        {{-- Mobile Menu --}}
         <flux:sidebar stashable sticky class="lg:hidden border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 

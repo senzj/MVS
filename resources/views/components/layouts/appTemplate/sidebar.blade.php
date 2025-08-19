@@ -4,6 +4,8 @@
         @include('partials.head')
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
+
+        {{-- Nav Bar (sidebar, header) --}}
         <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
@@ -11,25 +13,34 @@
                 <x-app-logo />
             </a>
 
+            {{-- nav group --}}
             <flux:navlist variant="outline">
-                <flux:navlist.group :heading="__('Platform')" class="grid">
+                <flux:navlist.group :heading="__('Shop')" class="grid">
+                    
+                    {{-- dashboard --}}
                     <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
+
+                    {{-- orders --}}
+                    <flux:navlist.item icon="shopping-cart" :href="route('orders')" :current="request()->routeIs('orders')" wire:navigate>{{ __('Orders') }}</flux:navlist.item>
+
+                </flux:navlist.group>
+
+                <flux:navlist.group :heading="__('Management')" class="grid mt-2.5">
+                    {{-- products --}}
+                    <flux:navlist.item icon="shopping-bag" wire:navigate>{{ __('Products') }}</flux:navlist.item>
+
+                    {{-- customers --}}
+                    <flux:navlist.item icon="identification" wire:navigate>{{ __('Customers') }}</flux:navlist.item>
+
+                    {{-- employees --}}
+                    <flux:navlist.item icon="users" wire:navigate>{{ __('Employees') }}</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
 
+            {{-- add space  --}}
             <flux:spacer />
 
-            <flux:navlist variant="outline">
-                <flux:navlist.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
-                {{ __('Repository') }}
-                </flux:navlist.item>
-
-                <flux:navlist.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">
-                {{ __('Documentation') }}
-                </flux:navlist.item>
-            </flux:navlist>
-
-            <!-- Desktop User Menu -->
+            {{-- Desktop User Menu --}}
             <flux:dropdown class="hidden lg:block" position="bottom" align="start">
                 <flux:profile
                     :name="auth()->user()->name"
@@ -73,9 +84,10 @@
                     </form>
                 </flux:menu>
             </flux:dropdown>
+
         </flux:sidebar>
 
-        <!-- Mobile User Menu -->
+        {{-- Mobile User Menu --}}
         <flux:header class="lg:hidden">
             <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
