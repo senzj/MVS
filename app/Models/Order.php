@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Customer;
+use App\Models\Employee;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
     protected $fillable = [
+        'created_by', // person who created this order
         'customer_id', // Foreign key to customers table
-        'user_id', // Foreign key to users table (staff who created the order)
-        'delivery_id', // Foreign key to employees table (delivery person)
+        'delivered_by', // Foreign key to employees table (delivery person)
+        'order_total', // Total amount for the order
         'payment_type', // Payment method (cash, gcash)
         'status', // Order status (pending, delivered, completed, cancelled)
-        'is_paid', // Whether the order is paid
+        'is_paid', // Whether the order is paid or not
         'receipt_number', // Unique receipt identifier
     ];
 
@@ -29,15 +33,15 @@ class Order extends Model
      */
     public function staff()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**
      * Get the delivery person assigned to this order
      */
-    public function deliveryBoy()
+    public function employee()
     {
-        return $this->belongsTo(Employee::class, 'delivery_id');
+        return $this->belongsTo(Employee::class, 'delivered_by');
     }
 
     /**
@@ -49,12 +53,12 @@ class Order extends Model
     }
 
     /**
-     * Calculate the total amount for this order
+     * Calculate the total amount from order items (for verification)
      */
-    public function getTotalAmountAttribute()
+    public function getCalculatedTotalAttribute()
     {
         return $this->orderItems->sum(function ($item) {
-            return $item->quantity * $item->price;
+            return $item->quantity * $item->unit_price;
         });
     }
 

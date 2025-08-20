@@ -29,8 +29,12 @@
                         Log in
                     </a>
 
+                    @php
+                        $has_accounts = \App\Models\User::limit(1)->exists();
+                    @endphp
+
                     {{-- Small register link --}}
-                    @if (Route::has('register'))
+                    @if (!$has_accounts)
                         <a href="{{ route('register') }}" 
                         class="mt-3 text-sm text-[#FFD700] hover:underline">
                             Register

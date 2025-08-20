@@ -18,7 +18,7 @@ class Create extends Component
     public $paymentType = 'cash';
     public $selectedEmployeeId = null;
     public $selectedCustomerId = null;
-    
+
     // Customer info (editable)
     public $customerName = '';
     public $customerUnit = '';
@@ -28,10 +28,7 @@ class Create extends Component
     // Product items
     public $orderItems = [];
     
-    // Modal states
-    public $showCustomerModal = false;
-    public $showEmployeeModal = false;
-    public $showProductModal = false;
+    // Remove modal states - Alpine.js will handle these
     public $currentItemIndex = null;
     
     // Search terms
@@ -66,9 +63,14 @@ class Create extends Component
 
     public function loadData()
     {
-        $this->customers = Customer::orderBy('name')->get();
-        $this->employees = Employee::orderBy('name')->get();
-        $this->products = Product::orderBy('name')->get();
+        $this->customers = Customer::orderBy('id')->get();
+        $this->employees = Employee::orderBy('id')->get();
+
+        // Only load products that are actually available
+        $this->products = Product::where('is_in_stock', true)
+            ->where('stocks', '>', 0)
+            ->orderBy('id')
+            ->get();
     }
 
     public function generateOrderNumber()
@@ -81,19 +83,7 @@ class Create extends Component
         return 'OR-' . now()->format('Y') . '-' . str_pad($nextId, 5, '0', STR_PAD_LEFT);
     }
 
-    // Customer Modal Methods
-    public function openCustomerModal()
-    {
-        $this->customerSearch = '';
-        $this->showCustomerModal = true;
-    }
-
-    public function closeCustomerModal()
-    {
-        $this->showCustomerModal = false;
-        $this->customerSearch = '';
-    }
-
+    // Simplified customer selection
     public function selectCustomer($customerId)
     {
         $customer = Customer::find($customerId);
@@ -104,85 +94,92 @@ class Create extends Component
             $this->customerAddress = $customer->address ?? '';
             $this->customerContact = $customer->contact_number ?? '';
         }
-        $this->closeCustomerModal();
+        $this->customerSearch = '';
     }
 
-    // Employee Modal Methods
-    public function openEmployeeModal()
-    {
-        $this->employeeSearch = '';
-        $this->showEmployeeModal = true;
-    }
-
-    public function closeEmployeeModal()
-    {
-        $this->showEmployeeModal = false;
-        $this->employeeSearch = '';
-    }
-
+    // Simplified employee selection
     public function selectEmployee($employeeId)
     {
         $this->selectedEmployeeId = $employeeId;
-        $this->closeEmployeeModal();
+        $this->employeeSearch = '';
     }
 
-    // Product Modal Methods
-    public function openProductModal($itemIndex)
+    // Product selection with item index
+    public function selectProduct($productId, $itemIndex)
     {
-        $this->currentItemIndex = $itemIndex;
-        $this->productSearch = '';
-        $this->showProductModal = true;
-    }
+        // Block selecting unavailable products (safety)
+        $product = Product::where('id', $productId)
+            ->where('is_in_stock', true)
+            ->where('stocks', '>', 0)
+            ->first();
 
-    public function closeProductModal()
-    {
-        $this->showProductModal = false;
-        $this->productSearch = '';
-        $this->currentItemIndex = null;
-    }
+        if ($product && isset($this->orderItems[$itemIndex])) {
+            $this->orderItems[$itemIndex]['product_id'] = $product->id;
+            $this->orderItems[$itemIndex]['product_name'] = $product->name;
+            $this->orderItems[$itemIndex]['price'] = $product->price;
 
-    public function selectProduct($productId)
-    {
-        if ($this->currentItemIndex !== null) {
-            $product = Product::find($productId);
-            if ($product) {
-                $this->orderItems[$this->currentItemIndex]['product_id'] = $product->id;
-                $this->orderItems[$this->currentItemIndex]['product_name'] = $product->name;
-                $this->orderItems[$this->currentItemIndex]['price'] = $product->price;
-                
-                // Recalculate when product changes
-                $this->calculateItemTotal($this->currentItemIndex);
-            }
+            // Ensure quantity never exceeds available stock
+            $currentQty = (int) ($this->orderItems[$itemIndex]['quantity'] ?? 1);
+            $this->orderItems[$itemIndex]['quantity'] = min($currentQty > 0 ? $currentQty : 1, (int) $product->stocks);
+
+            // Recalculate when product changes
+            $this->calculateItemTotal($itemIndex);
         }
-        $this->closeProductModal();
+        $this->productSearch = '';
     }
 
     // Handle real-time updates for order items
     public function updatedOrderItems($value, $name)
     {
-        // Check if a product_id was updated
+        // If product_id was updated, hydrate name/price and clamp to stock
         if (strpos($name, '.product_id') !== false) {
             $index = (int) explode('.', $name)[0];
             $productId = $this->orderItems[$index]['product_id'];
-            
+
             if ($productId) {
                 $product = Product::find($productId);
-                if ($product) {
+                if ($product && $product->is_in_stock && $product->stocks > 0) {
                     $this->orderItems[$index]['product_name'] = $product->name;
                     $this->orderItems[$index]['price'] = $product->price;
+
+                    $qty = (int) ($this->orderItems[$index]['quantity'] ?? 1);
+                    $this->orderItems[$index]['quantity'] = min(max($qty, 1), (int) $product->stocks);
+
                     $this->calculateItemTotal($index);
+                } else {
+                    // Clear if product became unavailable
+                    $this->orderItems[$index]['product_id'] = null;
+                    $this->orderItems[$index]['product_name'] = '';
+                    $this->orderItems[$index]['price'] = 0;
+                    $this->orderItems[$index]['total'] = 0;
+                    $this->addError("orderItems.$index.product_id", 'Product is out of stock.');
                 }
             } else {
-                // Clear product data if no product selected
                 $this->orderItems[$index]['product_name'] = '';
                 $this->orderItems[$index]['price'] = 0;
                 $this->orderItems[$index]['total'] = 0;
             }
         }
-        
-        // Check if quantity was updated
+
+        // If quantity was updated, clamp to available stock
         if (strpos($name, '.quantity') !== false) {
             $index = (int) explode('.', $name)[0];
+            $productId = $this->orderItems[$index]['product_id'] ?? null;
+
+            if ($productId) {
+                $product = Product::find($productId);
+                $qty = (int) ($this->orderItems[$index]['quantity'] ?? 0);
+
+                if ($product) {
+                    $max = max((int) $product->stocks, 0);
+                    $this->orderItems[$index]['quantity'] = max(min($qty, $max), 1);
+                } else {
+                    $this->orderItems[$index]['quantity'] = 1;
+                }
+            } else {
+                $this->orderItems[$index]['quantity'] = max((int) ($this->orderItems[$index]['quantity'] ?? 1), 1);
+            }
+
             $this->calculateItemTotal($index);
         }
     }
@@ -228,15 +225,35 @@ class Create extends Component
     // Computed Properties
     public function getFilteredCustomersProperty()
     {
-        if (empty($this->customerSearch)) {
-            return collect($this->customers);
+        $query = Customer::query();
+
+        // Exclude all customers that already appear on any order
+        $excludedIds = Order::query()
+            ->whereNotNull('customer_id')
+            ->pluck('customer_id')
+            ->unique()
+            ->toArray();
+
+        if (!empty($excludedIds)) {
+            $query->whereNotIn('id', $excludedIds);
         }
-        
-        return collect($this->customers)->filter(function ($customer) {
-            return stripos($customer->name, $this->customerSearch) !== false ||
-                   stripos($customer->address ?? '', $this->customerSearch) !== false ||
-                   stripos($customer->contact_number ?? '', $this->customerSearch) !== false;
-        });
+
+        // Also exclude the currently selected customer from the dropdown
+        if ($this->selectedCustomerId) {
+            $query->where('id', '!=', (int) $this->selectedCustomerId);
+        }
+
+        // Apply search
+        $term = trim($this->customerSearch ?? '');
+        if ($term !== '') {
+            $query->where(function ($q) use ($term) {
+                $q->where('name', 'like', "%{$term}%")
+                  ->orWhere('address', 'like', "%{$term}%")
+                  ->orWhere('contact_number', 'like', "%{$term}%");
+            });
+        }
+
+        return $query->orderBy('name')->get();
     }
 
     public function getFilteredEmployeesProperty()
@@ -252,11 +269,15 @@ class Create extends Component
 
     public function getFilteredProductsProperty()
     {
+        // Base list already limited to in-stock in loadData()
+        $list = collect($this->products)
+            ->filter(fn ($p) => $p->is_in_stock && $p->stocks > 0);
+
         if (empty($this->productSearch)) {
-            return collect($this->products);
+            return $list;
         }
-        
-        return collect($this->products)->filter(function ($product) {
+
+        return $list->filter(function ($product) {
             return stripos($product->name, $this->productSearch) !== false ||
                    stripos($product->description ?? '', $this->productSearch) !== false;
         });
@@ -284,12 +305,37 @@ class Create extends Component
     {
         $this->validate();
 
+        // Pre-check stocks before starting the transaction
+        foreach ($this->orderItems as $i => $item) {
+            if (!($item['product_id'] ?? null)) {
+                $this->addError("orderItems.$i.product_id", 'Please select a product.');
+                return;
+            }
+            $product = Product::find($item['product_id']);
+            if (!$product || !$product->is_in_stock || $product->stocks <= 0) {
+                $this->addError("orderItems.$i.product_id", 'Product is out of stock.');
+                return;
+            }
+            $qty = (int) ($item['quantity'] ?? 0);
+            if ($qty < 1) {
+                $this->addError("orderItems.$i.quantity", 'Quantity must be at least 1.');
+                return;
+            }
+            if ($qty > (int) $product->stocks) {
+                $this->addError("orderItems.$i.quantity", "Only {$product->stocks} in stock.");
+                return;
+            }
+        }
+
         DB::transaction(function () {
+            $totalAmount = $this->getTotalAmountProperty();
+
             // Create the order
             $order = Order::create([
                 'customer_id' => $this->selectedCustomerId,
-                'user_id' => Auth::id(),
-                'delivery_id' => $this->selectedEmployeeId,
+                'created_by' => Auth::id(),
+                'delivered_by' => $this->selectedEmployeeId,
+                'order_total' => $totalAmount,
                 'payment_type' => $this->paymentType,
                 'status' => 'pending',
                 'is_paid' => false,
@@ -307,17 +353,37 @@ class Create extends Component
                 ]);
             }
 
-            // Create order items with both unit_price and total_price
+            // Create order items and atomically update product stock/sold
             foreach ($this->orderItems as $item) {
-                if ($item['product_id'] && $item['quantity'] > 0) {
-                    OrderItem::create([
-                        'order_id' => $order->id,
-                        'product_id' => $item['product_id'],
-                        'quantity' => $item['quantity'],
-                        'unit_price' => $item['price'], // Unit price of the product
-                        'total_price' => $item['total'], // Total for this line item (quantity × unit_price)
+                if (!($item['product_id'] ?? null)) {
+                    continue;
+                }
+
+                // Lock the product row to avoid overselling
+                $product = Product::where('id', $item['product_id'])->lockForUpdate()->first();
+
+                // Re-validate inside the transaction
+                $qty = (int) $item['quantity'];
+                if (!$product || !$product->is_in_stock || $product->stocks < $qty) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        "orderItems" => "Insufficient stock for product ID {$item['product_id']}.",
                     ]);
                 }
+
+                // Create line item
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $item['product_id'],
+                    'quantity' => $qty,
+                    'unit_price' => $item['price'],
+                    'total_price' => $item['total'],
+                ]);
+
+                // 3) Deduct stocks, increment sold, and update flag
+                $product->stocks = (int) $product->stocks - $qty;
+                $product->sold = (int) ($product->sold ?? 0) + $qty;
+                $product->is_in_stock = $product->stocks > 0;
+                $product->save();
             }
         });
 

@@ -1,7 +1,6 @@
 // toastr.js (notification library)
 import toastr from 'toastr';
 import 'toastr/build/toastr.min.css';  // Import the CSS too
-window.toastr = toastr;
 
 // toastr configuration
 toastr.options = {
@@ -52,3 +51,6 @@ toastr.options = {
   // jQuery method to use when hiding toast ("fadeOut", "slideUp", or "hide")
   "hideMethod": "slideUp"
 };
+
+// export toastr
+export default toastr;

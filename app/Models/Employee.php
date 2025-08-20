@@ -22,7 +22,7 @@ class Employee extends Model
     // Relationships
     public function orders()
     {
-        return $this->hasMany(Order::class, 'delivery_id');
+        return $this->hasMany(Order::class, 'delivered_by');
     }
 
     // Scopes

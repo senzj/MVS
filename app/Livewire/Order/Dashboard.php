@@ -2,12 +2,15 @@
 
 namespace App\Livewire\Order;
 
-use Livewire\Component;
-use App\Models\Order;
 use App\Models\Customer;
 use App\Models\Employee;
+use App\Models\Order;
+use App\Models\Product; // <-- add
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;   // <-- add
+use Livewire\Component;
 
 class Dashboard extends Component
 {
@@ -24,16 +27,16 @@ class Dashboard extends Component
     // New order form
     public array $newOrder = [
         'customer_id' => null,
-        'delivery_id' => null,
+        'delivered_by' => null, // Changed from delivery_id
         'payment_type' => 'cash',
-        'status' => 'pending', // pending | delivered
+        'status' => 'pending',
         'is_paid' => false,
         'receipt_number' => null,
     ];
 
     protected array $rules = [
         'newOrder.customer_id'   => 'nullable|integer|exists:customers,id',
-        'newOrder.delivery_id'   => 'nullable|integer|exists:employees,id',
+        'newOrder.delivered_by'  => 'nullable|integer|exists:employees,id', // Updated field name
         'newOrder.payment_type'  => 'required|in:cash,gcash',
         'newOrder.status'        => 'required|in:pending,delivered',
         'newOrder.is_paid'       => 'boolean',
@@ -42,9 +45,11 @@ class Dashboard extends Component
 
     public function viewOrderDetails($orderId)
     {
-        $this->selectedOrder = Order::with(['customer', 'employee', 'orderItems.product'])
+        $this->selectedOrder = Order::with(['customer', 'employee', 'staff', 'orderItems.product'])
             ->find($orderId);
         
+        Log::info('details:', $this->selectedOrder->toArray());
+
         if ($this->selectedOrder) {
             $this->showOrderDetailsModal = true;
         }
@@ -59,16 +64,21 @@ class Dashboard extends Component
     public function togglePaid($orderId)
     {
         $order = Order::find($orderId);
-        if (!$order) return;
-
-        $order->is_paid = !$order->is_paid;
-        $order->save();
+        if ($order) {
+            $order->is_paid = !$order->is_paid;
+            $order->save();
+            
+            session()->flash('success', 'Payment status updated successfully!');
+        }
     }
 
     public function markFinished($orderId)
     {
         $order = Order::find($orderId);
         if (!$order) return;
+
+        // set editing to false
+        $this->editingOrderId = null;
 
         if ($order->is_paid) {
             $order->status = 'completed';
@@ -84,15 +94,75 @@ class Dashboard extends Component
 
     public function saveEdit($orderId)
     {
-        $order = Order::find($orderId);
+        $order = Order::with(['orderItems'])->find($orderId);
         if (!$order) return;
 
-        $order->status = $this->editStatus;
-        $order->save();
+        $oldStatus = $order->status;
+        $newStatus = $this->editStatus;
+
+        if (!in_array($newStatus, ['pending', 'delivered', 'completed', 'cancelled'], true)) {
+            return;
+        }
+
+        if ($oldStatus === $newStatus) {
+            $this->editingOrderId = null;
+            return;
+        }
+
+        DB::transaction(function () use ($order, $oldStatus, $newStatus) {
+            // Moving into cancelled: rollback inventory
+            if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
+                $this->rollbackInventory($order);
+            }
+
+            // Moving out of cancelled: re-apply inventory
+            if ($oldStatus === 'cancelled' && $newStatus !== 'cancelled') {
+                $this->applyInventory($order);
+            }
+
+            $order->status = $newStatus;
+            $order->save();
+        });
+
         $this->editingOrderId = null;
     }
 
-    // Modal controls
+    private function applyInventory(Order $order): void
+    {
+        foreach ($order->orderItems as $item) {
+            $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
+            if (!$product) {
+                continue;
+            }
+
+            $qty = (int) $item->quantity;
+
+            // Deduct stocks, increase sold
+            $product->stocks = max(0, (int) $product->stocks - $qty);
+            $product->sold = max(0, (int) ($product->sold ?? 0) + $qty);
+            $product->is_in_stock = $product->stocks > 0;
+            $product->save();
+        }
+    }
+
+    private function rollbackInventory(Order $order): void
+    {
+        foreach ($order->orderItems as $item) {
+            $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
+            if (!$product) {
+                continue;
+            }
+
+            $qty = (int) $item->quantity;
+
+            // Return stocks, reduce sold
+            $product->stocks = (int) $product->stocks + $qty;
+            $product->sold = max(0, (int) ($product->sold ?? 0) - $qty);
+            $product->is_in_stock = $product->stocks > 0;
+            $product->save();
+        }
+    }
+
     public function openCreateModal(): void
     {
         $this->resetNewOrder();
@@ -106,7 +176,6 @@ class Dashboard extends Component
 
     protected function sanitizeNewOrder(): array
     {
-        // Convert empty strings to null to avoid saving blanks
         return collect($this->newOrder ?? [])
             ->map(fn($v) => is_string($v) && trim($v) === '' ? null : $v)
             ->all();
@@ -114,10 +183,9 @@ class Dashboard extends Component
 
     protected function resetNewOrder(): void
     {
-        // Ensure predictable defaults
         $this->newOrder = [
             'customer_id' => null,
-            'delivery_id' => null,
+            'delivered_by' => null, // Updated field name
             'payment_type' => 'cash',
             'status' => 'pending',
             'is_paid' => false,
@@ -127,16 +195,15 @@ class Dashboard extends Component
 
     public function createOrder(): void
     {
-        // Sanitize and validate
         $this->newOrder = $this->sanitizeNewOrder();
         $validated = $this->validate();
         $data = $validated['newOrder'];
 
-        // Fallback defaults
+        // Set defaults and required fields
         $data['payment_type'] = $data['payment_type'] ?? 'cash';
         $data['status'] = $data['status'] ?? 'pending';
         $data['is_paid'] = (bool) ($data['is_paid'] ?? false);
-        $data['user_id'] = Auth::id();
+        $data['created_by'] = Auth::id(); // Set the user who created the order
         $data['receipt_number'] = $data['receipt_number'] ?: $this->generateReceiptNumber();
 
         Order::create($data);
@@ -154,7 +221,8 @@ class Dashboard extends Component
     {
         $today = Carbon::today();
 
-        $orders = Order::with('customer')
+        // Eager load both employee and staff relationships
+        $orders = Order::with(['customer', 'employee', 'staff'])
             ->whereDate('created_at', $today)
             ->latest()
             ->get();

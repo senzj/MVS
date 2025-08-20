@@ -15,10 +15,7 @@ class Dashboard extends Component
     public $sortBy = 'id';
     public $sortDirection = 'asc';
 
-    // Modal properties
-    public $showCreateModal = false;
-    public $showEditModal = false;
-    public $showDeleteModal = false;
+    // Remove modal properties - Alpine.js will handle these
     public $selectedCustomerId = null;
 
     // Form properties
@@ -37,8 +34,14 @@ class Dashboard extends Component
     // error messages
     protected $messages = [
         'contact_number.required' => 'Contact number is required.',
-        'contact_number.digits' => 'Contact number must be exactly 11 digits.',
-        'contact_number.regex' => 'Contact number must start with 09 and be 11 digits long.',
+        'contact_number.max' => 'Contact number must not exceed 11 digits.',
+        'contact_number.regex' => 'Contact number must be exactly 11 digits.',
+    ];
+
+    protected $queryString = [
+        'search' => ['except' => ''],
+        'sortBy' => ['except' => 'id'],
+        'sortDirection' => ['except' => 'asc'],
     ];
 
     public function mount()
@@ -46,9 +49,16 @@ class Dashboard extends Component
         //
     }
 
-    // Search method
+    // Search method - FIXED: This will trigger when search updates
     public function updatedSearch()
     {
+        $this->resetPage();
+    }
+
+    // Clear search method
+    public function clearSearch()
+    {
+        $this->search = '';
         $this->resetPage();
     }
 
@@ -64,25 +74,9 @@ class Dashboard extends Component
         $this->resetPage();
     }
 
-    // Modal methods
-    public function openCreateModal()
+    // Modal methods - simplified for Alpine.js
+    public function loadCustomerForEdit($customerId)
     {
-        $this->resetForm();
-        $this->showCreateModal = true;
-    }
-
-    public function closeCreateModal()
-    {
-        $this->showCreateModal = false;
-        $this->resetForm();
-    }
-
-    public function openEditModal($customerId)
-    {
-        // clear form
-        $this->resetForm();
-
-        // populate form with existing customer data
         $customer = Customer::find($customerId);
         if ($customer) {
             $this->selectedCustomerId = $customer->id;
@@ -90,26 +84,12 @@ class Dashboard extends Component
             $this->contact_number = $customer->contact_number;
             $this->unit = $customer->unit;
             $this->address = $customer->address;
-            $this->showEditModal = true;
         }
     }
 
-    public function closeEditModal()
-    {
-        $this->showEditModal = false;
-        $this->resetForm();
-    }
-
-    public function openDeleteModal($customerId)
+    public function setSelectedCustomer($customerId)
     {
         $this->selectedCustomerId = $customerId;
-        $this->showDeleteModal = true;
-    }
-
-    public function closeDeleteModal()
-    {
-        $this->showDeleteModal = false;
-        $this->selectedCustomerId = null;
     }
 
     // CRUD methods
@@ -124,8 +104,11 @@ class Dashboard extends Component
             'contact_number' => $this->contact_number,
         ]);
 
-        session()->flash('success', 'Customer created successfully!');
-        $this->closeCreateModal();
+        // close modal
+        $this->dispatch('close-create-modal');
+
+        $this->dispatch('show-success', ['message' => 'Customer created successfully!']);
+        $this->resetForm();
     }
 
     public function updateCustomer()
@@ -133,36 +116,47 @@ class Dashboard extends Component
         $this->validate();
 
         $customer = Customer::find($this->selectedCustomerId);
+        
+        if ($customer) {
+            $customer->update([
+                'name' => ucwords(trim($this->name)),
+                'unit' => ucwords($this->unit),
+                'address' => ucwords($this->address),
+                'contact_number' => $this->contact_number,
+            ]);
 
-        $customer->update([
-            'name' => ucwords(trim($this->name)),
-            'unit' => ucwords($this->unit),
-            'address' => ucwords($this->address),
-            'contact_number' => $this->contact_number,
-        ]);
+            // close modal
+            $this->dispatch('close-edit-modal');
 
-        session()->flash('success', 'Customer updated successfully!');
-        $this->closeEditModal();
+            $this->dispatch('show-success', ['message' => 'Customer updated successfully!']);
+            $this->resetForm();
+        } else {
+            $this->dispatch('show-error', ['message' => 'Customer not found!']);
+        }
     }
 
     public function deleteCustomer()
     {
         $customer = Customer::find($this->selectedCustomerId);
         if (!$customer) {
-            session()->flash('error', 'Customer not found!');
+            $this->dispatch('show-error', ['message' => 'Customer not found!']);
             return;
         }
 
         // Check if customer has orders
         if ($customer->orders()->count() > 0) {
-            session()->flash('error', 'Cannot delete customer with existing orders!');
-            $this->closeDeleteModal();
+            $this->dispatch('show-error', ['message' => 'Cannot delete customer with existing orders!']);
             return;
         }
 
+        // close modal
+        $this->dispatch('close-delete-modal');
+
+        $customerName = $customer->name;
         $customer->delete();
-        session()->flash('success', 'Customer deleted successfully!');
-        $this->closeDeleteModal();
+        
+        $this->dispatch('show-success', ['message' => "Customer '{$customerName}' deleted successfully!"]);
+        $this->selectedCustomerId = null;
     }
 
     // Helper methods
@@ -176,53 +170,33 @@ class Dashboard extends Component
         $this->resetErrorBag();
     }
 
-    // search
-    public function getCustomersProperty()
+    // FIXED: Search query - removed the computed property and made it direct
+    public function render()
     {
         $query = Customer::query();
 
         // Apply search filter
         if (!empty($this->search)) {
-            $query->where(function ($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('unit', 'like', '%' . $this->search . '%')
-                  ->orWhere('address', 'like', '%' . $this->search . '%')
-                  ->orWhere('contact_number', 'like', '%' . $this->search . '%');
+            $searchTerm = '%' . $this->search . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', $searchTerm)
+                  ->orWhere('unit', 'like', $searchTerm)
+                  ->orWhere('address', 'like', $searchTerm)
+                  ->orWhere('contact_number', 'like', $searchTerm);
             });
         }
 
         // Apply sorting
         $query->orderBy($this->sortBy, $this->sortDirection);
 
-        return $query->paginate(10);
-    }
+        $customers = $query->paginate(10);
 
-    // Get all customers for stats
-    public function getAllCustomersProperty()
-    {
-        return Customer::all();
-    }
+        // Get all customers for stats
+        $allCustomers = Customer::all();
 
-    public function getAverageOrdersPerCustomerProperty()
-    {
-        $totalCustomers = $this->allCustomers->count();
-        
-        if ($totalCustomers == 0) {
-            return 0;
-        }
-        
-        $totalOrders = $this->allCustomers->sum(function($customer) {
-            return $customer->orders()->count();
-        });
-        
-        return round($totalOrders / $totalCustomers, 1);
-    }
-
-    public function render()
-    {
         return view('livewire.customer.dashboard', [
-            'customers' => $this->customers,
-            'allCustomers' => $this->allCustomers,
+            'customers' => $customers,
+            'allCustomers' => $allCustomers,
         ]);
     }
 }

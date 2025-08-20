@@ -44,21 +44,18 @@ class Product extends Model
     public function getCategoryNameAttribute()
     {
         $categories = self::getCategories();
-        return $categories[$this->category] ?? $this->category ?? 'Unknown';
+        return $categories[$this->category] ?? $this->category ?? 'Uncategorized';
     }
 
     public function getStockStatusAttribute()
     {
-        if ($this->stocks == 0) {
+        if ($this->stocks <= 0) {
             return 'out_of_stock';
-            
-        } elseif ($this->stocks < 10) { // You can adjust this threshold
+        } elseif ($this->stocks < 10) {
             return 'low_stock';
-
         } else {
             return 'in_stock';
         }
-        
     }
 
     public function getStockStatusColorAttribute()

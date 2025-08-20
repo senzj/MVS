@@ -33,9 +33,15 @@ new #[Layout('components.layouts.auth', ['title' => '注册 | REGISTER'])] class
             ],
         ]);
 
-        $validated['password'] = Hash::make($validated['password']);
+        $formatted_data = [
+            'name' => ucwords($validated['name']),
+            'email' => strtolower($validated['email']),
+            'username' => ucwords($validated['username']),
+        ];
 
-        event(new Registered(($user = User::create($validated))));
+        $formatted_data['password'] = Hash::make($validated['password']);
+
+        event(new Registered(($user = User::create($formatted_data))));
 
         // redirect user to login page after creating account
         $this->redirect(route('login'));
@@ -109,7 +115,7 @@ new #[Layout('components.layouts.auth', ['title' => '注册 | REGISTER'])] class
         />
 
         <div class="flex items-center justify-end">
-            <flux:button type="submit" variant="primary" class="w-full">
+            <flux:button type="submit" variant="primary" class="w-full cursor-pointer">
                 {{ __('Create account') }}
             </flux:button>
         </div>

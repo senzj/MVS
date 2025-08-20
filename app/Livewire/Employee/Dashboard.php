@@ -16,10 +16,7 @@ class Dashboard extends Component
     public $sortBy = 'id';
     public $sortDirection = 'asc';
 
-    // Modal properties
-    public $showCreateModal = false;
-    public $showEditModal = false;
-    public $showDeleteModal = false;
+    // Selected employee for operations
     public $selectedEmployeeId = null;
 
     // Form properties
@@ -67,20 +64,8 @@ class Dashboard extends Component
         $this->resetPage();
     }
 
-    // Modal methods
-    public function openCreateModal()
-    {
-        $this->resetForm();
-        $this->showCreateModal = true;
-    }
-
-    public function closeCreateModal()
-    {
-        $this->showCreateModal = false;
-        $this->resetForm();
-    }
-
-    public function openEditModal($employeeId)
+    // Alpine.js modal helper methods
+    public function loadEmployeeForEdit($employeeId)
     {
         $employee = Employee::find($employeeId);
         if ($employee) {
@@ -88,26 +73,12 @@ class Dashboard extends Component
             $this->name = $employee->name;
             $this->contact_number = $employee->contact_number;
             $this->status = $employee->status;
-            $this->showEditModal = true;
         }
     }
 
-    public function closeEditModal()
-    {
-        $this->showEditModal = false;
-        $this->resetForm();
-    }
-
-    public function openDeleteModal($employeeId)
+    public function setSelectedEmployee($employeeId)
     {
         $this->selectedEmployeeId = $employeeId;
-        $this->showDeleteModal = true;
-    }
-
-    public function closeDeleteModal()
-    {
-        $this->showDeleteModal = false;
-        $this->selectedEmployeeId = null;
     }
 
     // CRUD methods
@@ -122,8 +93,11 @@ class Dashboard extends Component
             'is_archived' => false,
         ]);
 
-        session()->flash('success', 'Employee created successfully!');
-        $this->closeCreateModal();
+        // close form modal
+        $this->dispatch('close-create-modal');
+
+        $this->dispatch('show-success', ['message' => 'Employee created successfully!']);
+        $this->resetForm();
     }
 
     public function updateEmployee()
@@ -132,36 +106,45 @@ class Dashboard extends Component
 
         $employee = Employee::find($this->selectedEmployeeId);
         
-        $employee->update([
-            'name' => ucwords(trim($this->name)),
-            'contact_number' => $this->contact_number,
-            'status' => $this->status,
-        ]);
+        if ($employee) {
+            $employee->update([
+                'name' => ucwords(trim($this->name)),
+                'contact_number' => $this->contact_number,
+                'status' => $this->status,
+            ]);
 
-        session()->flash('success', 'Employee updated successfully!');
-        $this->closeEditModal();
+            // close form modal
+            $this->dispatch('close-edit-modal');
+
+            $this->dispatch('show-success', ['message' => 'Employee updated successfully!']);
+            $this->resetForm();
+        } else {
+            $this->dispatch('show-error', ['message' => 'Employee not found!']);
+        }
     }
 
     public function deleteEmployee()
     {
         $employee = Employee::find($this->selectedEmployeeId);
         if (!$employee) {
-            session()->flash('error', 'Employee not found!');
+            $this->dispatch('show-error', ['message' => 'Employee not found!']);
             return;
         }
 
         // Check if employee has ongoing orders
         $ongoingOrders = $employee->orders()->whereIn('status', ['pending', 'in_progress', 'out_for_delivery'])->count();
         if ($ongoingOrders > 0) {
-            session()->flash('error', 'Cannot archive employee with ongoing orders!');
-            $this->closeDeleteModal();
+            $this->dispatch('show-error', ['message' => 'Cannot archive employee with ongoing orders!']);
             return;
         }
 
+        // close modal
+        $this->dispatch('close-delete-modal');
+
         // Archive the employee instead of deleting
         $employee->update(['is_archived' => true]);
-        session()->flash('success', 'Employee archived successfully!');
-        $this->closeDeleteModal();
+        $this->dispatch('show-success', ['message' => 'Employee archived successfully!']);
+        $this->selectedEmployeeId = null;
     }
 
     // Add method to restore archived employee
@@ -170,7 +153,7 @@ class Dashboard extends Component
         $employee = Employee::find($employeeId);
         if ($employee && $employee->is_archived) {
             $employee->update(['is_archived' => false]);
-            session()->flash('success', 'Employee restored successfully!');
+            $this->dispatch('show-success', ['message' => 'Employee restored successfully!']);
         }
     }
 

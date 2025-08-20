@@ -10,22 +10,22 @@
             <p class="text-sm text-zinc-600 dark:text-zinc-400">Manage today's orders, payments, and status updates.</p>
         </div>
         <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+            <span class="inline-flex items-center gap-1 px-2 py-1 text-s rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
                 <i class="fas fa-clock"></i>
                 Ongoing: {{ $ongoingCount }}
             </span>
-            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+            <span class="inline-flex items-center gap-1 px-2 py-1 text-s rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                 <i class="fas fa-check-circle"></i>
                 Completed: {{ $completedCount }}
             </span>
 
             {{-- create order --}}
-            <button type="button" class="ml-2 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition dark:bg-blue-500 dark:hover:bg-blue-600">
-                <a href="{{ route('orders.create') }}" class="flex items-center gap-1" wire:navigate>
+            <a href="{{ route('orders.create') }}" class="flex items-center gap-1" wire:navigate>
+                <button type="button" class="cursor-pointer ml-6 mr-10 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition dark:bg-blue-500 dark:hover:bg-blue-600">
                     <i class="fas fa-plus"></i>
                     <span>Create Order</span>
-                </a>
-            </button>
+                </button>
+            </a>
         </div>
     </div>
 
@@ -36,22 +36,41 @@
         </h3>
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
-                    <thead class="bg-zinc-50 dark:bg-zinc-900">
+                <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700 table-fixed">
+                    <thead class="bg-zinc-200 dark:bg-zinc-900">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                            {{-- order receipt id --}}
+                            <th class="w-30 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                 <i class="fas fa-receipt mr-1"></i>Receipt #
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+
+                            {{-- customer name --}}
+                            <th class="w-35 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                 <i class="fas fa-user mr-1"></i>Customer
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+
+                            {{-- status --}}
+                            <th class="w-20 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                 <i class="fas fa-info-circle mr-1"></i>Status
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+
+                            {{-- payment type --}}
+                            <th class="w-35 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                 <i class="fas fa-credit-card mr-1"></i>Payment
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+
+                            {{-- delivered by --}}
+                            <th class="w-40 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                <i class="fas fa-user-tie mr-1"></i>Delivered By
+                            </th>
+
+                            {{-- date and time of the order --}}
+                            <th class="w-40 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                <i class="fas fa-clock mr-1"></i>Date & Time
+                            </th>
+
+                            {{-- action button --}}
+                            <th class="w-50 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                 <i class="fas fa-cogs mr-1"></i>Actions
                             </th>
                         </tr>
@@ -59,22 +78,27 @@
                     <tbody class="bg-white dark:bg-zinc-800 divide-y divide-zinc-200 dark:divide-zinc-700">
                         @forelse($ongoing as $order)
                             <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+
+                                {{-- order id --}}
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">
                                         <i class="fas fa-hashtag mr-1 text-zinc-400"></i>{{ $order->receipt_number }}
                                     </div>
                                 </td>
+
+                                {{-- customer name --}}
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm text-zinc-900 dark:text-zinc-100">
                                         <i class="fas fa-user-circle mr-1 text-zinc-400"></i>{{ $order->customer->name ?? 'N/A' }}
                                     </div>
                                 </td>
+
+                                {{-- order status --}}
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     @if($editingOrderId === $order->id)
                                         <select wire:model="editStatus" class="border rounded px-2 py-1 text-xs bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
                                             <option value="pending">Pending</option>
                                             <option value="delivered">Delivered</option>
-                                            <option value="completed">Completed</option>
                                             <option value="cancelled">Cancelled</option>
                                         </select>
                                     @else
@@ -92,55 +116,105 @@
                                         </span>
                                     @endif
                                 </td>
+
+                                {{-- order payment status --}}
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    @if($order->is_paid)
-                                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                            <i class="fas fa-check-circle"></i>
-                                            Paid
-                                        </span>
+                                    @if($editingOrderId === $order->id)
+                                        {{-- Edit mode: Show checkbox to toggle payment --}}
+                                        <div class="flex flex-col items-center gap-2">
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full {{ $order->is_paid ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' }}">
+                                                <i class="fas fa-{{ $order->is_paid ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                                                {{ $order->is_paid ? 'Paid' : 'Unpaid' }}
+                                            </span>
+                                            
+                                            {{-- Always show editable checkbox in edit mode --}}
+                                            <label class="inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" 
+                                                       {{ $order->is_paid ? 'checked' : '' }}
+                                                       class="rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500 cursor-pointer" 
+                                                       wire:click="togglePaid({{ $order->id }})" />
+                                                <span class="ml-1 text-xs text-zinc-600 dark:text-zinc-400">
+                                                    {{ $order->is_paid ? 'Mark unpaid' : 'Mark paid' }}
+                                                </span>
+                                            </label>
+                                        </div>
                                     @else
-                                        <div class="flex items-center gap-2">
+                                        {{-- View mode: Only show payment status --}}
+                                        @if($order->is_paid)
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                                <i class="fas fa-check-circle"></i>
+                                                Paid
+                                            </span>
+                                        @else
                                             <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
                                                 <i class="fas fa-exclamation-triangle"></i>
                                                 Unpaid
                                             </span>
-                                            <label class="inline-flex items-center">
-                                                <input type="checkbox" class="rounded border-zinc-300 dark:border-zinc-600 text-blue-600" wire:click="togglePaid({{ $order->id }})" />
-                                                <span class="ml-1 text-xs text-zinc-600 dark:text-zinc-400">Mark paid</span>
-                                            </label>
-                                        </div>
+                                        @endif
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <div class="flex items-center gap-2">
-                                        <button wire:click="viewOrderDetails({{ $order->id }})" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300" title="View Details">
-                                            <i class="fas fa-eye"></i>
+
+                                {{-- delivered by --}}
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-zinc-900 dark:text-zinc-100">
+                                        <i class="fas fa-user-tie mr-1 text-zinc-400"></i>
+                                        {{ $order->employee->name ?? 'N/A' }}
+                                    </div>
+                                </td>
+
+                                {{-- order date and time --}}
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-zinc-900 dark:text-zinc-100">
+                                        <small class="text-xs text-zinc-500 dark:text-zinc-400">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            {{ $order->created_at->format('M d, Y') . ' | ' . $order->created_at->format('h:i A') }}
+                                        </small>
+                                    </div>
+                                </td>
+
+                                {{-- action buttons --}}
+                                <td class="px-6 py-4 whitespace-nowrap text-base font-medium">
+                                    <div class="flex items-center justify-center gap-1">
+                                        <button wire:click="viewOrderDetails({{ $order->id }})" class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="View Details">
+                                            <i class="fas fa-eye text-lg"></i>
+                                            <span class="text-xs">View</span>
                                         </button>
                                         
                                         @if($editingOrderId === $order->id)
-                                            <button wire:click="saveEdit({{ $order->id }})" class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300" title="Save Changes">
-                                                <i class="fas fa-save"></i>
+                                            <button wire:click="saveEdit({{ $order->id }})" class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/20 rounded-lg transition-colors" title="Save Changes">
+                                                <i class="fas fa-save text-lg"></i>
+                                                <span class="text-xs">Save</span>
                                             </button>
                                         @else
-                                            <button wire:click="editOrder({{ $order->id }})" class="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-300" title="Edit Order">
-                                                <i class="fas fa-edit"></i>
+                                            <button wire:click="editOrder({{ $order->id }})" class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors" title="Edit Order">
+                                                <i class="fas fa-edit text-lg"></i>
+                                                <span class="text-xs">Edit</span>
                                             </button>
                                         @endif
                                         
                                         <button
                                             wire:click="markFinished({{ $order->id }})"
-                                            class="text-green-600 hover:text-green-900 disabled:text-zinc-400 disabled:cursor-not-allowed dark:text-green-400 dark:hover:text-green-300 dark:disabled:text-zinc-600"
-                                            @if(!$order->is_paid) disabled @endif
+                                            class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium text-green-600 hover:text-green-900 disabled:text-zinc-400 disabled:cursor-not-allowed dark:text-green-400 dark:hover:text-green-300 dark:disabled:text-zinc-600 hover:bg-green-100 dark:hover:bg-green-900/20 disabled:hover:bg-transparent rounded-lg transition-colors
+                                            @if (!$order->is_paid)
+                                                opacity-50 cursor-not-allowed
+                                            @else
+                                                opacity-100 cursor-pointer
+                                            @endif"
                                             title="{{ $order->is_paid ? 'Mark as finished' : 'Cannot finish unpaid orders' }}"
+
+                                            @if(!$order->is_paid) 
+                                                disabled 
+                                            @endif
                                         >
-                                            <i class="fas fa-check-double"></i>
+                                            <i class="fas fa-check-double text-lg"></i>
+                                            <span class="text-xs">Complete</span>
                                         </button>
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
+                                <td colspan="10" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
                                     <div class="flex flex-col items-center">
                                         <i class="fas fa-inbox text-4xl mb-3"></i>
                                         <p class="text-sm">No ongoing orders today.</p>
@@ -161,22 +235,41 @@
         </h3>
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
-                    <thead class="bg-zinc-50 dark:bg-zinc-900">
+                <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700 table-fixed">
+                    <thead class="bg-zinc-200 dark:bg-zinc-900">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                            {{-- order receipt id --}}
+                            <th class="w-30 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                 <i class="fas fa-receipt mr-1"></i>Receipt #
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+
+                            {{-- customer name --}}
+                            <th class="w-35 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                 <i class="fas fa-user mr-1"></i>Customer
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+
+                            {{-- status --}}
+                            <th class="w-20 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                 <i class="fas fa-info-circle mr-1"></i>Status
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+
+                            {{-- payment type --}}
+                            <th class="w-35 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                 <i class="fas fa-credit-card mr-1"></i>Payment
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+
+                            {{-- delivered by --}}
+                            <th class="w-40 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                <i class="fas fa-user-tie mr-1"></i>Delivered By
+                            </th>
+
+                            {{-- date and time of the order --}}
+                            <th class="w-40 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                <i class="fas fa-clock mr-1"></i>Date & Time
+                            </th>
+
+                            {{-- action button --}}
+                            <th class="w-60 px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                 <i class="fas fa-cogs mr-1"></i>Actions
                             </th>
                         </tr>
@@ -184,16 +277,22 @@
                     <tbody class="bg-white dark:bg-zinc-800 divide-y divide-zinc-200 dark:divide-zinc-700">
                         @forelse($completed as $order)
                             <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+
+                                {{-- order reciept number --}}
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">
                                         <i class="fas fa-hashtag mr-1 text-zinc-400"></i>{{ $order->receipt_number }}
                                     </div>
                                 </td>
+
+                                {{-- customer name --}}
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm text-zinc-900 dark:text-zinc-100">
                                         <i class="fas fa-user-circle mr-1 text-zinc-400"></i>{{ $order->customer->name ?? 'N/A' }}
                                     </div>
                                 </td>
+
+                                {{-- order status --}}
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     @if($editingOrderId === $order->id)
                                         <select wire:model="editStatus" class="border rounded px-2 py-1 text-xs bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
@@ -217,25 +316,85 @@
                                         </span>
                                     @endif
                                 </td>
+
+                                {{-- payment status --}}
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                        <i class="fas fa-check-circle"></i>
-                                        Paid
-                                    </span>
+                                    @if($editingOrderId === $order->id)
+                                        {{-- Edit mode: Show checkbox to toggle payment --}}
+                                        <div class="flex flex-col items-center gap-2">
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full {{ $order->is_paid ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' }}">
+                                                <i class="fas fa-{{ $order->is_paid ? 'check-circle' : 'exclamation-triangle' }}"></i>
+                                                {{ $order->is_paid ? 'Paid' : 'Unpaid' }}
+                                            </span>
+                                            
+                                            {{-- Always show editable checkbox in edit mode --}}
+                                            <label class="inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" 
+                                                       {{ $order->is_paid ? 'checked' : '' }}
+                                                       class="rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500 cursor-pointer" 
+                                                       wire:click="togglePaid({{ $order->id }})" />
+                                                <span class="ml-1 text-xs text-zinc-600 dark:text-zinc-400">
+                                                    {{ $order->is_paid ? 'Mark unpaid' : 'Mark paid' }}
+                                                </span>
+                                            </label>
+                                        </div>
+                                    @else
+                                        {{-- View mode: Only show payment status --}}
+                                        @if($order->is_paid)
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                                <i class="fas fa-check-circle"></i>
+                                                Paid
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                Unpaid
+                                            </span>
+                                        @endif
+                                    @endif
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <div class="flex items-center gap-2">
-                                        <button wire:click="viewOrderDetails({{ $order->id }})" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300" title="View Details">
-                                            <i class="fas fa-eye"></i>
+
+                                {{-- delivered by --}}
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-zinc-900 dark:text-zinc-100">
+                                        <i class="fas fa-user-tie mr-1 text-zinc-400"></i>
+                                        {{ $order->employee->name ?? 'N/A' }}
+                                    </div>
+                                </td>
+
+                                {{-- date and time of delivery --}}
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-zinc-900 dark:text-zinc-100">
+                                        <div class="flex flex-col gap-1">
+                                            <small class="text-xs text-zinc-500 dark:text-zinc-400">
+                                                <i class="fas fa-clock mr-1 text-zinc-400"></i>
+                                                {{ $order->created_at->format('M d, Y') . ' | ' . $order->created_at->format('h:i A') }}
+                                            </small>
+                                            <small class="text-xs text-zinc-500 dark:text-zinc-400">
+                                                <i class="fas fa-calendar-check mr-1 text-zinc-400"></i>
+                                                {{ $order->updated_at->format('M d, Y') . ' | ' . $order->updated_at->format('h:i A') }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                {{-- action buttons --}}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-cent">
+                                    <div class="flex items-center justify-center gap-3">
+                                        <button wire:click="viewOrderDetails({{ $order->id }})" class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="View Details">
+                                            <i class="fas fa-eye text-lg"></i>
+                                            <span class="text-xs">View</span>
                                         </button>
                                         
                                         @if($editingOrderId === $order->id)
-                                            <button wire:click="saveEdit({{ $order->id }})" class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300" title="Save Changes">
-                                                <i class="fas fa-save"></i>
+                                            <button wire:click="saveEdit({{ $order->id }})" class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/20 rounded-lg transition-colors" title="Save Changes">
+                                                <i class="fas fa-save text-lg"></i>
+                                                <span class="text-xs">Save</span>
                                             </button>
                                         @else
-                                            <button wire:click="editOrder({{ $order->id }})" class="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-300" title="Edit Order">
-                                                <i class="fas fa-edit"></i>
+                                            <button wire:click="editOrder({{ $order->id }})" class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors" title="Edit Order">
+                                                <i class="fas fa-edit text-lg"></i>
+                                                <span class="text-xs">Edit</span>
                                             </button>
                                         @endif
                                     </div>
@@ -243,7 +402,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
+                                <td colspan="10" class="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
                                     <div class="flex flex-col items-center">
                                         <i class="fas fa-archive text-4xl mb-3"></i>
                                         <p class="text-sm">No completed/cancelled orders today.</p>
@@ -259,7 +418,7 @@
 
     {{-- Order Details Modal --}}
     @if($showOrderDetailsModal && $selectedOrder)
-        <div class="fixed inset-0 bg-zinc-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="fixed inset-0 bg-zinc-500/80 flex items-center justify-center p-4 z-50">
             <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                 <div class="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-700">
                     <h3 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">
@@ -355,9 +514,19 @@
                                     </div>
                                     <div class="flex justify-between">
                                         <dt class="text-sm text-zinc-600 dark:text-zinc-400">
-                                            <i class="fas fa-map-marker-alt mr-1"></i>Unit Address:
+                                            <i class="fas fa-map-marker-alt mr-1"></i>Unit & Address:
                                         </dt>
-                                        <dd class="text-sm text-zinc-900 dark:text-zinc-100">{{ $selectedOrder->customer->unit_address ?? 'N/A' }}</dd>
+                                        @if ($selectedOrder->customer->unit || $selectedOrder->customer->address)
+                                            <dd class="text-sm text-zinc-900 dark:text-zinc-100">{{ $selectedOrder->customer->unit }}, {{ $selectedOrder->customer->address }}</dd>
+
+                                        @elseif (!$selectedOrder->customer->unit && $selectedOrder->customer->address)
+                                            <dd class="text-sm text-zinc-900 dark:text-zinc-100">{{ $selectedOrder->customer->address }}</dd>
+
+                                        @else
+                                            <dd class="text-sm text-zinc-900 dark:text-zinc-100">Not Provided</dd>
+
+                                        @endif
+
                                     </div>
                                     <div class="flex justify-between">
                                         <dt class="text-sm text-zinc-600 dark:text-zinc-400">
@@ -382,17 +551,29 @@
                         @if($selectedOrder->orderItems && count($selectedOrder->orderItems) > 0)
                             <div class="overflow-x-auto">
                                 <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
-                                    <thead class="bg-zinc-50 dark:bg-zinc-900">
+                                    <thead class="bg-zinc-200 dark:bg-zinc-900">
                                         <tr>
+                                            {{-- product id --}}
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
+                                                <i class="fas fa-tag mr-1"></i>ID
+                                            </th>
+
+                                            {{-- product name --}}
                                             <th class="px-4 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
                                                 <i class="fas fa-box mr-1"></i>Product
                                             </th>
+
+                                            {{-- purchased quantity --}}
                                             <th class="px-4 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
                                                 <i class="fas fa-sort-numeric-up mr-1"></i>Quantity
                                             </th>
+
+                                            {{-- product price --}}
                                             <th class="px-4 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
                                                 <i class="fas fa-peso-sign mr-1"></i>Price
                                             </th>
+
+                                            {{-- product total amount price --}}
                                             <th class="px-4 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
                                                 <i class="fas fa-calculator mr-1"></i>Total
                                             </th>
@@ -401,27 +582,39 @@
                                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-700">
                                         @foreach($selectedOrder->orderItems as $item)
                                             <tr>
+                                                {{-- product id --}}
+                                                <td class="px-4 py-2 text-sm text-zinc-900 dark:text-zinc-100">
+                                                    <i class="fas fa-hashtag mr-1 text-zinc-400"></i>{{ $item->product->id ?? 'N/A' }}
+                                                </td>
+
+                                                {{-- product name --}}
                                                 <td class="px-4 py-2 text-sm text-zinc-900 dark:text-zinc-100">
                                                     <i class="fas fa-tag mr-1 text-zinc-400"></i>{{ $item->product->name ?? 'N/A' }}
                                                 </td>
+
+                                                {{-- purchased quantity --}}
                                                 <td class="px-4 py-2 text-sm text-zinc-900 dark:text-zinc-100">
                                                     <i class="fas fa-cubes mr-1 text-zinc-400"></i>{{ $item->quantity }}
                                                 </td>
-                                                <td class="px-4 py-2 text-sm text-zinc-900 dark:text-zinc-100">₱{{ number_format($item->price, 2) }}</td>
-                                                <td class="px-4 py-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">₱{{ number_format($item->quantity * $item->price, 2) }}</td>
+
+                                                {{-- product price --}}
+                                                <td class="px-4 py-2 text-sm text-zinc-900 dark:text-zinc-100">₱{{ number_format($item->unit_price, 2) }}</td>
+
+                                                {{-- product total amount price --}}
+                                                <td class="px-4 py-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">₱{{ number_format($item->total_price, 2) }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
                                 </table>
                             </div>
                             
-                            {{-- Order Total --}}
+                            {{-- Order Total Amount --}}
                             <div class="mt-4 border-t border-zinc-200 dark:border-zinc-700 pt-4">
                                 <div class="flex justify-between items-center">
                                     <span class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                                         <i class="fas fa-receipt mr-2"></i>Total Amount:
                                     </span>
-                                    <span class="text-xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($selectedOrder->orderItems->sum(function($item) { return $item->quantity * $item->price; }), 2) }}</span>
+                                    <span class="text-xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($selectedOrder->order_total, 2) }}</span>
                                 </div>
                             </div>
                         @else

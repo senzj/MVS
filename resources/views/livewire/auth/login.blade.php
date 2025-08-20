@@ -33,7 +33,7 @@ new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class ex
         $this->ensureIsNotRateLimited();
 
         if (! Auth::attempt([
-            'username' => $this->username,
+            'username' => ucwords($this->username),
             'password' => $this->password
         ], 
             $this->remember)) {
@@ -84,7 +84,22 @@ new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class ex
 }; 
 ?>
 
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-2">
+
+    <div class="text-center">
+        <div onclick="window.location.href='/'"  class="cursor-pointer bg-gradient-to-r from-[#B22222] to-[#8B0000] rounded-xl p-6 mb-1">
+            <h1 class="text-5xl font-bold text-[#FFD700] tracking-wider">
+                紅運雜貨铺
+            </h1>
+            <p class="text-[#FFD700]/90 text-xl font-semibold">
+                MGM 888 VARIETY STORE
+            </p>
+            <small class="text-[#FFD700]/70">
+                842 Masangkay St. Binondo, Manila
+            </small>
+        </div>
+    </div>
+
     <x-auth-header :title="__('Log in to your account')" :description="__('Enter your email and password below to log in')" />
 
     {{-- Session Status --}}
