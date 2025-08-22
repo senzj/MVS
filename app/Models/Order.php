@@ -68,12 +68,13 @@ class Order extends Model
     public function getStatusColorAttribute()
     {
         return match($this->status) {
-            'pending' => 'yellow',
-            'paid' => 'blue',
-            'delivered' => 'purple',
-            'completed' => 'green',
-            'cancelled' => 'red',
-            default => 'gray'
+            'pending'    => 'amber',   // waiting, attention (yellowish-orange, softer than bright yellow)
+            'paid'       => 'blue',    // financial / confirmed
+            'in_transit' => 'indigo',  // movement / ongoing process
+            'delivered'  => 'purple',  // finished delivery, but not fully closed
+            'completed'  => 'green',   // success / done
+            'cancelled'  => 'red',     // error / stop
+            default      => 'gray',    // unknown / neutral
         };
     }
 }

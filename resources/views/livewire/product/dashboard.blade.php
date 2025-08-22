@@ -334,22 +334,26 @@
 
                             {{-- product stock status --}}
                             <td class="px-6 py-4 text-center">
-                                @if(!$product->is_in_stock)
+                                @php
+                                    $isOutOfStock = empty($product->stocks) || (int) $product->stocks === 0;
+                                @endphp
+
+                                @if($isOutOfStock)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                        <i class="fas fa-times-circle mr-1"></i>Out of Stock
+                                    </span>
+                                @elseif(!$product->is_in_stock)
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-200 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
                                         <i class="fas fa-ban mr-1"></i>Unavailable
                                     </span>
                                 @else
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                         {{ $product->stock_status === 'in_stock' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : '' }}
-                                        {{ $product->stock_status === 'low_stock' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : '' }}
-                                        {{ $product->stock_status === 'out_of_stock' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : '' }}
-                                    ">
+                                        {{ $product->stock_status === 'low_stock' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : '' }}">
                                         @if($product->stock_status === 'in_stock')
                                             <i class="fas fa-check-circle mr-1"></i>In Stock
                                         @elseif($product->stock_status === 'low_stock')
                                             <i class="fas fa-exclamation-triangle mr-1"></i>Low Stock
-                                        @else
-                                            <i class="fas fa-times-circle mr-1"></i>Out of Stock
                                         @endif
                                     </span>
                                 @endif
@@ -358,37 +362,67 @@
                             {{-- action button --}}
                             <td class="px-6 py-2 text-center">
                                 <div class="flex items-center justify-center gap-1 min-w-[180px]">
+                                    
                                     {{-- Availability Toggle Button --}}
                                     @if ($product->is_in_stock)
-                                        <button @click="openArchiveModal({{ $product->id }})" class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/20 rounded-md transition-colors min-w-[50px]" 
+                                        <button @click="openArchiveModal({{ $product->id }})"
+                                            class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium 
+                                                text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 
+                                                hover:bg-green-100 dark:hover:bg-green-900/20 rounded-md transition-colors 
+                                                w-[60px] text-center"
                                             title="This Item is Currently for Sale - Mark as Unavailable">
                                             <i class="fas fa-eye-slash text-sm"></i>
                                             <span class="text-[15px] leading-tight">Hide</span>
                                         </button>
                                     @else
-                                        <button wire:click="makeAvailable({{ $product->id }})" class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/20 rounded-md transition-colors min-w-[50px]" 
-                                            title="This Item is Currently Hidden - Make Available for Sale">
-                                            <i class="fas fa-eye text-sm"></i>
-                                            <span class="text-[15px] leading-tight">Show</span>
-                                        </button>
+                                        @if ($isOutOfStock)
+                                            <div class="cursor-not-allowed inline-flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium 
+                                                        text-zinc-400 dark:text-zinc-600 w-[60px] text-center"
+                                                title="This product is out of stock. Edit to add more stocks.">
+                                                <i class="fas fa-ban text-sm"></i>
+                                                <span class="text-[14px] leading-tight">Out Of Stock</span>
+                                            </div>
+                                        @else
+                                            <button wire:click="makeAvailable({{ $product->id }})"
+                                                class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium 
+                                                    text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 
+                                                    hover:bg-orange-100 dark:hover:bg-orange-900/20 rounded-md transition-colors 
+                                                    w-[60px] text-center"
+                                                title="This Item is Currently Hidden - Make Available for Sale">
+                                                <i class="fas fa-eye text-sm"></i>
+                                                <span class="text-[15px] leading-tight">Show</span>
+                                            </button>
+                                        @endif
                                     @endif
                                     
                                     {{-- Edit Button --}}
-                                    <button @click="openEditModal({{ $product->id }})" class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-md transition-colors min-w-[50px]" title="Edit Product">
+                                    <button @click="openEditModal({{ $product->id }})"
+                                        class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium 
+                                            text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 
+                                            hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-md transition-colors 
+                                            w-[60px] text-center"
+                                        title="Edit Product">
                                         <i class="fas fa-edit text-sm"></i>
                                         <span class="text-[15px] leading-tight">Edit</span>
                                     </button>
                                     
                                     {{-- Delete Button (only for products with no order history) --}}
                                     @if($product->orderItems()->count() === 0)
-                                        <button @click="openDeleteModal({{ $product->id }})" class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-md transition-colors min-w-[50px]" title="Delete Permanently">
+                                        <button @click="openDeleteModal({{ $product->id }})"
+                                            class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium 
+                                                text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 
+                                                hover:bg-red-100 dark:hover:bg-red-900/20 rounded-md transition-colors 
+                                                w-[60px] text-center"
+                                            title="Delete Permanently">
                                             <i class="fas fa-trash text-sm"></i>
                                             <span class="text-[15px] leading-tight">Delete</span>
                                         </button>
                                     @else
-                                        <div class="inline-flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium text-zinc-400 dark:text-zinc-600 min-w-[50px]" title="Cannot delete - has order history">
-                                            <i class="fas fa-shield-alt text-sm"></i>
-                                            <span class="text-[15px] leading-tight">Protected</span>
+                                        <div class="inline-flex flex-col items-center gap-0.5 px-2 py-1.5 text-xs font-medium 
+                                                    text-zinc-400 dark:text-zinc-600 w-[60px] text-center"
+                                            title="Cannot delete - has order history">
+                                            <i class="fas fa-ban text-sm"></i>
+                                            <span class="text-[15px] leading-tight">Pending</span>
                                         </div>
                                     @endif
                                 </div>

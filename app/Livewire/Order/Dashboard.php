@@ -5,17 +5,18 @@ namespace App\Livewire\Order;
 use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\Order;
-use App\Models\Product; // <-- add
+use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;   // <-- add
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class Dashboard extends Component
 {
     public $editingOrderId = null;
     public $editStatus = null;
+    public $editDeliveredBy = null; // NEW
 
     // Order Details Modal
     public $showOrderDetailsModal = false;
@@ -24,10 +25,15 @@ class Dashboard extends Component
     // Create Order modal state
     public bool $showCreateModal = false;
 
+    // Delete Order modal state
+    public bool $showDeleteModal = false;
+    public ?int $deleteOrderId = null;
+    public ?string $deleteReceipt = null;
+
     // New order form
     public array $newOrder = [
         'customer_id' => null,
-        'delivered_by' => null, // Changed from delivery_id
+        'delivered_by' => null,
         'payment_type' => 'cash',
         'status' => 'pending',
         'is_paid' => false,
@@ -36,7 +42,7 @@ class Dashboard extends Component
 
     protected array $rules = [
         'newOrder.customer_id'   => 'nullable|integer|exists:customers,id',
-        'newOrder.delivered_by'  => 'nullable|integer|exists:employees,id', // Updated field name
+        'newOrder.delivered_by'  => 'nullable|integer|exists:employees,id',
         'newOrder.payment_type'  => 'required|in:cash,gcash',
         'newOrder.status'        => 'required|in:pending,delivered',
         'newOrder.is_paid'       => 'boolean',
@@ -47,8 +53,6 @@ class Dashboard extends Component
     {
         $this->selectedOrder = Order::with(['customer', 'employee', 'staff', 'orderItems.product'])
             ->find($orderId);
-        
-        Log::info('details:', $this->selectedOrder->toArray());
 
         if ($this->selectedOrder) {
             $this->showOrderDetailsModal = true;
@@ -67,29 +71,17 @@ class Dashboard extends Component
         if ($order) {
             $order->is_paid = !$order->is_paid;
             $order->save();
-            
-            session()->flash('success', 'Payment status updated successfully!');
-        }
-    }
 
-    public function markFinished($orderId)
-    {
-        $order = Order::find($orderId);
-        if (!$order) return;
-
-        // set editing to false
-        $this->editingOrderId = null;
-
-        if ($order->is_paid) {
-            $order->status = 'completed';
-            $order->save();
+            $this->dispatch('show-success', ['message' => "\"{$order->receipt_number}\" has been marked as paid!"]);
         }
     }
 
     public function editOrder($orderId)
     {
         $this->editingOrderId = $orderId;
-        $this->editStatus = optional(Order::find($orderId))->status;
+        $order = Order::find($orderId);
+        $this->editStatus = optional($order)->status;
+        $this->editDeliveredBy = optional($order)->delivered_by; // NEW
     }
 
     public function saveEdit($orderId)
@@ -100,12 +92,7 @@ class Dashboard extends Component
         $oldStatus = $order->status;
         $newStatus = $this->editStatus;
 
-        if (!in_array($newStatus, ['pending', 'delivered', 'completed', 'cancelled'], true)) {
-            return;
-        }
-
-        if ($oldStatus === $newStatus) {
-            $this->editingOrderId = null;
+        if (!in_array($newStatus, ['pending', 'in_transit', 'delivered', 'completed', 'cancelled'], true)) {
             return;
         }
 
@@ -120,11 +107,64 @@ class Dashboard extends Component
                 $this->applyInventory($order);
             }
 
+            // Update delivered_by if provided (allow null = unassigned)
+            $order->delivered_by = $this->editDeliveredBy;
+
             $order->status = $newStatus;
             $order->save();
         });
 
         $this->editingOrderId = null;
+    }
+
+    // Transition: Pending -> In Transit
+    public function startDelivery($orderId): void
+    {
+        $order = Order::find($orderId);
+        if (!$order) return;
+
+        // session flash message
+        $this->dispatch('show-info', ['message' => "Delivering order with \"{$order->receipt_number}\" !"]);
+
+        // mark order as in transit
+        if ($order->status === 'pending') {
+            $order->status = 'in_transit';
+            $order->save();
+        }
+    }
+
+    // Transition: In Transit -> Delivered
+    public function markDelivered($orderId): void
+    {
+        $order = Order::find($orderId);
+        if (!$order) return;
+
+        // session flash message
+        $this->dispatch('show-info', ['message' => "\"{$order->receipt_number}\" has been marked as delivered!"]);
+
+        // mark order as delivered
+        if ($order->status === 'in_transit') {
+            $order->status = 'delivered';
+            $order->save();
+        }
+    }
+
+    public function markFinished($orderId)
+    {
+        $order = Order::find($orderId);
+        if (!$order) return;
+
+        // set editing to false
+        $this->editingOrderId = null;
+
+        // session flash message
+        $this->dispatch('show-success', ['message' => "\"{$order->receipt_number}\" has been marked as finished!"]);
+
+        // mark order status complete
+        if ($order->is_paid && $order->status === 'delivered') {
+            $order->status = 'completed';
+            $order->save();
+        }
     }
 
     private function applyInventory(Order $order): void
@@ -174,6 +214,54 @@ class Dashboard extends Component
         $this->showCreateModal = false;
     }
 
+    public function confirmDelete(int $orderId): void
+    {
+        $order = Order::select('id', 'receipt_number')->find($orderId);
+        if (!$order) return;
+
+        $this->deleteOrderId = $order->id;
+        $this->deleteReceipt = $order->receipt_number;
+        $this->showDeleteModal = true;
+    }
+
+    public function closeDeleteModal(): void
+    {
+        $this->showDeleteModal = false;
+        $this->deleteOrderId = null;
+        $this->deleteReceipt = null;
+    }
+
+    public function deleteOrderConfirmed(): void
+    {
+        if (!$this->deleteOrderId) {
+            session()->flash('error', 'Order not found.');
+            return;
+        }
+            
+        DB::transaction(function () {
+            $order = Order::with('orderItems')->find($this->deleteOrderId);
+            if (!$order) return;
+
+            // Store receipt number for flash message before deletion
+            $receiptNumber = $order->receipt_number;
+
+            // Only rollback inventory if order status is not 'cancelled' 
+            // (cancelled orders already have their inventory rolled back)
+            if ($order->status !== 'cancelled') {
+                $this->rollbackInventory($order);
+            }
+
+            // Delete items first to avoid FK issues if cascade is not set
+            $order->orderItems()->delete();
+            $order->delete();
+
+            // flash message
+            session()->flash('success', 'Order "' . $receiptNumber . '" deleted successfully and inventory restored.');
+        });
+
+        $this->closeDeleteModal();
+    }
+
     protected function sanitizeNewOrder(): array
     {
         return collect($this->newOrder ?? [])
@@ -219,23 +307,31 @@ class Dashboard extends Component
 
     public function render()
     {
-        $today = Carbon::today();
-
-        // Eager load both employee and staff relationships
-        $orders = Order::with(['customer', 'employee', 'staff'])
-            ->whereDate('created_at', $today)
-            ->latest()
+        $orders = Order::with(['customer','employee','staff'])
+            ->where(function ($outer) {
+                // Today's orders (regardless of status)
+                $outer->where(function ($q) {
+                        $q->where('created_at', '>=', DB::raw('CURRENT_DATE'))
+                        ->where('created_at', '<', DB::raw('DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY)'));
+                    })
+                    // Or older orders that are not completed/cancelled
+                    ->orWhere(function ($q) {
+                        $q->where('created_at', '<', DB::raw('CURRENT_DATE'))
+                        ->whereNotIn('status', ['completed', 'cancelled']);
+                    });
+            })
+            ->orderByDesc('created_at')
             ->get();
 
-        $ongoing = $orders->whereIn('status', ['pending', 'delivered']);
+        // Filter for ongoing vs completed based on status only
+        $ongoing = $orders->whereNotIn('status', ['completed', 'cancelled']);
         $completed = $orders->whereIn('status', ['completed', 'cancelled']);
 
-        // Dropdown sources for modal
         $customers = Customer::query()->orderBy('name')->get(['id', 'name']);
         $employees = Employee::query()->orderBy('name')->get(['id', 'name']);
 
         return view('livewire.order.dashboard', [
-            'today' => $today->toFormattedDateString(),
+            'today' => now()->toFormattedDateString(),
             'ongoing' => $ongoing,
             'completed' => $completed,
             'ongoingCount' => $ongoing->count(),

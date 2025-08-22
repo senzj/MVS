@@ -155,30 +155,39 @@
             <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                 <thead class="bg-zinc-50 dark:bg-zinc-700">
                     <tr>
+                        {{-- employee ID --}}
                         <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider cursor-pointer" wire:click="sortByField('id')">
                             <div class="flex items-center gap-1">
-                                <i class="fas fa-hashtag"></i>
                                 ID
                                 @if($sortBy === 'id')
                                     <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }}"></i>
                                 @endif
                             </div>
                         </th>
+
+                        {{-- employee full name --}}
                         <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider cursor-pointer" wire:click="sortByField('name')">
                             <div class="flex items-center gap-1">
-                                <i class="fas fa-user"></i>
                                 Name
                                 @if($sortBy === 'name')
                                     <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }}"></i>
                                 @endif
                             </div>
                         </th>
+
+                        {{-- employee contact --}}
                         <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
-                            <i class="fas fa-phone mr-1"></i>Contact
+                            Contact
                         </th>
+
+                        {{-- employee orders delivered --}}
+                        <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
+                            Orders Delivered
+                        </th>
+
+                        {{-- employee status --}}
                         <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider cursor-pointer" wire:click="sortByField('status')">
                             <div class="flex items-center justify-center gap-1">
-                                <i class="fas fa-circle"></i>
                                 Status
                                 @if($sortBy === 'status')
                                     <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }}"></i>
@@ -196,7 +205,7 @@
 
                             {{-- employee ID --}}
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-900 dark:text-zinc-100">
-                                #{{ $employee->id }}
+                                ID: {{ $employee->id }}
                             </td>
 
                             {{-- employee name --}}
@@ -210,6 +219,13 @@
                             <td class="px-6 py-4 text-center">
                                 <div class="text-sm text-zinc-900 dark:text-zinc-100">
                                     <i class="fas fa-phone mr-1 text-zinc-400"></i>{{ $employee->contact_number ?: 'N/A' }}
+                                </div>
+                            </td>
+
+                            {{-- orders delivered --}}
+                            <td class="px-6 py-4 text-center">
+                                <div class="text-sm text-zinc-900 dark:text-zinc-100">
+                                    <i class="fas fa-box mr-1 text-zinc-400"></i>{{ $employee->orders_delivered ?: 0 }}
                                 </div>
                             </td>
 

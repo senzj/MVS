@@ -2,14 +2,15 @@
 
 namespace App\Livewire\Order;
 
-use Livewire\Component;
-use App\Models\Order;
 use App\Models\Customer;
 use App\Models\Employee;
-use App\Models\Product;
+use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\ReceiptCounter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Livewire\Component;
 
 class Create extends Component
 {
@@ -64,7 +65,11 @@ class Create extends Component
     public function loadData()
     {
         $this->customers = Customer::orderBy('id')->get();
-        $this->employees = Employee::orderBy('id')->get();
+
+        $this->employees = Employee::where('status', 'active')
+            ->where('is_archived', false)
+            ->orderBy('id')
+            ->get();
 
         // Only load products that are actually available
         $this->products = Product::where('is_in_stock', true)
@@ -75,12 +80,25 @@ class Create extends Component
 
     public function generateOrderNumber()
     {
-        // Get the last order ID from the database
-        $lastOrder = Order::latest('id')->first();
-        $nextId = $lastOrder ? $lastOrder->id + 1 : 1;
+        // Get the highest receipt number for the current year
+        $currentYear = now()->format('Y');
+        $prefix = "OR-{$currentYear}-";
+        
+        $lastReceiptNumber = Order::where('receipt_number', 'like', "{$prefix}%")
+            ->orderByDesc('receipt_number')
+            ->value('receipt_number');
+        
+        if ($lastReceiptNumber) {
+            // Extract the number part and increment
+            $lastNumber = (int) substr($lastReceiptNumber, -5);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            // First order of the year
+            $nextNumber = 1;
+        }
         
         // Format: OR-YEAR-XXXXX (5 digits with leading zeros)
-        return 'OR-' . now()->format('Y') . '-' . str_pad($nextId, 5, '0', STR_PAD_LEFT);
+        return $prefix . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
     }
 
     // Simplified customer selection
@@ -227,10 +245,11 @@ class Create extends Component
     {
         $query = Customer::query();
 
-        // Exclude all customers that already appear on any order
+        // Exclude only customers with an ongoing order (allow completed/cancelled)
         $excludedIds = Order::query()
-            ->whereNotNull('customer_id')
+            ->whereIn('status', ['pending', 'in_transit', 'delivered'])
             ->pluck('customer_id')
+            ->filter()
             ->unique()
             ->toArray();
 
@@ -238,12 +257,12 @@ class Create extends Component
             $query->whereNotIn('id', $excludedIds);
         }
 
-        // Also exclude the currently selected customer from the dropdown
+        // Also exclude the currently selected one from the dropdown
         if ($this->selectedCustomerId) {
             $query->where('id', '!=', (int) $this->selectedCustomerId);
         }
 
-        // Apply search
+        // Search
         $term = trim($this->customerSearch ?? '');
         if ($term !== '') {
             $query->where(function ($q) use ($term) {
