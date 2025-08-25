@@ -53,19 +53,49 @@
                 </div>
             </div>
 
-            {{-- Payment Type --}}
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    <i class="fas fa-credit-card mr-1"></i>Payment Type
-                </label>
-                <select wire:model="paymentType" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
-                    <option value="cash">Cash</option>
-                    <option value="gcash">GCash</option>
-                </select>
-                @error('paymentType') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
+            {{-- Order Type & Payment Type Row --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {{-- Order Type Toggle --}}
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                        <i class="fas fa-route mr-1"></i>Order Type
+                    </label>
+                    <div class="flex items-center space-x-3">
+
+                        {{-- Order Type toggle --}}
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   class="sr-only peer"
+                                   :checked="$wire.orderType === 'deliver'"
+                                   @change="$wire.set('orderType', $event.target.checked ? 'deliver' : 'walk_in')">
+                            <div class="relative w-16 h-8 bg-orange-400 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-8 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-7 after:w-7 after:transition-all peer-checked:bg-blue-600 transition-colors duration-300"></div>
+                        </label>
+
+                        {{-- Order Type Label --}}
+                        <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300 transition-all duration-300 flex items-center">
+                            <i class="mr-1 transition-all duration-300"
+                            :class="$wire.orderType === 'deliver' ? 'fas fa-truck text-blue-500' : 'fas fa-walking text-orange-500'"></i>
+                            <span x-text="$wire.orderType === 'deliver' ? 'Delivery' : 'Walk-In'"></span>
+                        </span>
+                    </div>
+                    @error('orderType') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
+                </div>
+
+                {{-- Payment Type --}}
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                        <i class="fas fa-credit-card mr-1"></i>Payment Type
+                    </label>
+                    <select wire:model="paymentType" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
+                        <option value="cash">Cash</option>
+                        <option value="gcash">GCash</option>
+                    </select>
+                    @error('paymentType') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
+                </div>
             </div>
 
-            {{-- Delivery Person --}}
+            {{-- Delivery Person (Only for Delivery Orders) --}}
+            @if($orderType === 'deliver')
             <div>
                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                     <i class="fas fa-user-tie mr-1"></i>Delivery Person
@@ -123,12 +153,34 @@
 
                         <ul class="max-h-80 overflow-y-auto p-2">
                             @forelse(($this->filteredEmployees ?? $employees) as $employee)
+                                @php
+                                    $isInTransit = $this->isEmployeeInTransit($employee->id);
+                                @endphp
                                 <li class="mb-2 last:mb-0">
-                                    <div wire:click="selectEmployee({{ $employee->id }})"
-                                        @click="open = false"
-                                        class="p-3 border border-zinc-200 dark:border-zinc-600 rounded-lg cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700">
-                                        <div class="font-medium text-zinc-900 dark:text-zinc-100">
-                                            <i class="fas fa-user-tie mr-1"></i>{{ $employee->name }}
+                                    <div 
+                                        x-data="{ inTransit: {{ $isInTransit ? 'true' : 'false' }}, employeeId: {{ $employee->id }}, employeeName: @js($employee->name) }"
+                                        @click="
+                                            if (inTransit) {
+                                                if (confirm(`Delivery Person ${employeeName} is currently delivering. Assign anyway?`)) {
+                                                    $wire.forceSelectEmployee(employeeId);
+                                                    open = false;
+                                                }
+                                            } else {
+                                                $wire.selectEmployee(employeeId);
+                                                open = false;
+                                            }
+                                        "
+                                        class="p-3 border border-zinc-200 dark:border-zinc-600 rounded-lg cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700 {{ $isInTransit ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' : '' }}"
+                                    >
+                                        <div class="font-medium text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
+                                            <span>
+                                                <i class="fas fa-user-tie mr-1"></i>{{ $employee->name }}
+                                            </span>
+                                            @if($isInTransit)
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                                    <i class="fas fa-shipping-fast mr-1"></i>In Transit
+                                                </span>
+                                            @endif
                                         </div>
                                     </div>
                                 </li>
@@ -138,22 +190,34 @@
                                 </li>
                             @endforelse
                         </ul>
+
                     </div>
                 </div>
 
                 @if($this->selectedEmployee)
-                    <p class="text-sm text-green-600 dark:text-green-400 mt-1">
-                        <i class="fas fa-check mr-1"></i>Selected: {{ $this->selectedEmployee->name }}
+                    @php
+                        $selectedIsInTransit = $this->isEmployeeInTransit($this->selectedEmployee->id);
+                    @endphp
+                    <p class="text-sm mt-1 flex items-center">
+                        <i class="fas fa-check mr-1 text-green-600 dark:text-green-400"></i>
+                        <span class="text-green-600 dark:text-green-400">Selected: {{ $this->selectedEmployee->name }}</span>
+                        @if($selectedIsInTransit)
+                            <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                <i class="fas fa-shipping-fast mr-1"></i>In Transit
+                            </span>
+                        @endif
                     </p>
                 @endif
                 @error('selectedEmployeeId')
                     <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span>
                 @enderror
             </div>
+            @endif
 
         </div>
 
-        {{-- Customer Information Card --}}
+        {{-- Customer Information Card (Only for Delivery Orders) --}}
+        @if($orderType === 'deliver')
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow p-6">
             <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
                 <i class="fas fa-user mr-2"></i>Customer Information
@@ -274,6 +338,7 @@
                 </div>
             @endif
         </div>
+        @endif
 
         {{-- Order Items Card --}}
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow p-6">

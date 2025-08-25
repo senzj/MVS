@@ -16,6 +16,7 @@ class Create extends Component
 {
     // Order form data
     public $orderNumber;
+    public $orderType = 'deliver'; // 'deliver' or 'walk_in'
     public $paymentType = 'cash';
     public $selectedEmployeeId = null;
     public $selectedCustomerId = null;
@@ -43,10 +44,11 @@ class Create extends Component
     public $products = [];
     
     protected $rules = [
+        'orderType' => 'required|in:deliver,walk_in',
         'paymentType' => 'required|in:cash,gcash',
-        'selectedEmployeeId' => 'required|exists:employees,id',
-        'selectedCustomerId' => 'required|exists:customers,id',
-        'customerName' => 'required|string|max:255',
+        'selectedEmployeeId' => 'nullable|exists:employees,id',
+        'selectedCustomerId' => 'nullable|exists:customers,id',
+        'customerName' => 'nullable|string|max:255',
         'customerUnit' => 'nullable|string|max:255',
         'customerAddress' => 'nullable|string|max:255',
         'customerContact' => 'nullable|string|max:20',
@@ -57,6 +59,7 @@ class Create extends Component
 
     public function mount()
     {
+        $this->orderType = 'deliver'; // Explicitly set default
         $this->orderNumber = $this->generateOrderNumber();
         $this->addOrderItem();
         $this->loadData();
@@ -66,6 +69,7 @@ class Create extends Component
     {
         $this->customers = Customer::orderBy('id')->get();
 
+        // Load employees with their in_transit status
         $this->employees = Employee::where('status', 'active')
             ->where('is_archived', false)
             ->orderBy('id')
@@ -76,6 +80,14 @@ class Create extends Component
             ->where('stocks', '>', 0)
             ->orderBy('id')
             ->get();
+    }
+
+    // Check if employee is currently in transit
+    public function isEmployeeInTransit($employeeId)
+    {
+        return Order::where('delivered_by', $employeeId)
+            ->where('status', 'in_transit')
+            ->exists();
     }
 
     public function generateOrderNumber()
@@ -115,11 +127,66 @@ class Create extends Component
         $this->customerSearch = '';
     }
 
+    // Handle employee selection with confirmation for in-transit employees
+    public function selectEmployeeWithCheck($employeeId)
+    {
+        $employee = Employee::find($employeeId);
+        if (!$employee) {
+            return;
+        }
+
+        $isInTransit = $this->isEmployeeInTransit($employeeId);
+        
+        if ($isInTransit) {
+            // This will be handled by the frontend confirmation
+            $this->dispatchBrowserEvent('confirm-employee-selection', [
+                'employeeId' => $employeeId,
+                'employeeName' => $employee->name
+            ]);
+        } else {
+            // Employee is available, select immediately
+            $this->selectEmployee($employeeId);
+        }
+    }
+
     // Simplified employee selection
     public function selectEmployee($employeeId)
     {
         $this->selectedEmployeeId = $employeeId;
         $this->employeeSearch = '';
+    }
+
+    // Force select employee (after confirmation)
+    public function forceSelectEmployee($employeeId)
+    {
+        $this->selectEmployee($employeeId);
+    }
+
+    // Handle order type changes
+    public function updatedOrderType()
+    {
+        // Clear selections when switching to walk-in
+        if ($this->orderType === 'walk_in') {
+            $this->selectedEmployeeId = null;
+            $this->selectedCustomerId = null;
+            $this->customerName = '';
+            $this->customerUnit = '';
+            $this->customerAddress = '';
+            $this->customerContact = '';
+        }
+        
+        // Clear any validation errors
+        $this->resetErrorBag();
+    }
+
+    // Debug method - you can call this from browser console: $wire.debugOrderType()
+    public function debugOrderType()
+    {
+        return [
+            'orderType' => $this->orderType,
+            'selectedEmployeeId' => $this->selectedEmployeeId,
+            'selectedCustomerId' => $this->selectedCustomerId,
+        ];
     }
 
     // Product selection with item index
@@ -322,7 +389,19 @@ class Create extends Component
     // Form Submission
     public function createOrder()
     {
-        $this->validate();
+        // Debug: Log the current orderType value
+        \Illuminate\Support\Facades\Log::info('Creating order with orderType: ' . $this->orderType);
+        
+        // Dynamic validation based on order type
+        $rules = $this->rules;
+        
+        if ($this->orderType === 'deliver') {
+            $rules['selectedEmployeeId'] = 'required|exists:employees,id';
+            $rules['selectedCustomerId'] = 'required|exists:customers,id';
+            $rules['customerName'] = 'required|string|max:255';
+        }
+        
+        $this->validate($rules);
 
         // Pre-check stocks before starting the transaction
         foreach ($this->orderItems as $i => $item) {
@@ -351,18 +430,19 @@ class Create extends Component
 
             // Create the order
             $order = Order::create([
-                'customer_id' => $this->selectedCustomerId,
+                'customer_id' => $this->orderType === 'deliver' ? $this->selectedCustomerId : null,
                 'created_by' => Auth::id(),
-                'delivered_by' => $this->selectedEmployeeId,
+                'delivered_by' => $this->orderType === 'deliver' ? $this->selectedEmployeeId : null,
                 'order_total' => $totalAmount,
+                'order_type' => $this->orderType,
                 'payment_type' => $this->paymentType,
-                'status' => 'pending',
-                'is_paid' => false,
+                'status' => $this->orderType === 'walk_in' ? 'completed' : 'pending',
+                'is_paid' => $this->orderType === 'walk_in' ? true : false,
                 'receipt_number' => $this->orderNumber,
             ]);
 
-            // Update customer information if changed
-            if ($this->selectedCustomerId) {
+            // Update customer information if changed (only for delivery orders)
+            if ($this->orderType === 'deliver' && $this->selectedCustomerId) {
                 $customer = Customer::find($this->selectedCustomerId);
                 $customer->update([
                     'name' => $this->customerName,

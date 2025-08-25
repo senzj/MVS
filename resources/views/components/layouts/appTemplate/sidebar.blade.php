@@ -46,6 +46,9 @@
                     {{-- orders history --}}
                     <flux:navlist.item icon="clock" :href="route('orders.history')" :current="request()->routeIs('orders.history')" wire:navigate>{{ __('Orders History') }}</flux:navlist.item>
 
+                    {{-- logs --}}
+                    <flux:navlist.item icon="server" :href="route('logs')" :current="request()->routeIs('logs')" wire:navigate>{{ __('Logs') }}</flux:navlist.item>
+
                 </flux:navlist.group>
 
             </flux:navlist>
@@ -84,14 +87,14 @@
                     <flux:menu.separator />
 
                     <flux:menu.radio.group>
-                        <flux:menu.item :href="route('settings.profile')" icon="cog" wire:navigate>{{ __('Settings') }}</flux:menu.item>
+                        <flux:menu.item :href="route('settings.profile')" icon="cog" wire:navigate class="cursor-pointer">{{ __('Settings') }}</flux:menu.item>
                     </flux:menu.radio.group>
 
                     <flux:menu.separator />
 
                     <form method="POST" action="{{ route('logout') }}" class="w-full">
                         @csrf
-                        <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full">
+                        <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="cursor-pointer w-full hover:bg-red-500">
                             {{ __('Log Out') }}
                         </flux:menu.item>
                     </form>
@@ -158,3 +161,5 @@
         @fluxScripts
     </body>
 </html>
+
+{{-- uses hero icons --}}

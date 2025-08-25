@@ -491,7 +491,7 @@
                     {{-- Price --}}
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            <i class="fas fa-peso-sign mr-1"></i>Price <small>(per unit/kg)</small>
+                            <i class="fas fa-peso-sign mr-1"></i>Price <small>(per unit/kilo)</small>
                         </label>
                         <input type="number" step="0.01" wire:model="price" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
                         @error('price') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
@@ -500,7 +500,7 @@
                     {{-- Initial Stock --}}
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            <i class="fas fa-cubes mr-1"></i>Stocks
+                            <i class="fas fa-cubes mr-1"></i>Stocks <small>(per unit/kilo)</small>
                         </label>
                         <input type="number" wire:model="stocks" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
                         @error('stocks') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror

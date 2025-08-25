@@ -36,6 +36,8 @@ Route::middleware(['auth'])->group(function () {
     // Employee route
     Volt::route('employees', 'employee.dashboard')->name('employees');
     Volt::route('employees/archived', 'employee.archive')->name('employees.archived');
+
+    Volt::route('logs', 'logs.log')->name('logs');
 });
 
 require __DIR__.'/auth.php';

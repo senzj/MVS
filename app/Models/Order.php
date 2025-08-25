@@ -13,6 +13,7 @@ class Order extends Model
         'created_by', // person who created this order
         'customer_id', // Foreign key to customers table
         'delivered_by', // Foreign key to employees table (delivery person)
+        'order_type', // Type of order (walk_in, deliver)
         'order_total', // Total amount for the order
         'payment_type', // Payment method (cash, gcash)
         'status', // Order status (pending, delivered, completed, cancelled)
@@ -69,6 +70,7 @@ class Order extends Model
     {
         return match($this->status) {
             'pending'    => 'amber',   // waiting, attention (yellowish-orange, softer than bright yellow)
+            'preparing'  => 'yellow',  // batch preparation phase
             'paid'       => 'blue',    // financial / confirmed
             'in_transit' => 'indigo',  // movement / ongoing process
             'delivered'  => 'purple',  // finished delivery, but not fully closed

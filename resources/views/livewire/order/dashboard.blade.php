@@ -1,5 +1,5 @@
 @section('title', 'Order Dashboard')
-<div class="container mx-auto p-1">
+<div class="container mx-auto p-1" wire:poll.1s="checkBatchTimers">
 
     {{-- Header --}}
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
@@ -89,7 +89,13 @@
                                 {{-- customer name --}}
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm text-zinc-900 dark:text-zinc-100">
-                                        <i class="fas fa-user-circle mr-1 text-zinc-400"></i>{{ $order->customer->name ?? 'N/A' }}
+                                        @if ($order->order_type === "walk_in" && !$order->customer)
+                                            <i class="fas fa-walking mr-1 text-zinc-400"></i>Walk-In
+                                        @elseif ($order->order_type === "walk_in" && $order->customer)
+                                            <i class="fas fa-user-circle mr-1 text-zinc-400"></i>{{ $order->customer->name }}
+                                        @else
+                                            <i class="fas fa-user-circle mr-1 text-zinc-400"></i>{{ $order->customer->name ?? 'N/A' }}
+                                        @endif
                                     </div>
                                 </td>
 
@@ -104,14 +110,21 @@
                                         </select>
                                     @else
                                         <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-{{ $order->status_color }}-100 text-{{ $order->status_color }}-800 dark:bg-{{ $order->status_color }}-900/30 dark:text-{{ $order->status_color }}-300">
-                                            @if($order->status === 'pending')
+                                            @if ($order->status === 'preparing')
+                                                <i class="fas fa-hourglass-start mr-1"></i>
+
+                                            @elseif($order->status === 'pending')
                                                 <i class="fas fa-clock mr-1"></i>
+
                                             @elseif ($order->status === 'in_transit')
                                                 <i class="fas fa-truck-fast mr-1"></i>
+
                                             @elseif($order->status === 'delivered')
                                                 <i class="fas fa-box-open mr-1"></i>
+
                                             @elseif($order->status === 'completed')
                                                 <i class="fas fa-check-circle mr-1"></i>
+
                                             @elseif($order->status === 'cancelled')
                                                 <i class="fas fa-times-circle mr-1"></i>
                                             @endif
@@ -184,8 +197,15 @@
                                         </select>
                                     @else
                                         <div class="text-sm text-zinc-900 dark:text-zinc-100">
-                                            <i class="fas fa-user-tie mr-1 text-zinc-400"></i>
-                                            {{ $order->employee->name ?? 'N/A' }}
+                                            @if ($order->order_type === "walk_in")
+                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                                    <i class="fas fa-walking"></i>
+                                                    Walk-In
+                                                </span>
+                                            @else
+                                                <i class="fas fa-user-tie mr-1 text-zinc-400"></i>
+                                                {{ $order->employee->name ?? 'N/A' }}
+                                            @endif
                                         </div>
                                     @endif
                                 </td>
@@ -242,53 +262,145 @@
                                         {{-- State-driven action --}}
                                         <div class="w-14 flex justify-center">
                                             @if($order->status === 'pending')
-                                                <button wire:click="startDelivery({{ $order->id }})"
-                                                    class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
-                                                        text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 
-                                                        hover:bg-indigo-100 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
-                                                    title="Start Delivery">
-                                                    <i class="fas fa-truck text-lg"></i>
-                                                    <span class="text-xs">Deliver</span>
-                                                </button>
+                                                @php
+                                                    $deliveryStatus = $this->getDeliveryPersonStatus($order->id);
+                                                @endphp
+                                                
+                                                @if($deliveryStatus === 'no_person')
+                                                    {{-- No delivery person assigned --}}
+                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
+                                                        text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50"
+                                                        title="No delivery person assigned">
+                                                        <i class="fas fa-user-slash text-lg"></i>
+                                                        <span class="text-xs">No Person</span>
+                                                    </div>
+
+                                                @elseif($deliveryStatus === 'available')
+                                                    {{-- Delivery person available --}}
+                                                    <button wire:click="startDelivery({{ $order->id }})"
+                                                        @disabled($editingOrderId)
+                                                        class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
+                                                            text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 
+                                                            hover:bg-indigo-100 dark:hover:bg-indigo-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        title="Start Delivery">
+                                                        <i class="fas fa-truck text-lg"></i>
+                                                        <span class="text-xs">Deliver</span>
+                                                    </button>
+
+                                                @elseif($deliveryStatus === 'batch_preparing' || $deliveryStatus === 'busy')
+                                                    {{-- Can add to batch or delivery person has active deliveries --}}
+                                                    <button wire:click="startDelivery({{ $order->id }})"
+                                                        @disabled($editingOrderId)
+                                                        class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
+                                                            text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 
+                                                            hover:bg-yellow-100 dark:hover:bg-yellow-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        title="Add to delivery batch">
+                                                        <i class="fas fa-plus-circle text-lg"></i>
+                                                        <span class="text-xs">Add Deliver</span>
+                                                    </button>
+
+                                                @elseif($deliveryStatus === 'preparing')
+                                                    {{-- Order is already in the batch --}}
+                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
+                                                        text-yellow-600 dark:text-yellow-400"
+                                                        title="Order is already in batch preparation">
+                                                        <i class="fas fa-hourglass-half text-lg"></i>
+                                                        <span class="text-xs">In Batch</span>
+                                                    </div>
+
+                                                @elseif($deliveryStatus === 'waiting')
+                                                    {{-- Order missed the batch window and is waiting --}}
+                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
+                                                        text-purple-600 dark:text-purple-400 cursor-not-allowed opacity-75"
+                                                        title="Missed batch window, waiting for next opportunity">
+                                                        <i class="fas fa-clock-rotate-left text-lg"></i>
+                                                        <span class="text-xs">In Queue</span>
+                                                    </div>
+
+                                                @else
+                                                    {{-- Fallback for any other status --}}
+                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
+                                                        text-orange-600 dark:text-orange-400 cursor-not-allowed opacity-75"
+                                                        title="Delivery person is currently busy">
+                                                        <i class="fas fa-clock text-lg"></i>
+                                                        <span class="text-xs">Busy</span>
+                                                    </div>
+                                                @endif
+                                            
+                                            @elseif($order->status === 'preparing')
+                                                {{-- Order in batch preparation with live countdown --}}
+                                                @php
+                                                    $employeeId = $order->delivered_by;
+                                                    $batchInfo = $this->getBatchInfo($employeeId);
+                                                    $remainingTime = $batchInfo['remaining_time'] ?? 0;
+                                                    $minutes = floor($remainingTime / 60);
+                                                    $seconds = $remainingTime % 60;
+                                                @endphp
+                                                <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
+                                                    text-yellow-600 dark:text-yellow-400"
+                                                    title="Order is in batch preparation">
+                                                    <i class="fas fa-hourglass-half text-lg"></i>
+                                                    <span class="text-xs">Preparing</span>
+                                                    @if($remainingTime > 0)
+                                                        <span class="text-[10px] font-mono bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded">
+                                                            {{ sprintf('%d:%02d', $minutes, $seconds) }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+
                                             @elseif($order->status === 'in_transit')
                                                 <button wire:click="markDelivered({{ $order->id }})"
+                                                    @disabled($editingOrderId) {{-- 👈 disables if editing --}}
                                                     class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
                                                         text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300 
-                                                        hover:bg-purple-100 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                                                        hover:bg-purple-100 dark:hover:bg-purple-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     title="Mark as Delivered">
                                                     <i class="fas fa-box-open text-lg"></i>
                                                     <span class="text-xs">Delivered</span>
                                                 </button>
+                                                
                                             @elseif($order->status === 'delivered' && !$order->is_paid)
                                                 <button wire:click="togglePaid({{ $order->id }})"
+                                                    @disabled($editingOrderId)
                                                     class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
                                                         text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 
-                                                        hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                        hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     title="Mark as Paid">
                                                     <i class="fas fa-money-bill-transfer text-lg"></i>
                                                     <span class="text-xs">Paid</span>
                                                 </button>
+
                                             @elseif($order->status === 'delivered' && $order->is_paid)
                                                 <button wire:click="markFinished({{ $order->id }})"
+                                                    @disabled($editingOrderId)
                                                     class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
                                                         text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 
-                                                        hover:bg-green-100 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                                                        hover:bg-green-100 dark:hover:bg-green-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     title="Mark as Finished">
                                                     <i class="fas fa-check-double text-lg"></i>
                                                     <span class="text-xs">Complete</span>
                                                 </button>
+
                                             @else
                                                 {{-- Invisible placeholder keeps layout fixed --}}
                                                 <div class="w-20 h-[50px]"></div>
                                             @endif
+
                                         </div>
 
-                                        {{-- Delete --}}
+                                        {{-- Delete / Cancel --}}
                                         <div class="w-15 flex justify-center">
-                                            <button wire:click="confirmDelete({{ $order->id }})" class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-200 dark:hover:bg-red-700 rounded-lg transition-colors" title="Delete Order">
-                                                <i class="fas fa-trash text-lg"></i>
-                                                <span class="text-xs">Delete</span>
-                                            </button>
+                                            @if($order->status === 'preparing')
+                                                <button wire:click="cancelPrepare({{ $order->id }})" class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-700 rounded-lg transition-colors" title="Cancel Preparation">
+                                                    <i class="fas fa-ban text-lg"></i>
+                                                    <span class="text-xs">Cancel</span>
+                                                </button>
+                                            @else
+                                                <button wire:click="confirmDelete({{ $order->id }})" class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-200 dark:hover:bg-red-700 rounded-lg transition-colors" title="Delete Order">
+                                                    <i class="fas fa-trash text-lg"></i>
+                                                    <span class="text-xs">Delete</span>
+                                                </button>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>
@@ -370,7 +482,11 @@
                                 {{-- customer name --}}
                                 <td class="px-6 py-4 whitespace-nowrap text-left">
                                     <div class="text-sm text-zinc-900 dark:text-zinc-100">
-                                        <i class="fas fa-user-circle mr-1 text-zinc-400"></i>{{ $order->customer->name ?? 'N/A' }}
+                                        @if ($order->order_type === "walk_in")
+                                            <i class="fas fa-walking mr-1 text-zinc-400"></i>Walk-In
+                                        @else
+                                            <i class="fas fa-user-circle mr-1 text-zinc-400"></i>{{ $order->customer->name ?? 'N/A' }}
+                                        @endif
                                     </div>
                                 </td>
 
