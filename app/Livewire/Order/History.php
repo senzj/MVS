@@ -22,6 +22,12 @@ class History extends Component
     public string $monthFilter = '';
     public string $dayFilter = '';
 
+    // Pagination properties
+    public int $perPage = 35; // Orders per load
+    public int $page = 1;
+    public bool $hasMorePages = true;
+    public bool $isLoading = false;
+
     protected $queryString = [
         'search' => ['except' => ''],
         'statusFilter' => ['except' => ''],
@@ -61,6 +67,27 @@ class History extends Component
         $this->dayFilter = '';
         $this->sortBy = 'created_at';
         $this->sortDirection = 'desc';
+        $this->resetPagination();
+    }
+
+    public function resetPagination(): void
+    {
+        $this->page = 1;
+        $this->hasMorePages = true;
+    }
+
+    public function loadMore(): void
+    {
+        if (!$this->hasMorePages || $this->isLoading) {
+            return;
+        }
+
+        $this->isLoading = true;
+        $this->page++;
+        
+        // Re-render the component
+        $this->dispatch('orders-loaded');
+        $this->isLoading = false;
     }
 
     // Renamed method to avoid conflict with property
@@ -84,20 +111,47 @@ class History extends Component
         // Reset month and day when year changes
         $this->monthFilter = '';
         $this->dayFilter = '';
+        $this->resetPagination();
     }
 
     public function updatedMonthFilter(): void
     {
         // Reset day when month changes
         $this->dayFilter = '';
+        $this->resetPagination();
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPagination();
+    }
+
+    public function updatedStatusFilter(): void
+    {
+        $this->resetPagination();
+    }
+
+    public function updatedPaymentFilter(): void
+    {
+        $this->resetPagination();
+    }
+
+    public function updatedSortBy(): void
+    {
+        $this->resetPagination();
+    }
+
+    public function updatedSortDirection(): void
+    {
+        $this->resetPagination();
     }
 
     public function render()
     {
-        $tz = config('app.timezone');
+        $tz = config('app.timezone') ?? 'UTC';
 
-        // Build the query
-        $query = Order::with(['customer','employee'])
+        // Build the base query
+        $baseQuery = Order::with(['customer','employee'])
             ->when($this->search, function($q) {
                 $q->where(function($subQuery) {
                     $subQuery->where('receipt_number', 'like', '%' . $this->search . '%')
@@ -106,70 +160,109 @@ class History extends Component
                         });
                 });
             })
-
-            // Filter by status
             ->when($this->statusFilter, function($q) {
                 $q->where('status', $this->statusFilter);
             })
-
-            // Filter by payment status
             ->when($this->paymentFilter !== '', function($q) {
                 $q->where('is_paid', $this->paymentFilter === 'paid');
             })
-
-            // Filter by year
             ->when($this->yearFilter, function($q) {
                 $q->whereYear('created_at', $this->yearFilter);
             })
-
-            // Filter by month
             ->when($this->monthFilter, function($q) {
                 $q->whereMonth('created_at', $this->monthFilter);
             })
-
-            // Filter by day
             ->when($this->dayFilter, function($q) {
                 $q->whereDay('created_at', $this->dayFilter);
             });
 
-        // Apply sorting with proper handling for receipt_number
+        // Get total count for pagination
+        $totalOrders = $baseQuery->count();
+        
+        // Calculate pagination
+        $totalToLoad = $this->page * $this->perPage;
+        $this->hasMorePages = $totalToLoad < $totalOrders;
+
+        // Apply sorting and pagination
         if ($this->sortBy === 'receipt_number') {
+            // For receipt number sorting, we need to get all and sort manually
+            $allOrders = $baseQuery->get();
             if ($this->sortDirection === 'desc') {
-                $orders = $query->get()->sortByDesc(function($order) {
+                $sortedOrders = $allOrders->sortByDesc(function($order) {
                     if (preg_match('/(\d+)$/', $order->receipt_number, $matches)) {
                         return (int)$matches[1];
                     }
                     return $order->receipt_number;
                 });
             } else {
-                $orders = $query->get()->sortBy(function($order) {
+                $sortedOrders = $allOrders->sortBy(function($order) {
                     if (preg_match('/(\d+)$/', $order->receipt_number, $matches)) {
                         return (int)$matches[1];
                     }
                     return $order->receipt_number;
                 });
             }
+            $orders = $sortedOrders->take($totalToLoad);
         } else {
-            $orders = $query->orderBy($this->sortBy, $this->sortDirection)->get();
+            $orders = $baseQuery
+                ->orderBy($this->sortBy, $this->sortDirection)
+                ->take($totalToLoad)
+                ->get();
         }
 
-        // Build grouping
+        // Build grouping with complete months
         $grouped = [];
+        $monthsWithOrders = [];
+        
+        // First pass: collect all months that have orders
         foreach ($orders as $o) {
             $dt = $o->created_at->setTimezone($tz);
             $year = $dt->format('Y');
             $monthKey = $dt->format('Y-m');
-            $dayKey = $dt->toDateString();
-
-            $grouped[$year][$monthKey][$dayKey][] = $o;
+            $monthsWithOrders[$year][$monthKey] = true;
         }
 
-        // Sort each day's orders in ascending order (oldest first within the day)
+        // Second pass: for each month with orders, get ALL orders for that month
+        foreach ($monthsWithOrders as $year => $months) {
+            foreach (array_keys($months) as $monthKey) {
+                [$yearStr, $monthStr] = explode('-', $monthKey);
+                
+                $monthOrders = Order::with(['customer','employee'])
+                    ->whereYear('created_at', $yearStr)
+                    ->whereMonth('created_at', $monthStr)
+                    ->when($this->search, function($q) {
+                        $q->where(function($subQuery) {
+                            $subQuery->where('receipt_number', 'like', '%' . $this->search . '%')
+                                ->orWhereHas('customer', function($customerQuery) {
+                                    $customerQuery->where('name', 'like', '%' . $this->search . '%');
+                                });
+                        });
+                    })
+                    ->when($this->statusFilter, function($q) {
+                        $q->where('status', $this->statusFilter);
+                    })
+                    ->when($this->paymentFilter !== '', function($q) {
+                        $q->where('is_paid', $this->paymentFilter === 'paid');
+                    })
+                    ->when($this->dayFilter, function($q) {
+                        $q->whereDay('created_at', $this->dayFilter);
+                    })
+                    ->orderBy('created_at', 'asc') // Always sort within month by time
+                    ->get();
+
+                foreach ($monthOrders as $o) {
+                    $dt = $o->created_at->setTimezone($tz);
+                    $dayKey = $dt->toDateString();
+                    $grouped[$year][$monthKey][$dayKey][] = $o;
+                }
+            }
+        }
+
+        // Sort each day's orders properly
         foreach ($grouped as $year => &$months) {
             foreach ($months as $monthKey => &$days) {
                 foreach ($days as $dayKey => &$dayOrders) {
                     if ($this->sortBy === 'receipt_number') {
-                        // Sort by receipt number (ascending within day)
                         usort($dayOrders, function($a, $b) {
                             $aNum = 0;
                             $bNum = 0;
@@ -182,7 +275,6 @@ class History extends Component
                             return $aNum <=> $bNum;
                         });
                     } else {
-                        // Sort by created_at time (ascending within day - earliest first)
                         usort($dayOrders, function($a, $b) {
                             return $a->created_at <=> $b->created_at;
                         });
@@ -191,22 +283,22 @@ class History extends Component
             }
         }
 
-        // Sort groups by date for display (this controls the order of date groups)
+        // Sort groups by date for display
         if ($this->sortBy === 'created_at') {
-            if ($this->sortDirection === 'asc') {
-                krsort($grouped); // Years in descending order (2025, 2024, 2023...)
+            if ($this->sortDirection === 'desc') {
+                krsort($grouped);
                 foreach ($grouped as $y => &$months) {
-                    ksort($months); // Months in ascending order (Jan, Feb, Mar...)
+                    krsort($months);
                     foreach ($months as $m => &$days) {
-                        ksort($days); // Days in ascending order (1, 2, 3...)
+                        krsort($days);
                     }
                 }
             } else {
-                ksort($grouped); // Years in ascending order (2023, 2024, 2025...)
+                ksort($grouped);
                 foreach ($grouped as $y => &$months) {
-                    ksort($months); // Months in ascending order (Jan, Feb, Mar...)
+                    ksort($months);
                     foreach ($months as $m => &$days) {
-                        ksort($days); // Days in ascending order (1, 2, 3...)
+                        ksort($days);
                     }
                 }
             }
@@ -219,10 +311,9 @@ class History extends Component
             ->pluck('year')
             ->toArray();
 
-        // Get available months for current year OR all months if no year selected
+        // Get available months
         $availableMonths = [];
         if ($this->yearFilter) {
-            // User has selected a specific year - show months for that year
             $monthsCollection = Order::whereYear('created_at', $this->yearFilter)
                 ->get()
                 ->map(function($order) {
@@ -239,7 +330,6 @@ class History extends Component
                 ];
             }
         } else {
-            // No year selected - show all months that have orders
             $monthsCollection = Order::get()
                 ->map(function($order) {
                     return (int)$order->created_at->format('n');
@@ -256,10 +346,9 @@ class History extends Component
             }
         }
 
-        // Get available days for current year/month OR all days if no filters
+        // Get available days
         $availableDays = [];
         if ($this->yearFilter && $this->monthFilter) {
-            // Both year and month selected
             $availableDays = Order::whereYear('created_at', $this->yearFilter)
                 ->whereMonth('created_at', $this->monthFilter)
                 ->get()
@@ -270,9 +359,7 @@ class History extends Component
                 ->sort()
                 ->values()
                 ->toArray();
-
         } elseif ($this->monthFilter) {
-            // Only month selected (any year)
             $availableDays = Order::whereMonth('created_at', $this->monthFilter)
                 ->get()
                 ->map(function($order) {
@@ -284,21 +371,16 @@ class History extends Component
                 ->toArray();
         }
 
-        Log::info("fetched Dates: ", [
-            'yearFilter' => $this->yearFilter,
-            'monthFilter' => $this->monthFilter,
-            'years' => $availableYears,
-            'months' => $availableMonths,
-            'days' => $availableDays,
-        ]);
-
         return view('livewire.order.history', [
             'grouped' => $grouped,
             'tz' => $tz,
             'availableYears' => $availableYears,
             'availableMonths' => $availableMonths,
             'availableDays' => $availableDays,
-            'totalOrders' => $orders->count(),
+            'totalOrders' => $totalOrders,
+            'loadedOrders' => count($orders),
+            'hasMorePages' => $this->hasMorePages,
+            'isLoading' => $this->isLoading,
         ]);
     }
 }
