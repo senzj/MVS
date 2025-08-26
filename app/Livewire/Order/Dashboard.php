@@ -22,7 +22,7 @@ class Dashboard extends Component
     // Batch delivery system
     public $batchDeliveryTimers = []; // Track timers for each delivery person
     public $batchDeliveryOrders = []; // Track orders in batch for each delivery person
-    public $batchDeliveryDuration = 60; // 1 minute in seconds (configurable: 2-7 minutes)
+    public $batchDeliveryDuration = 10; // 1 minute in seconds (configurable: 2-7 minutes)
 
     // Order Details Modal
     public $showOrderDetailsModal = false;
@@ -57,57 +57,72 @@ class Dashboard extends Component
 
     public function mount(): void
     {
+        $this->autoProcessExpiredPreparing(); // NEW: process any expired batches first
         $this->restoreBatchState();
+    }
+
+    /**
+     * Server-side sweep: promote any expired preparing batches to in_transit
+     */
+    private function autoProcessExpiredPreparing(): void
+    {
+        $groups = Order::select('delivered_by', DB::raw('MIN(updated_at) as min_updated'))
+            ->where('status', 'preparing')
+            ->whereNotNull('delivered_by')
+            ->groupBy('delivered_by')
+            ->get();
+
+        foreach ($groups as $g) {
+            $employeeId = $g->delivered_by;
+            if (!$employeeId) {
+                continue;
+            }
+            $batchStart = Cache::get("batch_start_time_{$employeeId}") ?? Carbon::parse($g->min_updated)->timestamp;
+            $elapsed = now()->timestamp - $batchStart;
+            if ($elapsed >= $this->batchDeliveryDuration) {
+                // Fetch ids directly (works even if component arrays are empty)
+                $orderIds = Order::where('delivered_by', $employeeId)
+                    ->where('status', 'preparing')
+                    ->pluck('id')
+                    ->all();
+                if (!empty($orderIds)) {
+                    $this->processBatchDelivery($employeeId, $orderIds);
+                } else {
+                    Cache::forget("batch_start_time_{$employeeId}");
+                }
+            }
+        }
     }
 
     private function restoreBatchState(): void
     {
-        // Find all orders that are currently in "preparing" status
-        $preparingOrders = Order::where('status', 'preparing')
+        // Rebuild active (non-expired) batches from DB
+        $preparing = Order::where('status', 'preparing')
             ->whereNotNull('delivered_by')
-            ->get(['id', 'delivered_by', 'updated_at']);
+            ->get(['id','delivered_by','updated_at'])
+            ->groupBy('delivered_by');
 
-        foreach ($preparingOrders as $order) {
-            $employeeId = $order->delivered_by;
-            
-            // Get the actual batch start time from cache
+        foreach ($preparing as $employeeId => $orders) {
+            // Derive (or cache) batch start time
             $batchStartTime = Cache::get("batch_start_time_{$employeeId}");
-            
             if (!$batchStartTime) {
-                // If no cached start time, use the oldest preparing order's updated_at as fallback
-                $oldestOrder = Order::where('delivered_by', $employeeId)
-                    ->where('status', 'preparing')
-                    ->orderBy('updated_at', 'asc')
-                    ->first();
-                    
-                if ($oldestOrder) {
-                    $batchStartTime = $oldestOrder->updated_at->timestamp;
-                    Cache::put("batch_start_time_{$employeeId}", $batchStartTime, now()->addMinutes(10));
-                } else {
-                    continue;
-                }
+                $batchStartTime = $orders->min('updated_at')->timestamp;
+                Cache::put("batch_start_time_{$employeeId}", $batchStartTime, now()->addMinutes(10));
             }
-            
-            // Calculate how much time has passed since batch started
-            $timeElapsed = now()->timestamp - $batchStartTime;
+
+            $timeElapsed   = now()->timestamp - $batchStartTime;
             $remainingTime = max(0, $this->batchDeliveryDuration - $timeElapsed);
-            
-            // If time hasn't expired, restore the batch
-            if ($remainingTime > 0) {
-                // Initialize arrays if not set
-                if (!isset($this->batchDeliveryOrders[$employeeId])) {
-                    $this->batchDeliveryOrders[$employeeId] = [];
-                }
-                
-                // Add order to batch
-                $this->batchDeliveryOrders[$employeeId][] = $order->id;
-                
-                // Set timer end time
-                $this->batchDeliveryTimers[$employeeId] = $batchStartTime + $this->batchDeliveryDuration;
-            } else {
-                // Time has expired, process the batch delivery
-                $this->processBatchDelivery($employeeId);
+
+            if ($remainingTime <= 0) {
+                // Already expired — promote now (pass explicit ids so method works statelessly)
+                $orderIds = $orders->pluck('id')->all();
+                $this->processBatchDelivery($employeeId, $orderIds);
+                continue;
             }
+
+            // Still active — rebuild arrays
+            $this->batchDeliveryOrders[$employeeId] = $orders->pluck('id')->all();
+            $this->batchDeliveryTimers[$employeeId] = $batchStartTime + $this->batchDeliveryDuration;
         }
     }
 
@@ -295,34 +310,44 @@ class Dashboard extends Component
     }
 
     // Process batch delivery (move all orders to in_transit)
-    public function processBatchDelivery($employeeId): void
+    public function processBatchDelivery($employeeId, $orderIds = null): void
     {
-        if (!isset($this->batchDeliveryOrders[$employeeId])) {
-            return;
+        // Ensure we have order IDs even if component state was lost
+        if ($orderIds === null) {
+            if (isset($this->batchDeliveryOrders[$employeeId]) && !empty($this->batchDeliveryOrders[$employeeId])) {
+                $orderIds = $this->batchDeliveryOrders[$employeeId];
+            } else {
+                $orderIds = Order::where('delivered_by', $employeeId)
+                    ->where('status', 'preparing')
+                    ->pluck('id')
+                    ->all();
+            }
         }
 
-        $orderIds = $this->batchDeliveryOrders[$employeeId];
-        
         if (empty($orderIds)) {
-            // Clean up timer and cache
-            unset($this->batchDeliveryTimers[$employeeId]);
-            unset($this->batchDeliveryOrders[$employeeId]);
+            // Cleanup any stale cache
             Cache::forget("batch_start_time_{$employeeId}");
+            unset($this->batchDeliveryTimers[$employeeId], $this->batchDeliveryOrders[$employeeId]);
             return;
         }
 
-        // Move all orders in batch to in_transit
-        Order::whereIn('id', $orderIds)
+        $updatedCount = Order::whereIn('id', $orderIds)
             ->where('status', 'preparing')
-            ->update(['status' => 'in_transit']);
+            ->update([
+                'status' => 'in_transit',
+                'updated_at' => now(), // reflect transition moment
+            ]);
 
-        // Store cache for orders that missed this batch (for queue state)
-        // This will make other pending orders for this employee show as "waiting"
-        Cache::put("missed_batch_{$employeeId}", now()->timestamp, now()->addMinutes(30));
+        if ($updatedCount > 0) {
+            Log::info("Dashboard processed batch delivery for employee {$employeeId}: {$updatedCount} orders moved to in_transit", [
+                'employee_id' => $employeeId,
+                'order_ids'   => $orderIds,
+                'source'      => 'livewire_dashboard',
+            ]);
+        }
 
-        // Clean up batch data and cache
-        unset($this->batchDeliveryTimers[$employeeId]);
-        unset($this->batchDeliveryOrders[$employeeId]);
+        // Cleanup
+        unset($this->batchDeliveryTimers[$employeeId], $this->batchDeliveryOrders[$employeeId]);
         Cache::forget("batch_start_time_{$employeeId}");
     }
 
@@ -332,15 +357,12 @@ class Dashboard extends Component
         $this->processBatchDelivery($employeeId);
     }
 
-    // Check and process expired batch timers (called by JavaScript interval)
+    // Check and process expired batch timers (simplified)
     public function checkBatchTimers(): void
     {
-        $processedEmployees = [];
-        
         foreach ($this->batchDeliveryTimers as $employeeId => $endTimestamp) {
             if (now()->timestamp >= $endTimestamp) {
                 $this->processBatchDelivery($employeeId);
-                $processedEmployees[] = $employeeId;
             }
         }
         
@@ -352,54 +374,24 @@ class Dashboard extends Component
         foreach ($preparingOrders as $order) {
             $employeeId = $order->delivered_by;
             
-            // Skip if we already processed this employee
-            if (in_array($employeeId, $processedEmployees)) {
-                continue;
-            }
+            // Check if batch start time exists in cache
+            $batchStartTime = Cache::get("batch_start_time_{$employeeId}");
             
-            $timeElapsed = now()->diffInSeconds($order->updated_at);
+            if ($batchStartTime) {
+                $timeElapsed = now()->timestamp - $batchStartTime;
+            } else {
+                // Fallback to order updated_at if no cache (might have been processed by scheduled command)
+                $timeElapsed = now()->diffInSeconds($order->updated_at);
+            }
             
             // If batch time has expired but timer wasn't caught
             if ($timeElapsed >= $this->batchDeliveryDuration) {
                 $this->processBatchDelivery($employeeId);
             }
         }
-
-        // Clean up missed batch cache when all in_transit orders are completed
-        $this->cleanupMissedBatchCache();
     }
 
-    // NEW METHOD: Clean up missed batch cache when delivery person is available again
-    private function cleanupMissedBatchCache(): void
-    {
-        // Get all employees who have missed batch cache
-        $cacheKeys = Cache::getPrefix() ? [] : []; // This is a simplified approach
-        
-        // Check each employee that might have missed batch cache
-        $employeesWithActiveDeliveries = Order::where('status', 'in_transit')
-            ->whereNotNull('delivered_by')
-            ->pluck('delivered_by')
-            ->unique();
-
-        // For each employee with active deliveries, check if all are completed
-        foreach ($employeesWithActiveDeliveries as $employeeId) {
-            $hasActiveDeliveries = Order::where('delivered_by', $employeeId)
-                ->where('status', 'in_transit')
-                ->exists();
-            
-            $hasUnpaidDelivered = Order::where('delivered_by', $employeeId)
-                ->where('status', 'delivered')
-                ->where('is_paid', false)
-                ->exists();
-
-            // If no active deliveries and no unpaid delivered orders, clear the missed batch cache
-            if (!$hasActiveDeliveries && !$hasUnpaidDelivered) {
-                Cache::forget("missed_batch_{$employeeId}");
-            }
-        }
-    }
-
-    // Check if delivery person can deliver (updated for batch system)
+    // Check if delivery person can deliver (simplified)
     public function canDeliveryPersonDeliver(Order $order): bool
     {
         if (!$order->delivered_by) {
@@ -420,7 +412,7 @@ class Dashboard extends Component
         return true; // Available for new batch or individual delivery
     }
 
-    // Helper method to check delivery status for blade template (UPDATED)
+    // Helper method to check delivery status for blade template (SIMPLIFIED)
     public function getDeliveryPersonStatus($orderId)
     {
         $order = Order::find($orderId);
@@ -463,12 +455,6 @@ class Dashboard extends Component
         // then other pending orders should be in "waiting" state
         if ($hasActiveDeliveries || $hasUnpaidDelivered) {
             return 'waiting'; // Employee is busy, other orders are waiting
-        }
-
-        // UPDATED: Check if this employee just finished a batch or has completed deliveries
-        // Orders are in queue/waiting if there's a recent batch dispatch and no active work
-        if (Cache::has("missed_batch_{$employeeId}")) {
-            return 'waiting'; // Missed the batch window, waiting for next opportunity
         }
 
         return 'available'; // Available for delivery - shows "Deliver" button
@@ -736,17 +722,18 @@ class Dashboard extends Component
 
     public function render()
     {
+        // Ensure expired batches are processed even if user was away
+        $this->autoProcessExpiredPreparing();
+
         $orders = Order::with(['customer','employee','staff'])
             ->where(function ($outer) {
-                // Today's orders (regardless of status)
                 $outer->where(function ($q) {
                         $q->where('created_at', '>=', DB::raw('CURRENT_DATE'))
-                        ->where('created_at', '<', DB::raw('DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY)'));
+                          ->where('created_at', '<', DB::raw('DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY)'));
                     })
-                    // Or older orders that are not completed/cancelled
                     ->orWhere(function ($q) {
                         $q->where('created_at', '<', DB::raw('CURRENT_DATE'))
-                        ->whereNotIn('status', ['completed', 'cancelled']);
+                          ->whereNotIn('status', ['completed', 'cancelled']);
                     });
             })
             ->orderByDesc('created_at')

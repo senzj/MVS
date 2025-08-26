@@ -1,5 +1,5 @@
 @section('title', 'Order Dashboard')
-<div class="container mx-auto p-1" wire:poll.1s="checkBatchTimers">
+<div class="container mx-auto p-1">
 
     {{-- Header --}}
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
@@ -328,24 +328,41 @@
                                                 @endif
                                             
                                             @elseif($order->status === 'preparing')
-                                                {{-- Order in batch preparation with live countdown --}}
                                                 @php
                                                     $employeeId = $order->delivered_by;
                                                     $batchInfo = $this->getBatchInfo($employeeId);
-                                                    $remainingTime = $batchInfo['remaining_time'] ?? 0;
-                                                    $minutes = floor($remainingTime / 60);
-                                                    $seconds = $remainingTime % 60;
+                                                    $remainingTime = $batchInfo['remaining_time'] ?? 0; // seconds
                                                 @endphp
-                                                <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
-                                                    text-yellow-600 dark:text-yellow-400"
+                                                <div 
+                                                    x-data="{
+                                                        r: {{ $remainingTime }},
+                                                        started: false,
+                                                        tick() {
+                                                            if (this.started) return;
+                                                            this.started = true;
+                                                            let iv = setInterval(() => {
+                                                                if (this.r > 0) {
+                                                                    this.r--;
+                                                                } else {
+                                                                    clearInterval(iv);
+                                                                    // Call server once to promote (guard if already processed)
+                                                                    $wire.processBatchDelivery({{ $employeeId }});
+                                                                }
+                                                            }, 1000);
+                                                        }
+                                                    }"
+                                                    x-init="tick()"
+                                                    class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium text-yellow-600 dark:text-yellow-400"
                                                     title="Order is in batch preparation">
                                                     <i class="fas fa-hourglass-half text-lg"></i>
                                                     <span class="text-xs">Preparing</span>
-                                                    @if($remainingTime > 0)
-                                                        <span class="text-[10px] font-mono bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded">
-                                                            {{ sprintf('%d:%02d', $minutes, $seconds) }}
-                                                        </span>
-                                                    @endif
+                                                    <template x-if="r > 0">
+                                                        <span class="text-[10px] font-mono bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded"
+                                                              x-text="Math.floor(r/60)+':' + String(r%60).padStart(2,'0')"></span>
+                                                    </template>
+                                                    <template x-if="r === 0">
+                                                        <span class="text-[10px] font-mono bg-green-100 dark:bg-green-900/30 px-1 rounded">0:00</span>
+                                                    </template>
                                                 </div>
 
                                             @elseif($order->status === 'in_transit')
