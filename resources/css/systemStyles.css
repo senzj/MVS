@@ -1,0 +1,34 @@
+/* color variables */
+:root {
+    --color-bg: #B22222;
+    --color-bg-secondary: #8B0000;
+    --color-bg-gradient: linear-gradient(to right, #B22222, #8B0000);
+    --color-text: #FFD700;
+}
+
+/* system background */
+.app-bg {
+    background-color: var(--color-bg);
+}
+
+.app-bg-gradient {
+    background: var(--color-bg-gradient);
+}
+
+
+/* system text */
+.app-text {
+    color: var(--color-text);
+}
+
+
+/* buttons */
+.app-btn {
+    background-color: var(--color-text);
+    color: var(--color-bg);
+}
+
+.app-btn-alt {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+}

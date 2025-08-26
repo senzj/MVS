@@ -2,6 +2,11 @@
     <x-app-logo-icon class="size-5 fill-current text-white dark:text-black" />
 </div>
 <div class="ms-1 grid flex-1 text-start text-sm">
-    <span class="truncate leading-tight font-semibold">紅運雜貨铺</span>
-    <p class="truncate leading-tight font-semibold">MGM 888 Variety Store</p>
+    @if (env('STORE_NAME_ALT'))
+        <span class="truncate leading-tight font-semibold">{{ env('STORE_NAME_ALT') }}</span>
+        <p class="truncate leading-tight font-semibold">{{ env('STORE_NAME') }}</p>
+
+    @else
+        <span class="truncate leading-tight font-semibold">{{ env('STORE_NAME') }}</span>
+    @endif
 </div>

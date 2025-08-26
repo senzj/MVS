@@ -87,16 +87,28 @@ new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class ex
 <div class="flex flex-col gap-2">
 
     <div class="text-center">
-        <div onclick="window.location.href='/'"  class="cursor-pointer bg-gradient-to-r from-[#B22222] to-[#8B0000] rounded-xl p-6 mb-1">
-            <h1 class="text-5xl font-bold text-[#FFD700] tracking-wider">
-                紅運雜貨铺
-            </h1>
-            <p class="text-[#FFD700]/90 text-xl font-semibold">
-                MGM 888 VARIETY STORE
-            </p>
-            <small class="text-[#FFD700]/70">
-                842 Masangkay St. Binondo, Manila
-            </small>
+        <div onclick="window.location.href='/'"  class="cursor-pointer app-bg-gradient rounded-xl p-6 mb-1">
+            @if (env('STORE_NAME_ALT'))
+                <h1 class="text-5xl font-bold app-text tracking-wider">
+                    {{ env('STORE_NAME_ALT') }}
+                </h1>
+
+                <p class="app-text text-xl font-semibold">
+                    {{ env('STORE_NAME') }}
+                </p>
+
+                <small class="app-text">
+                    {{ env('STORE_ADDRESS') }}
+                </small>
+
+            @else
+                <h1 class="text-5xl font-bold app-text tracking-wider">
+                    {{ env('STORE_NAME') }}
+                </h1>
+                <small class="app-text">
+                    {{ env('STORE_ADDRESS') }}
+                </small>
+            @endif
         </div>
     </div>
 
@@ -141,7 +153,7 @@ new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class ex
 
         {{-- submit button --}}
         <div class="flex items-center justify-end">
-            <flux:button variant="primary" type="submit" class="w-full cursor-pointer">{{ __('Log in') }}</flux:button>
+            <flux:button variant="primary" type="submit" class="w-full cursor-pointer app-btn-alt">{{ __('Log in') }}</flux:button>
         </div>
     </form>
 

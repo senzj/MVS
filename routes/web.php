@@ -9,9 +9,12 @@ Route::get('/', function () {
     ->name('home');
 
 // dashboard
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+// Route::view('dashboard', 'dashboard')
+//     ->middleware(['auth', 'verified'])
+//     ->name('dashboard');
+
+// dashboard
+Volt::route('dashboard', 'main.dashboard')->name('dashboard');
 
 // Auth routes
 Route::middleware(['auth'])->group(function () {

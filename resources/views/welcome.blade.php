@@ -3,17 +3,21 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>MGM 888 Variety Store</title>
+    <title>{{ env('STORE_NAME') }}</title>
 
     @vite('resources/css/app.css')
 </head>
-<body class="bg-[#B22222] text-[#FFD700] min-h-screen flex flex-col items-center justify-center font-serif">
+<body class="app-bg-gradient app-text min-h-screen flex flex-col items-center justify-center font-serif">
 
     {{-- Store Title --}}
     <div class="text-center mb-8">
-        <h1 class="text-5xl md:text-6xl font-bold mb-3">紅運雜貨铺</h1>
-        <h2 class="text-xl md:text-2xl tracking-wide">MGM 888 VARIETY STORE</h2>
-        <p>842 Masangkay St. Binondo, Manila</p>
+        @if (env('STORE_NAME_ALT'))
+            <h1 class="text-5xl md:text-6xl font-bold mb-3">{{ env('STORE_NAME_ALT') }}</h1>
+            <h2 class="text-xl md:text-2xl tracking-wide">{{ env('STORE_NAME') }}</h2>
+        @else
+            <h1 class="text-5xl md:text-6xl font-bold mb-3">{{ env('STORE_NAME') }}</h1>
+        @endif
+        <p>{{ env('STORE_ADDRESS') }}</p>
     </div>
 
     {{-- Login / Register --}}
@@ -25,7 +29,7 @@
                 <div class="flex flex-col items-center">
                     {{-- Main login button --}}
                     <a href="{{ route('login') }}" 
-                    class="px-6 py-2 bg-[#FFD700] text-[#B22222] font-semibold rounded-lg shadow-md hover:bg-[#e6c200] transition">
+                    class="px-6 py-2 app-btn font-semibold rounded-lg shadow-md hover:bg-[#e6c200] transition">
                         Log in
                     </a>
 
@@ -36,7 +40,7 @@
                     {{-- Small register link --}}
                     @if (!$has_accounts)
                         <a href="{{ route('register') }}" 
-                        class="mt-3 text-sm text-[#FFD700] hover:underline">
+                        class="mt-3 text-sm app-text hover:underline">
                             Register
                         </a>
                     @endif

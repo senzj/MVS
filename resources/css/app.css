@@ -4,6 +4,9 @@
 /* import font awesome icons */
 @import '@fortawesome/fontawesome-free/css/all.css';
 
+/* import app system styles */
+@import './systemStyles';
+
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';

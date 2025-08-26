@@ -5,9 +5,10 @@ import $ from 'jquery';
 import toastr from 'toastr';
 import './toastr';
 
-// alpine js import
-// import './alpine';
+// Chartjs
+import './Chart';
 
 // global variables
 window.$ = window.jQuery = $;
 window.toastr = toastr; // Add this line to make toastr globally available
+window.Chart = Chart; // Add this line to make Chart.js globally available

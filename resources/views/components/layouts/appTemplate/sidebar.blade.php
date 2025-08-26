@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-white dark:bg-zinc-800">
+    <body class="min-h-screen bg-gray-50 dark:bg-gray-900">
 
         {{-- Nav Bar (sidebar, header) --}}
         <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
