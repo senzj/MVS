@@ -13,8 +13,8 @@ test('users can authenticate using the login screen', function () {
     $user = User::factory()->create();
 
     $response = LivewireVolt::test('auth.login')
-        ->set('email', $user->email)
-        ->set('password', 'password')
+        ->set('username', $user->username)
+        ->set('password', 'Password123!')
         ->call('login');
 
     $response
@@ -28,11 +28,11 @@ test('users can not authenticate with invalid password', function () {
     $user = User::factory()->create();
 
     $response = LivewireVolt::test('auth.login')
-        ->set('email', $user->email)
+        ->set('username', $user->username)
         ->set('password', 'wrong-password')
         ->call('login');
 
-    $response->assertHasErrors('email');
+    $response->assertHasErrors('username');
 
     $this->assertGuest();
 });

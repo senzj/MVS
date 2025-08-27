@@ -23,7 +23,18 @@ new #[Layout('components.layouts.auth', ['title' => '注册 | REGISTER'])] class
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
-            'username' => ['required', 'string', 'max:255', 'unique:' . User::class],
+            'username' => [
+                'required', 
+                'string', 
+                'max:255', 
+                // Custom validation to check for case-insensitive uniqueness after transformation
+                function ($attribute, $value, $fail) {
+                    $transformedUsername = ucwords($value);
+                    if (User::whereRaw('LOWER(username) = LOWER(?)', [$transformedUsername])->exists()) {
+                        $fail('The username has already been taken.');
+                    }
+                }
+            ],
             'password' => ['required', 'string', 'confirmed', 
                 Rules\Password::min(8) // minimum of 8 characters
                     ->mixedCase() // upper and lower case letters
@@ -50,7 +61,8 @@ new #[Layout('components.layouts.auth', ['title' => '注册 | REGISTER'])] class
         // Auth::login($user);
         // $this->redirectIntended(route('dashboard', absolute: false), navigate: true);
     }
-}; ?>
+};
+?>
 
 <div class="flex flex-col gap-6">
     <x-auth-header :title="__('Create an account')" :description="__('Enter your details below to create your account')" />

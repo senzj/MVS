@@ -14,7 +14,9 @@ Route::get('/', function () {
 //     ->name('dashboard');
 
 // dashboard
-Volt::route('dashboard', 'main.dashboard')->name('dashboard');
+Volt::route('dashboard', 'main.dashboard')
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 // Auth routes
 Route::middleware(['auth'])->group(function () {
@@ -32,9 +34,9 @@ Route::middleware(['auth'])->group(function () {
     // Products route
     Volt::route('products', 'product.dashboard')->name('products');
 
-
     // Customers route
     Volt::route('customers', 'customer.dashboard')->name('customers');
+    
 
     // Employee route
     Volt::route('employees', 'employee.dashboard')->name('employees');

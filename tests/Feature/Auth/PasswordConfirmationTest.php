@@ -17,7 +17,7 @@ test('password can be confirmed', function () {
     $this->actingAs($user);
 
     $response = Volt::test('auth.confirm-password')
-        ->set('password', 'password')
+        ->set('password', 'Password123!')
         ->call('confirmPassword');
 
     $response
