@@ -5,8 +5,9 @@ import $ from 'jquery';
 import toastr from 'toastr';
 import './toastr';
 
-// Chartjs
-import './Chart';
+// Chartjs import
+import Chart from 'chart.js/auto';
+// import './Chart';
 
 // global variables
 window.$ = window.jQuery = $;

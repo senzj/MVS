@@ -22,7 +22,7 @@ class Dashboard extends Component
     // Batch delivery system
     public $batchDeliveryTimers = []; // Track timers for each delivery person
     public $batchDeliveryOrders = []; // Track orders in batch for each delivery person
-    public $batchDeliveryDuration = 10; // 1 minute in seconds (configurable: 2-7 minutes)
+    public $batchDeliveryDuration = 30; // 1 minute in seconds (configurable: 2-7 minutes)
 
     // Order Details Modal
     public $showOrderDetailsModal = false;

@@ -19,7 +19,7 @@ toastr.options = {
   // Sets the position on screen. Options include: 
   // "toast-top-right", "toast-bottom-right", "toast-bottom-left", "toast-top-left",
   // "toast-top-full-width", "toast-bottom-full-width", "toast-top-center", "toast-bottom-center"
-  "positionClass": "toast-top-right",
+  "positionClass": "toast-top-left",
 
   // Prevents showing duplicate toasts (same message)
   "preventDuplicates": false,
@@ -31,10 +31,10 @@ toastr.options = {
   "showDuration": "500",
 
   // Time it takes to fade out the toast (in ms) (1000ms = 1 second)
-  "hideDuration": "50000",
+  "hideDuration": "5000",
 
   // How long the toast stays visible before fading out (in ms) (1000ms = 1 second)
-  "timeOut": "10000",
+  "timeOut": "3000",
 
   // Extra time if the user hovers over the toast (in ms) (1000ms = 1 second)
   "extendedTimeOut": "8000",

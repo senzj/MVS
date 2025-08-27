@@ -21,10 +21,10 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Today's Sales</p>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ $todayStats['sales'] }}</p>
-                    @if($todayStats['sales_growth'] != 0)
+                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($todayStats['sales'] ?? 0, 2) }}</p>
+                    @if(isset($todayStats['sales_growth']) && $todayStats['sales_growth'] != 0)
                         <p class="text-sm {{ $todayStats['sales_growth'] > 0 ? 'text-green-600' : 'text-red-600' }}">
-                            {{ $todayStats['sales_growth'] > 0 ? '+' : '' }}{{ $todayStats['sales_growth'] }}% from yesterday
+                            {{ $todayStats['sales_growth'] > 0 ? '+' : '' }}{{ number_format($todayStats['sales_growth'], 1) }}% from yesterday
                         </p>
                     @endif
                 </div>
@@ -39,8 +39,8 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Orders Today</p>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['orders'] }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Avg: ₱{{ $todayStats['avg_order'] }}</p>
+                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['orders'] ?? 0 }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">Avg: ₱{{ number_format($todayStats['avg_order'] ?? 0, 2) }}</p>
                 </div>
                 <div class="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full">
                     <i class="fas fa-shopping-cart w-6 h-6 text-blue-600 dark:text-blue-400"></i>
@@ -53,7 +53,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Pending Orders</p>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['pending'] }}</p>
+                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['pending'] ?? 0 }}</p>
                     <p class="text-sm text-amber-600 dark:text-amber-400">Needs attention</p>
                 </div>
                 <div class="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-full">
@@ -67,7 +67,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Top Product Today</p>
-                    @if($topSellingProducts['today'])
+                    @if(isset($topSellingProducts['today']) && $topSellingProducts['today'])
                         <p class="text-lg font-bold text-zinc-900 dark:text-zinc-100">{{ Str::limit($topSellingProducts['today']->name, 20) }}</p>
                         <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $topSellingProducts['today']->total_sold }} sold</p>
                     @else
@@ -88,7 +88,7 @@
             <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
                 <i class="fas fa-trophy mr-2 text-yellow-500"></i>Today's Best Seller
             </h3>
-            @if($topSellingProducts['today'])
+            @if(isset($topSellingProducts['today']) && $topSellingProducts['today'])
                 <div class="flex items-center space-x-3">
                     <div class="flex-shrink-0">
                         <div class="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
@@ -111,9 +111,9 @@
         <!-- This Week's Top Product -->
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
             <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-                <i class="fas fa-chart-bar mr-2 text-blue-500"></i>This Week's Leader
+                <i class="fas fa-chart-bar mr-2 text-blue-500"></i>This Week's Top Seller
             </h3>
-            @if($topSellingProducts['week'])
+            @if(isset($topSellingProducts['week']) && $topSellingProducts['week'])
                 <div class="flex items-center space-x-3">
                     <div class="flex-shrink-0">
                         <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
@@ -136,9 +136,9 @@
         <!-- Average Top Performers -->
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-700 p-6">
             <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-                <i class="fas fa-medal mr-2 text-purple-500"></i>Top Performers (4-week avg)
+                <i class="fas fa-medal mr-2 text-purple-500"></i>Top Sellers (4-week avg)
             </h3>
-            @if($topSellingProducts['average']->count() > 0)
+            @if(isset($topSellingProducts['average']) && $topSellingProducts['average']->count() > 0)
                 <div class="space-y-3">
                     @foreach($topSellingProducts['average']->take(3) as $index => $product)
                         <div class="flex items-center justify-between">
@@ -147,8 +147,8 @@
                                 <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ Str::limit($product->name, 15) }}</span>
                             </div>
                             <div class="text-right">
-                                <span class="text-xs text-zinc-500 dark:text-zinc-400 block">{{ $product->avg_weekly }}/week</span>
-                                <span class="text-xs text-zinc-400 dark:text-zinc-500">{{ $product->total_sold }} total</span>
+                                <span class="text-xs text-zinc-500 dark:text-zinc-400 block">{{ $product->avg_weekly ?? 0 }}/week</span>
+                                <span class="text-xs text-zinc-400 dark:text-zinc-500">{{ $product->total_sold ?? 0 }} total</span>
                             </div>
                         </div>
                     @endforeach
@@ -209,179 +209,198 @@
     </div>
 
     <!-- Chart.js Script -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Check if Chart.js is loaded
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js is not loaded. Please include Chart.js library.');
+                return;
+            }
+
             // Chart configuration for dark mode
             Chart.defaults.color = document.documentElement.classList.contains('dark') ? '#a1a1aa' : '#71717a';
             Chart.defaults.borderColor = document.documentElement.classList.contains('dark') ? '#3f3f46' : '#e4e4e7';
 
+            // Check if data exists before creating charts
+            const salesVsProfitData = @json($salesVsProfitData) || {labels: [], sales: [], profit: [], orders: []};
+            const ordersByDayData = @json($ordersByDayData) || {labels: [], current_week: [], previous_week: []};
+            const monthlyTrendsData = @json($monthlyTrendsData) || {labels: [], sales: [], orders: []};
+            const categoryBreakdownData = @json($categoryBreakdownData) || {labels: [], data: [], colors: []};
+
             // Sales vs Profit Chart
-            const salesVsProfitCtx = document.getElementById('salesVsProfitChart').getContext('2d');
-            new Chart(salesVsProfitCtx, {
-                type: 'line',
-                data: {
-                    labels: @json($salesVsProfitData['labels']),
-                    datasets: [{
-                        label: 'Sales (₱)',
-                        data: @json($salesVsProfitData['sales']),
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        yAxisID: 'y'
-                    }, {
-                        label: 'Estimated Profit (₱)',
-                        data: @json($salesVsProfitData['profit']),
-                        borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        tension: 0.4,
-                        yAxisID: 'y'
-                    }, {
-                        label: 'Orders',
-                        data: @json($salesVsProfitData['orders']),
-                        borderColor: '#f59e0b',
-                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                        tension: 0.4,
-                        yAxisID: 'y1'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: {
+            const salesVsProfitCtx = document.getElementById('salesVsProfitChart');
+            if (salesVsProfitCtx && salesVsProfitData.labels.length > 0) {
+                new Chart(salesVsProfitCtx, {
+                    type: 'line',
+                    data: {
+                        labels: salesVsProfitData.labels,
+                        datasets: [{
+                            label: 'Sales (₱)',
+                            data: salesVsProfitData.sales,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        }, {
+                            label: 'Estimated Profit (₱)',
+                            data: salesVsProfitData.profit,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        }, {
+                            label: 'Orders',
+                            data: salesVsProfitData.orders,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                type: 'linear',
                                 display: true,
-                                text: 'Amount (₱)'
-                            }
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: {
-                                display: true,
-                                text: 'Number of Orders'
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Amount (₱)'
+                                }
                             },
-                            grid: {
-                                drawOnChartArea: false,
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Number of Orders'
+                                },
+                                grid: {
+                                    drawOnChartArea: false,
+                                }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
 
             // Orders by Day Chart
-            const ordersByDayCtx = document.getElementById('ordersByDayChart').getContext('2d');
-            new Chart(ordersByDayCtx, {
-                type: 'bar',
-                data: {
-                    labels: @json($ordersByDayData['labels']),
-                    datasets: [{
-                        label: 'Current Week',
-                        data: @json($ordersByDayData['current_week']),
-                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                        borderColor: '#3b82f6',
-                        borderWidth: 1
-                    }, {
-                        label: 'Previous Week',
-                        data: @json($ordersByDayData['previous_week']),
-                        backgroundColor: 'rgba(156, 163, 175, 0.8)',
-                        borderColor: '#9ca3af',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Number of Orders'
+            const ordersByDayCtx = document.getElementById('ordersByDayChart');
+            if (ordersByDayCtx && ordersByDayData.labels.length > 0) {
+                new Chart(ordersByDayCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ordersByDayData.labels,
+                        datasets: [{
+                            label: 'Current Week',
+                            data: ordersByDayData.current_week,
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 1
+                        }, {
+                            label: 'Previous Week',
+                            data: ordersByDayData.previous_week,
+                            backgroundColor: 'rgba(156, 163, 175, 0.8)',
+                            borderColor: '#9ca3af',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Number of Orders'
+                                }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
 
             // Monthly Trends Chart
-            const monthlyTrendsCtx = document.getElementById('monthlyTrendsChart').getContext('2d');
-            new Chart(monthlyTrendsCtx, {
-                type: 'line',
-                data: {
-                    labels: @json($monthlyTrendsData['labels']),
-                    datasets: [{
-                        label: 'Monthly Sales (₱)',
-                        data: @json($monthlyTrendsData['sales']),
-                        borderColor: '#8b5cf6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                        tension: 0.4,
-                        yAxisID: 'y'
-                    }, {
-                        label: 'Monthly Orders',
-                        data: @json($monthlyTrendsData['orders']),
-                        borderColor: '#ef4444',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        tension: 0.4,
-                        yAxisID: 'y1'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: {
+            const monthlyTrendsCtx = document.getElementById('monthlyTrendsChart');
+            if (monthlyTrendsCtx && monthlyTrendsData.labels.length > 0) {
+                new Chart(monthlyTrendsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: monthlyTrendsData.labels,
+                        datasets: [{
+                            label: 'Monthly Sales (₱)',
+                            data: monthlyTrendsData.sales,
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        }, {
+                            label: 'Monthly Orders',
+                            data: monthlyTrendsData.orders,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                type: 'linear',
                                 display: true,
-                                text: 'Sales Amount (₱)'
-                            }
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: {
-                                display: true,
-                                text: 'Number of Orders'
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Sales Amount (₱)'
+                                }
                             },
-                            grid: {
-                                drawOnChartArea: false,
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Number of Orders'
+                                },
+                                grid: {
+                                    drawOnChartArea: false,
+                                }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
 
             // Category Breakdown Chart
-            const categoryBreakdownCtx = document.getElementById('categoryBreakdownChart').getContext('2d');
-            new Chart(categoryBreakdownCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: @json($categoryBreakdownData['labels']),
-                    datasets: [{
-                        data: @json($categoryBreakdownData['data']),
-                        backgroundColor: @json($categoryBreakdownData['colors']),
-                        borderWidth: 2,
-                        borderColor: document.documentElement.classList.contains('dark') ? '#3f3f46' : '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right'
+            const categoryBreakdownCtx = document.getElementById('categoryBreakdownChart');
+            if (categoryBreakdownCtx && categoryBreakdownData.labels.length > 0) {
+                new Chart(categoryBreakdownCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: categoryBreakdownData.labels,
+                        datasets: [{
+                            data: categoryBreakdownData.data,
+                            backgroundColor: categoryBreakdownData.colors,
+                            borderWidth: 2,
+                            borderColor: document.documentElement.classList.contains('dark') ? '#3f3f46' : '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right'
+                            }
                         }
                     }
-                }
+                });
             }
         });
     </script>
