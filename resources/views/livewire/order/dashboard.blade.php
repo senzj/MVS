@@ -367,7 +367,7 @@
 
                                             @elseif($order->status === 'in_transit')
                                                 <button wire:click="markDelivered({{ $order->id }})"
-                                                    @disabled($editingOrderId) {{-- 👈 disables if editing --}}
+                                                    @disabled($editingOrderId)
                                                     class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
                                                         text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300 
                                                         hover:bg-purple-100 dark:hover:bg-purple-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

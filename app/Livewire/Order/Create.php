@@ -21,6 +21,10 @@ class Create extends Component
     public $selectedEmployeeId = null;
     public $selectedCustomerId = null;
 
+    // GCash image path
+    public $currentImage = 'image';
+
+
     // Customer info (editable)
     public $customerName = '';
     public $customerUnit = '';
@@ -32,6 +36,12 @@ class Create extends Component
     
     // Remove modal states - Alpine.js will handle these
     public $currentItemIndex = null;
+    
+    // Payment modal states
+    public $showPaymentModal = false;
+    public $amountReceived = 0;
+    public $changeAmount = 0;
+    public $processingPayment = false;
     
     // Search terms
     public $customerSearch = '';
@@ -386,7 +396,54 @@ class Create extends Component
         return $this->selectedEmployeeId ? Employee::find($this->selectedEmployeeId) : null;
     }
 
-    // Form Submission
+    // Payment Modal Methods
+    public function openPaymentModal()
+    {
+        $this->showPaymentModal = true;
+        $this->amountReceived = 0;
+        $this->changeAmount = 0;
+        $this->processingPayment = false;
+    }
+
+    public function closePaymentModal()
+    {
+        $this->showPaymentModal = false;
+        $this->amountReceived = 0;
+        $this->changeAmount = 0;
+        $this->processingPayment = false;
+        $this->resetErrorBag(['amountReceived']);
+    }
+
+    public function updatedAmountReceived()
+    {
+        $totalAmount = $this->getTotalAmountProperty();
+        $this->changeAmount = max(0, $this->amountReceived - $totalAmount);
+    }
+
+    public function processPayment()
+    {
+        $this->processingPayment = true;
+        
+        if ($this->paymentType === 'cash') {
+            $totalAmount = $this->getTotalAmountProperty();
+            
+            $this->validate([
+                'amountReceived' => 'required|numeric|min:' . $totalAmount
+            ], [
+                'amountReceived.min' => 'Amount received must be at least ₱' . number_format($totalAmount, 2)
+            ]);
+        }
+
+        try {
+            $this->createOrder();
+            $this->closePaymentModal();
+        } catch (\Exception $e) {
+            $this->processingPayment = false;
+            throw $e;
+        }
+    }
+
+    // Modified Form Submission
     public function createOrder()
     {
         // Debug: Log the current orderType value
@@ -402,6 +459,12 @@ class Create extends Component
         }
         
         $this->validate($rules);
+
+        // For walk-in orders, show payment modal instead of creating order directly
+        if ($this->orderType === 'walk_in' && !$this->processingPayment) {
+            $this->openPaymentModal();
+            return;
+        }
 
         // Pre-check stocks before starting the transaction
         foreach ($this->orderItems as $i => $item) {
@@ -439,6 +502,9 @@ class Create extends Component
                 'status' => $this->orderType === 'walk_in' ? 'completed' : 'pending',
                 'is_paid' => $this->orderType === 'walk_in' ? true : false,
                 'receipt_number' => $this->orderNumber,
+                // Store payment details for walk-in orders
+                'amount_received' => $this->orderType === 'walk_in' ? $this->amountReceived : null,
+                'change_amount' => $this->orderType === 'walk_in' ? $this->changeAmount : null,
             ]);
 
             // Update customer information if changed (only for delivery orders)

@@ -18,7 +18,7 @@
     <div class="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
 
         {{-- Today's Sales --}}
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+        <div class="p-6 mt-2 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">Today's Sales</p>
@@ -29,8 +29,8 @@
                         </p>
                     @endif
                 </div>
-                <div class="p-3 bg-green-100 rounded-full dark:bg-green-900/20">
-                    <i class="w-6 h-6 text-green-600 fas fa-dollar-sign dark:text-green-400"></i>
+                <div class="p-3 bg-green-100 rounded-2xl dark:bg-green-900/20">
+                    <i class="fas fa-dollar-sign text-green-600 dark:text-green-400 text-xl pt-0.5"></i>
                 </div>
             </div>
         </div>
@@ -43,8 +43,8 @@
                     <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['orders'] ?? 0 }}</p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">Avg: ₱{{ number_format($todayStats['avg_order'] ?? 0, 2) }}</p>
                 </div>
-                <div class="p-3 bg-blue-100 rounded-full dark:bg-blue-900/20">
-                    <i class="w-6 h-6 text-blue-600 fas fa-shopping-cart dark:text-blue-400"></i>
+                <div class="p-3 bg-blue-100 rounded-2xl dark:bg-blue-900/20">
+                    <i class="text-blue-600 fas fa-shopping-cart dark:text-blue-400 text-xl pt-0.5"></i>
                 </div>
             </div>
         </div>
@@ -57,8 +57,8 @@
                     <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['pending'] ?? 0 }}</p>
                     <p class="text-sm text-amber-600 dark:text-amber-400">Needs attention</p>
                 </div>
-                <div class="p-3 rounded-full bg-amber-100 dark:bg-amber-900/20">
-                    <i class="w-6 h-6 fas fa-clock text-amber-600 dark:text-amber-400"></i>
+                <div class="p-3 rounded-2xl bg-amber-100 dark:bg-amber-900/20">
+                    <i class="fas fa-clock text-amber-600 dark:text-amber-400 text-xl pt-0.5"></i>
                 </div>
             </div>
         </div>
@@ -75,8 +75,8 @@
                         <p class="text-lg font-medium text-zinc-500 dark:text-zinc-400">No sales yet</p>
                     @endif
                 </div>
-                <div class="p-3 bg-purple-100 rounded-full dark:bg-purple-900/20">
-                    <i class="w-6 h-6 text-purple-600 fas fa-star dark:text-purple-400"></i>
+                <div class="p-3 bg-purple-100 rounded-2xl dark:bg-purple-900/20">
+                    <i class="text-purple-600 fas fa-star dark:text-purple-400 text-xl pt-0.5"></i>
                 </div>
             </div>
         </div>
