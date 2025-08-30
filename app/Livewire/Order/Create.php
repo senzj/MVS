@@ -2,28 +2,28 @@
 
 namespace App\Livewire\Order;
 
+use App\Helpers\PaymentImageHelper;
 use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
-use App\Models\ReceiptCounter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 
 class Create extends Component
 {
     // Order form data
     public $orderNumber;
-    public $orderType = 'deliver'; // 'deliver' or 'walk_in'
-    public $paymentType = 'cash';
+    public $orderType; // hard coded variable 'deliver' or 'walk_in'
+    public $paymentType; // hard coded variable 'cash' or 'gcash'
     public $selectedEmployeeId = null;
     public $selectedCustomerId = null;
 
-    // GCash image path
-    public $currentImage = 'image';
-
+    // GCash/Online Payment QR image path
+    public $currentImage = null;
 
     // Customer info (editable)
     public $customerName = '';
@@ -73,6 +73,12 @@ class Create extends Component
         $this->orderNumber = $this->generateOrderNumber();
         $this->addOrderItem();
         $this->loadData();
+
+        // Set default order type
+        $this->orderType = config('storeconfig.default_order_type', 'walk_in');
+
+        // Set default payment type
+        $this->paymentType = config('storeconfig.default_payment_type', 'cash');
     }
 
     public function loadData()
@@ -403,6 +409,7 @@ class Create extends Component
         $this->amountReceived = 0;
         $this->changeAmount = 0;
         $this->processingPayment = false;
+        $this->currentImage = PaymentImageHelper::getPaymentImageUrl();
     }
 
     public function closePaymentModal()
@@ -447,7 +454,7 @@ class Create extends Component
     public function createOrder()
     {
         // Debug: Log the current orderType value
-        \Illuminate\Support\Facades\Log::info('Creating order with orderType: ' . $this->orderType);
+        Log::info('Creating order with orderType: ' . $this->orderType);
         
         // Dynamic validation based on order type
         $rules = $this->rules;

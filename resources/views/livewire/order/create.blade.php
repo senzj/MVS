@@ -140,7 +140,8 @@
                         x-cloak
                         :class="dropUp ? 'bottom-full mb-1' : 'top-full mt-1'"
                         class="absolute z-20 w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg shadow-lg">
-                        <!-- Sticky floating search -->
+                        
+                        {{-- Sticky floating search --}}
                         <div class="sticky top-0 z-10 p-2 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-600">
                             <div class="relative">
                                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
@@ -268,8 +269,8 @@
                         x-cloak
                         :class="dropUp ? 'bottom-full mb-1' : 'top-full mt-1'"
                         class="absolute z-20 w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg shadow-lg">
-                        
-                        <!-- Sticky floating search -->
+
+                        {{-- Sticky floating search --}}
                         <div class="sticky top-0 z-10 p-2 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-600">
                             <div class="relative">
                                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
@@ -374,7 +375,7 @@
                                     <i class="fas fa-tag mr-1"></i>Product
                                 </label>
 
-                                <!-- Custom dropdown -->
+                                {{-- Custom dropdown --}}
                                 <div x-data="{
                                         open: false,
                                         dropUp: false,
@@ -513,7 +514,7 @@
     </form>
 
 
-{{-- Modal Payment --}}
+    {{-- Modal Payment --}}
     <div x-data="{ show: @entangle('showPaymentModal') }" 
         x-show="show" 
         x-cloak
@@ -548,27 +549,6 @@
                 {{-- Modal Body --}}
                 <div class="px-6 py-4">
 
-                    {{-- Order Summary --}}
-                    <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <h4 class="font-medium text-zinc-900 dark:text-zinc-100 mb-2">Order Summary</h4>
-                        <div class="space-y-1 text-sm">
-                            @foreach($orderItems as $item)
-                                @if($item['product_id'])
-                                    <div class="flex justify-between">
-                                        <span>{{ $item['product_name'] }} ({{ $item['quantity'] }}x)</span>
-                                        <span>₱{{ number_format($item['total'], 2) }}</span>
-                                    </div>
-                                @endif
-                            @endforeach
-                            <div class="border-t pt-2 mt-2 font-semibold">
-                                <div class="flex justify-between">
-                                    <span>Total Amount:</span>
-                                    <span>₱{{ number_format($this->totalAmount, 2) }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     {{-- Payment Type Display --}}
                     <div class="mb-4 flex justify-between">
                         <label class="block text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-2">
@@ -601,6 +581,27 @@
                                 </div>
                             </div>
                         @endif
+                    </div>
+
+                    {{-- Order Summary --}}
+                    <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <h4 class="font-medium text-zinc-900 dark:text-zinc-100 mb-2">Order Summary</h4>
+                        <div class="space-y-1 text-sm">
+                            @foreach($orderItems as $item)
+                                @if($item['product_id'])
+                                    <div class="flex justify-between">
+                                        <span>{{ $item['product_name'] }} ({{ $item['quantity'] }}x)</span>
+                                        <span>₱{{ number_format($item['total'], 2) }}</span>
+                                    </div>
+                                @endif
+                            @endforeach
+                            <div class="border-t pt-2 mt-2 font-semibold">
+                                <div class="flex justify-between">
+                                    <span>Total Amount:</span>
+                                    <span>₱{{ number_format($this->totalAmount, 2) }}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- Cash Payment Form --}}
@@ -639,15 +640,26 @@
 
                     {{-- GCash Payment --}}
                     @if($paymentType === 'gcash')
-                        <div class="text-center space-y-4">
+                        <div class="text-center space-y-2">
 
-                            {{-- GCASH image place holder --}}
-                            <div class="mx-auto w-60 h-60 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                                <div class="text-center">
-                                    <img src="{{ asset('storage/' . $currentImage) }}" alt="GCash QR Code" class="w-32 h-32">
-                                    <p class="text-sm text-gray-500">GCash QR Code</p>
-                                    <p class="text-xs text-gray-400 mt-1">Scan to pay ₱{{ number_format($this->totalAmount, 2) }}</p>
-                                </div>
+                            {{-- Fixed-size container for image --}}
+                            <div class="mx-auto bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center overflow-hidden
+                                {{ $currentImage ? '' : 'w-32 h-32' }}">
+                                
+                                @if ($currentImage)
+                                    <img src="{{ $currentImage }}"
+                                        alt="GCash QR Code"
+                                        class="max-w-full max-h-70 object-contain rounded-lg" />
+                                @else
+                                    <span class="text-gray-400 text-sm">No Image</span>
+                                @endif
+                            </div>
+
+                            {{-- Caption below --}}
+                            <div>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Scan to pay ₱{{ number_format($this->totalAmount, 2) }}.
+                                </p>
                             </div>
 
                         </div>
@@ -682,7 +694,7 @@
         </div>
     </div>
 
-    <!-- Add Alpine.js cloaking styles if not already present -->
+    {{-- Add Alpine.js cloaking styles if not already present --}}
     <style>
         [x-cloak] { display: none !important; }
     </style>

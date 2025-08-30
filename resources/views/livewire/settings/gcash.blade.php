@@ -21,7 +21,7 @@ new class extends Component {
 
     public function mount()
     {
-        $files = Storage::disk('public')->files('image/gcash');
+        $files = Storage::disk('public')->files('image/payment');
         $this->currentImage = collect($files)->first() ?? '';
     }
 
@@ -50,7 +50,7 @@ new class extends Component {
         $this->validate();
 
         // Remove previous file(s)
-        $oldFiles = Storage::disk('public')->files('image/gcash');
+        $oldFiles = Storage::disk('public')->files('image/payment');
         foreach ($oldFiles as $f) {
             Storage::disk('public')->delete($f);
         }
@@ -63,7 +63,7 @@ new class extends Component {
             $decodedImage = base64_decode($imageData);
             
             $filename = 'gcash-' . now()->format('YmdHis') . '.png';
-            $path = 'image/gcash/' . $filename;
+            $path = 'image/payment/' . $filename;
             
             Storage::disk('public')->put($path, $decodedImage);
             $this->currentImage = $path;
@@ -71,7 +71,7 @@ new class extends Component {
             // Process original image
             $ext = $this->image->getClientOriginalExtension();
             $filename = 'gcash-' . now()->format('YmdHis') . '.' . $ext;
-            $path = $this->image->storeAs('image/gcash', $filename, 'public');
+            $path = $this->image->storeAs('image/payment', $filename, 'public');
             $this->currentImage = $path;
         }
 
@@ -169,7 +169,7 @@ new class extends Component {
                                 class="w-full max-w-xs h-auto rounded-lg shadow-md border-2 border-gray-100 object-contain bg-gray-50 cursor-pointer"
                                 x-on:click="showImagePreview = true">
 
-                            <!-- Quick Actions Overlay -->
+                            {{-- Quick Actions Overlay --}}
                             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-lg flex items-center justify-center">
                                 <div class="flex gap-2">
                                     <button x-on:click="showImagePreview = true"
@@ -223,7 +223,7 @@ new class extends Component {
                 <form wire:submit.prevent="save" class="space-y-6" 
                     x-on:livewire-upload-progress="uploadProgress = $event.detail.progress">
 
-                    <!-- Enhanced Drag & Drop Zone -->
+                    {{-- Enhanced Drag & Drop Zone --}}
                     @if (!$showCropper && !$croppedImageData)
                         <div x-data="{
                                 dragging: false,
@@ -280,7 +280,7 @@ new class extends Component {
                         </div>
                     @endif
 
-                    <!-- Loading State -->
+                    {{-- Loading State --}}
                     <div wire:loading.flex wire:target="image" class="items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                         <div class="flex items-center gap-2 text-blue-700">
                             <i class="fa-solid fa-spinner fa-spin"></i>
@@ -288,7 +288,7 @@ new class extends Component {
                         </div>
                     </div>
 
-                    <!-- Cropped Image Preview -->
+                    {{-- Cropped Image Preview --}}
                     @if ($croppedImageData)
                         <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
                             <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
@@ -320,7 +320,7 @@ new class extends Component {
                         </div>
                     @endif
 
-                    <!-- Upload Progress Bar -->
+                    {{-- Upload Progress Bar --}}
                     <div x-show="uploadProgress > 0" class="space-y-2">
                         <div class="flex justify-between items-center text-sm">
                             <span class="font-medium text-gray-700 flex items-center gap-2">
@@ -335,7 +335,7 @@ new class extends Component {
                         </div>
                     </div>
 
-                    <!-- Action Buttons -->
+                    {{-- Action Buttons --}}
                     <div class="flex flex-col sm:flex-row gap-3 pt-4">
                         <button type="submit"
                                 wire:loading.attr="disabled"
@@ -363,7 +363,7 @@ new class extends Component {
                     </div>
                 </form>
 
-                <!-- Help Section -->
+                {{-- Help Section --}}
                 @if (!$currentImage && !$image && !$croppedImageData)
                     <div class="mt-8 p-4 bg-amber-50 rounded-lg border border-amber-200">
                         <h4 class="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
@@ -381,11 +381,12 @@ new class extends Component {
             </div>
         </div>
 
-        <!-- Image Cropper Modal -->
+        {{-- Image Cropper Modal --}}
         @if($showCropper && $image)
             <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                 <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-                    <!-- Cropper Header -->
+                    
+                    {{-- Crop Header --}}
                     <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
                         <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
                             <i class="fa-solid fa-crop text-blue-500"></i>
@@ -397,7 +398,7 @@ new class extends Component {
                         </button>
                     </div>
                     
-                    <!-- Cropper Content -->
+                    {{-- Crop Content --}}
                     <div class="p-6" 
                          x-data="{
                             canvas: null,
@@ -561,7 +562,7 @@ new class extends Component {
                                 </div>
                             </div>
                             
-                            <!-- Crop Controls -->
+                            {{-- Crop Controls --}}
                             <div class="flex flex-col sm:flex-row gap-3 justify-center">
                                 <button type="button"
                                         x-on:click="applyCrop()"
@@ -590,7 +591,7 @@ new class extends Component {
             </div>
         @endif
 
-        <!-- Image Preview Modal -->
+        {{-- Image Preview Modal --}}
         <div x-show="showImagePreview" 
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             x-on:keydown.escape="showImagePreview = false"
@@ -614,7 +615,7 @@ new class extends Component {
             </div>
         </div>
 
-        <!-- Enhanced Delete Confirmation Modal -->
+        {{-- Enhanced Delete Confirmation Modal --}}
         @if($showDeleteConfirm)
             <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
                 <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" wire:click="cancelDelete"></div>
