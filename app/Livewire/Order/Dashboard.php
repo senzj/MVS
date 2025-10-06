@@ -338,13 +338,13 @@ class Dashboard extends Component
                 'updated_at' => now(), // reflect transition moment
             ]);
 
-        if ($updatedCount > 0) {
-            Log::info("Dashboard processed batch delivery for employee {$employeeId}: {$updatedCount} orders moved to in_transit", [
-                'employee_id' => $employeeId,
-                'order_ids'   => $orderIds,
-                'source'      => 'livewire_dashboard',
-            ]);
-        }
+        // if ($updatedCount > 0) {
+        //     Log::info("Dashboard processed batch delivery for employee {$employeeId}: {$updatedCount} orders moved to in_transit", [
+        //         'employee_id' => $employeeId,
+        //         'order_ids'   => $orderIds,
+        //         'source'      => 'livewire_dashboard',
+        //     ]);
+        // }
 
         // Cleanup
         unset($this->batchDeliveryTimers[$employeeId], $this->batchDeliveryOrders[$employeeId]);

@@ -461,7 +461,7 @@
                             {{-- Quantity --}}
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    <i class="fas fa-sort-numeric-up mr-1"></i>Quantity
+                                    <i class="fas fa-sort-numeric-up mr-1"></i>Quantity / Per Kilo
                                 </label>
                                 <input type="number" 
                                     wire:model.live="orderItems.{{ $index }}.quantity" 

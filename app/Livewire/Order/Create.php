@@ -454,7 +454,7 @@ class Create extends Component
     public function createOrder()
     {
         // Debug: Log the current orderType value
-        Log::info('Creating order with orderType: ' . $this->orderType);
+        // Log::info('Creating order with orderType: ' . $this->orderType);
         
         // Dynamic validation based on order type
         $rules = $this->rules;

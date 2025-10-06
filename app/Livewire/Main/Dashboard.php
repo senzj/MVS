@@ -27,6 +27,14 @@ class Dashboard extends Component
         $this->ordersByDayData = $this->getOrdersByDayData();
         $this->monthlyTrendsData = $this->getMonthlyTrendsData();
         $this->categoryBreakdownData = $this->getCategoryBreakdownData();
+
+        // Dispatch data to the browser so JS can render charts after Livewire mounts
+        $this->dispatch('dashboard-charts-data', data: [
+            'salesVsProfitData' => $this->salesVsProfitData,
+            'ordersByDayData' => $this->ordersByDayData,
+            'monthlyTrendsData' => $this->monthlyTrendsData,
+            'categoryBreakdownData' => $this->categoryBreakdownData,
+        ]);
     }
 
     private function getTodayStats()

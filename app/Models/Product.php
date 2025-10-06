@@ -37,6 +37,7 @@ class Product extends Model
             'grains' => 'Grains & Cereals',
             'frozen' => 'Frozen Items',
             'bakery' => 'Bakery Items',
+            'gas' => 'Gas',
             'other' => 'Other',
         ];
     }

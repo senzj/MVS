@@ -67,8 +67,6 @@ class Dashboard extends Component
     {
         $this->resetPage();
         $this->dispatch('$refresh'); // Force component refresh
-        // Add debug to check what's happening
-        Log::info('Category filter updated to: ' . $this->categoryFilter);
     }
 
     public function updatedStockFilter()
@@ -268,12 +266,12 @@ class Dashboard extends Component
         // FIXED: Category filter with explicit check and better debugging
         if ($this->categoryFilter !== 'all' && !empty($this->categoryFilter)) {
             // Log for debugging
-            Log::info('Applying category filter: ' . $this->categoryFilter);
+            // Log::info('Applying category filter: ' . $this->categoryFilter);
             $query->where('category', $this->categoryFilter);
             
             // Debug: Check what products exist with this category
             $categoryProducts = Product::where('category', $this->categoryFilter)->get();
-            Log::info('Products with category "' . $this->categoryFilter . '": ' . $categoryProducts->count());
+            // Log::info('Products with category "' . $this->categoryFilter . '": ' . $categoryProducts->count());
         }
 
         // Apply stock filter
@@ -300,15 +298,8 @@ class Dashboard extends Component
         // Apply sorting
         $query->orderBy($this->sortBy, $this->sortDirection);
 
-        // Debug: Log the final query
-        Log::info('Final query SQL: ' . $query->toSql());
-        Log::info('Query bindings: ', $query->getBindings());
-
         // Get paginated results
         $products = $query->paginate(10);
-
-        // Debug: Log the results count
-        Log::info('Products found: ' . $products->total());
 
         // Get all products for stats (separate query to avoid filter interference)
         $allProducts = Product::all();
@@ -318,14 +309,10 @@ class Dashboard extends Component
         
         // Also get categories that actually exist in the database
         $existingCategories = Product::whereNotNull('category')
-                                   ->where('category', '!=', '')
-                                   ->distinct()
-                                   ->pluck('category', 'category')
-                                   ->toArray();
-        
-        // Debug: Log existing categories
-        Log::info('Existing categories in database: ', $existingCategories);
-        Log::info('Predefined categories: ', $categories);
+            ->where('category', '!=', '')
+            ->distinct()
+            ->pluck('category', 'category')
+            ->toArray();
 
         return view('livewire.product.dashboard', [
             'products' => $products,
@@ -348,8 +335,6 @@ class Dashboard extends Component
             }
             $categoryData[$cat]++;
         }
-        
-        Log::info('Category distribution:', $categoryData);
         
         $this->dispatch('show-success', ['message' => 'Check logs for category debug info']);
     }

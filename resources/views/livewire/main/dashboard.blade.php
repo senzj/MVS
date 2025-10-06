@@ -176,7 +176,7 @@
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-blue-500 fas fa-chart-line"></i>Sales vs Profit (Last 30 Days)
             </h3>
-            <div class="h-80">
+            <div class="h-80" wire:ignore>
                 <canvas id="salesVsProfitChart"></canvas>
             </div>
         </div>
@@ -186,13 +186,13 @@
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-green-500 fas fa-calendar-alt"></i>Orders by Day (Current vs Previous Week)
             </h3>
-            <div class="h-80">
+            <div class="h-80" wire:ignore>
                 <canvas id="ordersByDayChart"></canvas>
             </div>
         </div>
     </div>
 
-    {{-- Additional Charts --}}
+    {{-- Statistical Charts --}}
     <div class="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-2">
 
         {{-- Monthly Trends --}}
@@ -200,7 +200,7 @@
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-purple-500 fas fa-chart-area"></i>Monthly Trends (Last 6 Months)
             </h3>
-            <div class="h-80">
+            <div class="h-80" wire:ignore>
                 <canvas id="monthlyTrendsChart"></canvas>
             </div>
         </div>
@@ -210,207 +210,10 @@
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-orange-500 fas fa-chart-pie"></i>Sales by Category (Last 30 Days)
             </h3>
-            <div class="h-80">
+            <div class="h-80" wire:ignore>
                 <canvas id="categoryBreakdownChart"></canvas>
             </div>
         </div>
     </div>
-
-    {{-- Chart.js Script --}}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if Chart.js is loaded
-            if (typeof Chart === 'undefined') {
-                console.error('Chart.js is not loaded. Please include Chart.js library.');
-                return;
-            }
-
-            // Chart configuration for dark mode
-            Chart.defaults.color = document.documentElement.classList.contains('dark') ? '#a1a1aa' : '#71717a';
-            Chart.defaults.borderColor = document.documentElement.classList.contains('dark') ? '#3f3f46' : '#e4e4e7';
-
-            // Check if data exists before creating charts
-            const salesVsProfitData = @json($salesVsProfitData) || {labels: [], sales: [], profit: [], orders: []};
-            const ordersByDayData = @json($ordersByDayData) || {labels: [], current_week: [], previous_week: []};
-            const monthlyTrendsData = @json($monthlyTrendsData) || {labels: [], sales: [], orders: []};
-            const categoryBreakdownData = @json($categoryBreakdownData) || {labels: [], data: [], colors: []};
-
-            // Sales vs Profit Chart
-            const salesVsProfitCtx = document.getElementById('salesVsProfitChart');
-            if (salesVsProfitCtx && salesVsProfitData.labels.length > 0) {
-                new Chart(salesVsProfitCtx, {
-                    type: 'line',
-                    data: {
-                        labels: salesVsProfitData.labels,
-                        datasets: [{
-                            label: 'Sales (₱)',
-                            data: salesVsProfitData.sales,
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            tension: 0.4,
-                            yAxisID: 'y'
-                        }, {
-                            label: 'Estimated Profit (₱)',
-                            data: salesVsProfitData.profit,
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            tension: 0.4,
-                            yAxisID: 'y'
-                        }, {
-                            label: 'Orders',
-                            data: salesVsProfitData.orders,
-                            borderColor: '#f59e0b',
-                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                            tension: 0.4,
-                            yAxisID: 'y1'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                type: 'linear',
-                                display: true,
-                                position: 'left',
-                                title: {
-                                    display: true,
-                                    text: 'Amount (₱)'
-                                }
-                            },
-                            y1: {
-                                type: 'linear',
-                                display: true,
-                                position: 'right',
-                                title: {
-                                    display: true,
-                                    text: 'Number of Orders'
-                                },
-                                grid: {
-                                    drawOnChartArea: false,
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Orders by Day Chart
-            const ordersByDayCtx = document.getElementById('ordersByDayChart');
-            if (ordersByDayCtx && ordersByDayData.labels.length > 0) {
-                new Chart(ordersByDayCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: ordersByDayData.labels,
-                        datasets: [{
-                            label: 'Current Week',
-                            data: ordersByDayData.current_week,
-                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                            borderColor: '#3b82f6',
-                            borderWidth: 1
-                        }, {
-                            label: 'Previous Week',
-                            data: ordersByDayData.previous_week,
-                            backgroundColor: 'rgba(156, 163, 175, 0.8)',
-                            borderColor: '#9ca3af',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'Number of Orders'
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Monthly Trends Chart
-            const monthlyTrendsCtx = document.getElementById('monthlyTrendsChart');
-            if (monthlyTrendsCtx && monthlyTrendsData.labels.length > 0) {
-                new Chart(monthlyTrendsCtx, {
-                    type: 'line',
-                    data: {
-                        labels: monthlyTrendsData.labels,
-                        datasets: [{
-                            label: 'Monthly Sales (₱)',
-                            data: monthlyTrendsData.sales,
-                            borderColor: '#8b5cf6',
-                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                            tension: 0.4,
-                            yAxisID: 'y'
-                        }, {
-                            label: 'Monthly Orders',
-                            data: monthlyTrendsData.orders,
-                            borderColor: '#ef4444',
-                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                            tension: 0.4,
-                            yAxisID: 'y1'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                type: 'linear',
-                                display: true,
-                                position: 'left',
-                                title: {
-                                    display: true,
-                                    text: 'Sales Amount (₱)'
-                                }
-                            },
-                            y1: {
-                                type: 'linear',
-                                display: true,
-                                position: 'right',
-                                title: {
-                                    display: true,
-                                    text: 'Number of Orders'
-                                },
-                                grid: {
-                                    drawOnChartArea: false,
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Category Breakdown Chart
-            const categoryBreakdownCtx = document.getElementById('categoryBreakdownChart');
-            if (categoryBreakdownCtx && categoryBreakdownData.labels.length > 0) {
-                new Chart(categoryBreakdownCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: categoryBreakdownData.labels,
-                        datasets: [{
-                            data: categoryBreakdownData.data,
-                            backgroundColor: categoryBreakdownData.colors,
-                            borderWidth: 2,
-                            borderColor: document.documentElement.classList.contains('dark') ? '#3f3f46' : '#ffffff'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'right'
-                            }
-                        }
-                    }
-                });
-            }
-        });
-    </script>
 
 </div>
