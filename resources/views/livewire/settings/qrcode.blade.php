@@ -16,7 +16,7 @@ new class extends Component {
     public $croppedImageData = null;
 
     protected $rules = [
-        'image' => 'required|image|mimes:png,jpg,jpeg,webp|max:2048',
+        'image' => 'required|image|mimes:png,jpg,jpeg,webp|max:10000',
     ];
 
     public function mount()
@@ -31,6 +31,11 @@ new class extends Component {
         if ($this->image) {
             $this->showCropper = true;
         }
+    }
+
+    public function resetUpload()
+    {
+        $this->reset(['image', 'croppedImageData', 'showCropper']);
     }
 
     public function setCroppedImage($imageData)
@@ -76,7 +81,7 @@ new class extends Component {
         }
 
         $this->reset(['image', 'croppedImageData']);
-        session()->flash('message', 'GCash image uploaded successfully.');
+        session()->flash('message', __('QR Code Image uploaded successfully'));
     }
 
     public function confirmDelete()
@@ -89,7 +94,7 @@ new class extends Component {
         if ($this->currentImage) {
             Storage::disk('public')->delete($this->currentImage);
             $this->currentImage = '';
-            session()->flash('message', 'Image deleted successfully.');
+            session()->flash('message', __('QR Code Image deleted successfully'));
         }
         $this->showDeleteConfirm = false;
     }
@@ -124,9 +129,9 @@ new class extends Component {
                     <i class="fa-brands fa-paypal text-2xl text-blue-600"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 mb-1">GCash Payment Settings</h2>
+                    <h2 class="text-xl font-bold text-gray-900 mb-1">{{ __('QR Code Payment Settings') }}</h2>
                     <p class="text-gray-600 text-sm leading-relaxed">
-                        Upload your GCash QR code or payment reference image. This will be displayed to customers when they choose GCash as their payment method.
+                        {{ __('Upload your GCash QR code or payment reference image like instaPay. This will be displayed to customers when they choose GCash as their payment method.') }}
                     </p>
                 </div>
             </div>
@@ -158,7 +163,7 @@ new class extends Component {
                 <div class="p-6 border border-gray-200 bg-white rounded-xl shadow-sm">
                     <h3 class="text-lg font-semibold text-gray-900 flex items-center justify-center gap-2 mb-4">
                         <i class="fa-solid fa-image text-blue-500"></i>
-                        Current GCash Image
+                        {{ __('Payment QR Code') }}
                     </h3>
 
                     {{-- Centered Image --}}
@@ -190,13 +195,13 @@ new class extends Component {
                         {{-- Active Status Badge --}}
                         <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             <i class="fa-solid fa-circle-check"></i>
-                            Active
+                            {{ __('QR Code in use') }}
                         </span>
 
                         {{-- Image Info --}}
                         <div class="text-sm text-gray-600 flex items-center gap-2">
                             <i class="fa-solid fa-file text-blue-500"></i>
-                            <span class="font-medium">Format:</span>
+                            <span class="font-medium">{{ __('Format') }}:</span>
                             <span class="uppercase">{{ pathinfo($currentImage, PATHINFO_EXTENSION) }}</span>
                         </div>
 
@@ -205,7 +210,7 @@ new class extends Component {
                             <button wire:click="confirmDelete"
                                     class="inline-flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg text-sm font-medium transition-colors">
                                 <i class="fa-solid fa-trash"></i>
-                                Remove Image
+                                {{ __('Remove Image') }}
                             </button>
                         </div>
                     </div>
@@ -214,174 +219,179 @@ new class extends Component {
 
 
             {{-- Upload Section --}}
-            <div class="p-6 mt-5 border border-gray-200 bg-white rounded-xl shadow-sm">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-cloud-arrow-up text-blue-500"></i>
-                    {{ $currentImage ? 'Replace Image' : 'Upload GCash Image' }}
-                </h3>
+            @if(!$currentImage)
+                <div class="p-6 mt-5 border border-gray-200 bg-white rounded-xl shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-blue-500"></i>
+                        {{ __('Upload Payment QR Code') }}
+                    </h3>
 
-                <form wire:submit.prevent="save" class="space-y-6" 
-                    x-on:livewire-upload-progress="uploadProgress = $event.detail.progress">
-
-                    {{-- Enhanced Drag & Drop Zone --}}
-                    @if (!$showCropper && !$croppedImageData)
-                        <div x-data="{
-                                dragging: false,
-                                handleDrop(e) {
-                                    this.dragging = false;
-                                    const files = e.dataTransfer.files;
-                                    if(files && files[0]) {
-                                        $refs.fileInput.files = files;
-                                        $refs.fileInput.dispatchEvent(new Event('input'));
+                    <form wire:submit.prevent="save" class="space-y-6"
+                          x-on:livewire-upload-start="uploadProgress = 0"
+                          x-on:livewire-upload-progress="uploadProgress = $event.detail.progress"
+                          x-on:livewire-upload-finish="uploadProgress = 0"
+                          x-on:livewire-upload-error="uploadProgress = 0">
+                        {{-- Image upload Drag & Drop Zone --}}
+                        @if (!$showCropper && !$croppedImageData)
+                            <div x-data="{
+                                    dragging: false,
+                                    handleDrop(e) {
+                                        this.dragging = false;
+                                        const files = e.dataTransfer.files;
+                                        if(files && files[0]) {
+                                            $refs.fileInput.files = files;
+                                            $refs.fileInput.dispatchEvent(new Event('input'));
+                                        }
                                     }
-                                }
-                            }"
-                            x-on:dragover.prevent="dragging = true"
-                            x-on:dragleave.prevent="dragging = false"
-                            x-on:drop.prevent="handleDrop($event)"
-                            class="relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 min-h-[200px] flex flex-col items-center justify-center"
-                            :class="dragging ? 'border-blue-400 bg-blue-50 scale-[1.02]' : 'border-gray-300 bg-gray-50 hover:border-blue-300 hover:bg-blue-25'">
+                                }"
+                                x-on:dragover.prevent="dragging = true"
+                                x-on:dragleave.prevent="dragging = false"
+                                x-on:drop.prevent="handleDrop($event)"
+                                class="relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 min-h-[200px] flex flex-col items-center justify-center"
+                                :class="dragging ? 'border-blue-400 bg-blue-50 scale-[1.02]' : 'border-gray-300 bg-gray-50 hover:border-blue-300 hover:bg-blue-25'">
 
-                            <input type="file"
-                                x-ref="fileInput"
-                                wire:model="image"
-                                accept="image/png,image/jpeg,image/jpg,image/webp"
-                                class="hidden">
+                                <input type="file"
+                                    x-ref="fileInput"
+                                    wire:model="image"
+                                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                                    class="hidden">
 
-                            <div x-on:click="$refs.fileInput.click()" class="space-y-4">
-                                <div class="p-4 bg-blue-100 rounded-full w-fit mx-auto">
-                                    <i class="fa-solid fa-cloud-arrow-up text-2xl text-blue-600"></i>
-                                </div>
-                                
-                                <div class="space-y-2">
-                                    <p class="text-lg font-medium text-gray-700">
-                                        <span class="text-blue-600 underline">Click to browse</span> or drag & drop your image
-                                    </p>
-                                    <p class="text-sm text-gray-500">
-                                        Supports PNG, JPG, JPEG, WEBP • Maximum 2MB
-                                    </p>
-                                </div>
-                                
-                                <div class="flex items-center justify-center gap-4 text-xs text-gray-400 pt-2">
-                                    <div class="flex items-center gap-1">
-                                        <i class="fa-solid fa-shield-check"></i>
-                                        <span>Secure Upload</span>
-                                    </div>
-                                    <div class="flex items-center gap-1">
-                                        <i class="fa-solid fa-crop text-blue-500"></i>
-                                        <span>Auto Crop</span>
-                                    </div>
-                                    <div class="flex items-center gap-1">
-                                        <i class="fa-solid fa-zap"></i>
-                                        <span>Instant Preview</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-
-                    {{-- Loading State --}}
-                    <div wire:loading.flex wire:target="image" class="items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div class="flex items-center gap-2 text-blue-700">
-                            <i class="fa-solid fa-spinner fa-spin"></i>
-                            <span class="font-medium">Processing your image...</span>
-                        </div>
-                    </div>
-
-                    {{-- Cropped Image Preview --}}
-                    @if ($croppedImageData)
-                        <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                            <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                <i class="fa-solid fa-crop text-green-500"></i>
-                                Cropped Preview
-                            </h4>
-                            
-                            <div class="flex flex-col md:flex-row gap-6">
-                                <div class="flex-shrink-0">
-                                    <img src="{{ $croppedImageData }}"
-                                        alt="Cropped Preview"
-                                        class="w-full max-w-xs h-auto rounded-lg border-2 border-white shadow-md object-contain bg-white">
-                                </div>
-                                
-                                <div class="flex-1 space-y-4">
-                                    <div class="flex items-center gap-2 text-green-600 text-sm">
-                                        <i class="fa-solid fa-circle-check"></i>
-                                        <span class="font-medium">Image cropped successfully! Ready to upload.</span>
+                                <div x-on:click="$refs.fileInput.click()" class="space-y-4">
+                                    <div class="p-4 bg-blue-100 rounded-full w-fit mx-auto">
+                                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-blue-600"></i>
                                     </div>
                                     
-                                    <button type="button"
-                                            wire:click="$set('showCropper', true)"
-                                            class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-sm font-medium transition-colors">
-                                        <i class="fa-solid fa-crop"></i>
-                                        Crop Again
-                                    </button>
+                                    <div class="space-y-2">
+                                        <p class="text-lg font-medium text-gray-700">
+                                            <span class="text-blue-600 underline">{{ __('Click to browse') }}</span> {{ __('or drag & drop your image') }}
+                                        </p>
+                                        <p class="text-sm text-gray-500">
+                                            {{ __('Supports PNG, JPG, JPEG, WEBP | Maximum 10MB') }}
+                                        </p>
+                                    </div>
+                                    
+                                    {{-- <div class="flex items-center justify-center gap-4 text-xs text-gray-400 pt-2">
+                                        <div class="flex items-center gap-1">
+                                            <i class="fa-solid fa-shield-check"></i>
+                                            <span>Secure Upload</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <i class="fa-solid fa-crop text-blue-500"></i>
+                                            <span>Auto Crop</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <i class="fa-solid fa-zap"></i>
+                                            <span>Instant Preview</span>
+                                        </div>
+                                    </div> --}}
                                 </div>
                             </div>
+                        @endif
+
+                        {{-- Cropped Image Preview --}}
+                        @if ($croppedImageData)
+                            <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                                <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                                    <i class="fa-solid fa-crop text-green-500"></i>
+                                    {{ __('Cropped Preview') }}
+                                </h4>
+                                
+                                <div class="flex flex-col items-center gap-6">
+                                    <div class="flex-shrink-0">
+                                        <img src="{{ $croppedImageData }}"
+                                            alt="Cropped Preview"
+                                            class="w-full max-w-xs h-auto rounded-lg border-2 border-white shadow-md object-contain bg-white mx-auto">
+                                    </div>
+                                    
+                                    <div class="w-full space-y-4 text-center">
+                                        <div class="flex items-center gap-2 text-green-600 text-sm justify-center">
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            <span class="font-medium">{{ __('Image cropped! Ready to upload.') }}</span>
+                                        </div>
+                                        
+                                        <button type="button"
+                                                wire:click="$set('showCropper', true)"
+                                                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-sm font-medium transition-colors">
+                                            <i class="fa-solid fa-crop"></i>
+                                            {{ __('Crop Again') }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Loading State --}}
+                        <div wire:loading.flex wire:target="image" class="items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <div class="flex items-center gap-2 text-blue-700">
+                                <i class="fa-solid fa-spinner fa-spin"></i>
+                                <span class="font-medium">{{ __('Processing your image...') }}</span>
+                            </div>
+                        </div>
+
+                        {{-- Upload Progress Bar --}}
+                        <div x-show="uploadProgress > 0" class="space-y-2" x-cloak>
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="font-medium text-gray-700 flex items-center gap-2">
+                                    <i class="fa-solid fa-upload text-blue-500"></i>
+                                    {{ __('Uploading...') }}
+                                </span>
+                                <span class="font-bold text-blue-600" x-text="uploadProgress + '%'"></span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-300 ease-out" 
+                                     :style="'width: ' + uploadProgress + '%'"></div>
+                            </div>
+                        </div>
+
+                        {{-- Action Buttons --}}
+                        <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4">
+                            @if (!empty($image) || !empty($croppedImageData))
+                                <button type="button"
+                                        wire:click="resetUpload"
+                                        class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors duration-200">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                    {{ __('Reset') }}
+                                </button>
+                            @endif
+
+                            <button type="submit"
+                                    wire:loading.attr="disabled"
+                                    wire:target="save,image"
+                                    :disabled="!($wire.image || $wire.croppedImageData)"
+                                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 focus:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                                <span wire:loading.remove wire:target="save" class="flex items-center gap-2">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    {{ __('Upload Image') }}
+                                </span>
+                                <span wire:loading wire:target="save" class="flex items-center gap-2">
+                                    <i class="fa-solid fa-spinner fa-spin"></i>
+                                    {{ __('Uploading...') }}
+                                </span>
+                            </button>
+
+                        </div>
+                    </form>
+
+                    {{-- Help Section --}}
+                    @if (!$currentImage && !$image && !$croppedImageData)
+                        <div class="mt-8 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                            <h4 class="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-lightbulb"></i>
+                                {{ __('Tips for best results') }}
+                            </h4>
+                            <ul class="text-sm text-amber-700 space-y-1">
+                                <li>• {{ __('Use a clear, high-resolution image of your Payment QR code') }}</li>
+                                <li>• {{ __('Ensure the QR code is easily scannable') }}</li>
+                                <li>• {{ __('Include your Payment name/number for reference') }}</li>
+                                <li>• {{ __('Avoid using images with excessive glare or shadows') }}</li>
+                            </ul>
                         </div>
                     @endif
-
-                    {{-- Upload Progress Bar --}}
-                    <div x-show="uploadProgress > 0" class="space-y-2">
-                        <div class="flex justify-between items-center text-sm">
-                            <span class="font-medium text-gray-700 flex items-center gap-2">
-                                <i class="fa-solid fa-upload text-blue-500"></i>
-                                Uploading...
-                            </span>
-                            <span class="font-bold text-blue-600" x-text="uploadProgress + '%'"></span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-300 ease-out" 
-                                :style="'width: ' + uploadProgress + '%'"></div>
-                        </div>
-                    </div>
-
-                    {{-- Action Buttons --}}
-                    <div class="flex flex-col sm:flex-row gap-3 pt-4">
-                        <button type="submit"
-                                wire:loading.attr="disabled"
-                                wire:target="save,image"
-                                :disabled="!($wire.image || $wire.croppedImageData)"
-                                class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 focus:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed">
-                            <span wire:loading.remove wire:target="save" class="flex items-center gap-2">
-                                <i class="fa-solid fa-cloud-arrow-up"></i>
-                                {{ $currentImage ? 'Replace Image' : 'Upload Image' }}
-                            </span>
-                            <span wire:loading wire:target="save" class="flex items-center gap-2">
-                                <i class="fa-solid fa-spinner fa-spin"></i>
-                                Uploading...
-                            </span>
-                        </button>
-
-                        @if (!empty($image) || !empty($croppedImageData))
-                            <button type="button"
-                                    wire:click="$set('image', null); $set('croppedImageData', null)"
-                                    class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors duration-200">
-                                <i class="fa-solid fa-rotate-left"></i>
-                                Reset
-                            </button>
-                        @endif
-                    </div>
-                </form>
-
-                {{-- Help Section --}}
-                @if (!$currentImage && !$image && !$croppedImageData)
-                    <div class="mt-8 p-4 bg-amber-50 rounded-lg border border-amber-200">
-                        <h4 class="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
-                            <i class="fa-solid fa-lightbulb"></i>
-                            Tips for best results
-                        </h4>
-                        <ul class="text-sm text-amber-700 space-y-1">
-                            <li>• Use a clear, high-resolution image of your GCash QR code</li>
-                            <li>• Ensure the QR code is easily scannable</li>
-                            <li>• Include your GCash name/number for reference</li>
-                            <li>• Use the crop tool to focus on the important parts</li>
-                        </ul>
-                    </div>
-                @endif
-            </div>
+                </div>
+            @endif
         </div>
 
-        {{-- Image Cropper Modal --}}
+        {{-- Image Crop Modal --}}
         @if($showCropper && $image)
             <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
                 <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
@@ -390,7 +400,7 @@ new class extends Component {
                     <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
                         <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
                             <i class="fa-solid fa-crop text-blue-500"></i>
-                            Crop Your Image
+                            {{ __('Crop Your Image') }}
                         </h3>
                         <button wire:click="cancelCrop"
                                 class="p-2 hover:bg-gray-200 rounded-lg transition-colors">
@@ -548,7 +558,7 @@ new class extends Component {
                         <div class="space-y-4">
                             <div class="text-center">
                                 <p class="text-sm text-gray-600 mb-4">
-                                    Click and drag to select the area you want to keep. Focus on your QR code and important details.
+                                    {{ __('Click and drag to select the area you want to keep. Focus on your QR code and important details.') }}
                                 </p>
                                 
                                 <div class="inline-block border-2 border-gray-200 rounded-lg overflow-hidden bg-white">
@@ -564,26 +574,25 @@ new class extends Component {
                             
                             {{-- Crop Controls --}}
                             <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                                <button type="button"
-                                        x-on:click="applyCrop()"
-                                        class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-sm transition-colors">
-                                    <i class="fa-solid fa-check"></i>
-                                    Apply Crop
-                                </button>
                                 
-                                <button type="button"
-                                        x-on:click="resetCrop()"
-                                        class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
-                                    <i class="fa-solid fa-expand"></i>
-                                    Reset Selection
-                                </button>
-                                
-                                <button type="button"
-                                        wire:click="cancelCrop"
-                                        class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-medium rounded-lg transition-colors">
+                                <button type="button" wire:click="cancelCrop"
+                                        class="cursor-pointer inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-medium rounded-lg transition-colors">
                                     <i class="fa-solid fa-times"></i>
-                                    Cancel
+                                    {{ __('Cancel') }}
                                 </button>
+                                
+                                <button type="button" x-on:click="resetCrop()"
+                                        class="cursor-pointer inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
+                                    <i class="fa-solid fa-expand"></i>
+                                    {{ __('Reset') }}
+                                </button>
+
+                                <button type="button" x-on:click="applyCrop()"
+                                        class="cursor-pointer inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-sm transition-colors">
+                                    <i class="fa-solid fa-check"></i>
+                                    {{ __('Apply') }}
+                                </button>
+                                
                             </div>
                         </div>
                     </div>

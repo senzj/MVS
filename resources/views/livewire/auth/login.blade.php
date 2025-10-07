@@ -11,7 +11,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class extends Component {
+new #[Layout('components.layouts.auth', ['title' => 'Log In'])] class extends Component {
     // #[Validate('required|string|email')]
     // public string $email = '';
 
@@ -112,7 +112,7 @@ new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class ex
         </div>
     </div>
 
-    <x-auth-header :title="__('Log in to your account')" :description="__('Enter your email and password below to log in')" />
+    <x-auth-header :title="__('Welcome Back')" :description="__('Please enter your email and password below to log in')" />
 
     {{-- Session Status --}}
     <x-auth-session-status class="text-center" :status="session('status')" />
@@ -127,7 +127,7 @@ new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class ex
             required
             autofocus
             autocomplete="username"
-            placeholder="Please Enter Your Username"
+            placeholder="{{ __('Please Enter Your Username') }}"
         />
 
         {{-- Password --}}
@@ -136,7 +136,7 @@ new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class ex
             :label="__('Password')"
             type="password"
             required
-            placeholder="Please Enter Your Password"
+            placeholder="{{ __('Please Enter Your Password') }}"
             autocomplete="current-password"
             viewable
         />
@@ -160,7 +160,7 @@ new #[Layout('components.layouts.auth', ['title' => '登录 | LOGIN'])] class ex
     @if (Route::has('register'))
         <div class="space-x-1 rtl:space-x-reverse text-center text-sm text-zinc-600 dark:text-zinc-400">
             <span>{{ __('Don\'t have an account?') }}</span>
-            <flux:link :href="route('register')" wire:navigate>{{ __('Sign up') }}</flux:link>
+            <flux:link :href="route('register')" wire:navigate>{{ __('Register') }}</flux:link>
         </div>
     @endif
 </div>

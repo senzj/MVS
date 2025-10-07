@@ -25,7 +25,7 @@ new class extends Component {
 <section class="mt-10 space-y-6">
     <div class="relative mb-5">
         <flux:heading>{{ __('Delete account') }}</flux:heading>
-        <flux:subheading>{{ __('Delete your account and all of its resources') }}</flux:subheading>
+        <flux:subheading>{{ __('Permanently delete your account will remove all of its data.') }}</flux:subheading>
     </div>
 
     <flux:modal.trigger name="confirm-user-deletion">
@@ -44,7 +44,7 @@ new class extends Component {
                 </flux:subheading>
             </div>
 
-            <flux:input wire:model="password" :label="__('Password')" type="password" />
+            <flux:input wire:model="password" :label="__('Enter Password')" type="password" />
 
             <div class="flex justify-end space-x-2 rtl:space-x-reverse">
                 <flux:modal.close>

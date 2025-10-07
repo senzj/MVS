@@ -25,7 +25,8 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
     Volt::route('settings/password', 'settings.password')->name('settings.password');
     Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
-    Volt::route('settings/gcash', 'settings.gcash')->name('settings.gcash');
+    Volt::route('settings/language', 'settings.language')->name('settings.language');
+    Volt::route('settings/qrcode', 'settings.qrcode')->name('settings.qrcode');
 
     // Orders route
     Volt::route('orders', 'order.dashboard')->name('orders');

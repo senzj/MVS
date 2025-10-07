@@ -24,13 +24,13 @@
     @if (Route::has('login'))
         <nav class="flex gap-6 text-lg">
             @auth
-                <a href="{{ url('/dashboard') }}" class="hover:underline">Dashboard</a>
+                <a href="{{ url('/dashboard') }}" class="hover:underline">{{ __('Dashboard') }}</a>
             @else
                 <div class="flex flex-col items-center">
                     {{-- Main login button --}}
                     <a href="{{ route('login') }}" 
                     class="px-6 py-2 app-btn font-semibold rounded-lg shadow-md hover:bg-[#e6c200] transition">
-                        Log in
+                        {{ __('Log in') }}
                     </a>
 
                     @php
@@ -41,7 +41,7 @@
                     @if (!$has_accounts)
                         <a href="{{ route('register') }}" 
                         class="mt-3 text-sm app-text hover:underline">
-                            Register
+                            {{ __('Register') }}
                         </a>
                     @endif
                 </div>

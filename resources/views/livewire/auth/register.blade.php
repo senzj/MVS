@@ -8,7 +8,7 @@ use Illuminate\Validation\Rules;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('components.layouts.auth', ['title' => '注册 | REGISTER'])] class extends Component {
+new #[Layout('components.layouts.auth', ['title' => 'Register'])] class extends Component {
     public string $name = '';
     public string $email = '';
     public string $username = '';
@@ -75,7 +75,7 @@ new #[Layout('components.layouts.auth', ['title' => '注册 | REGISTER'])] class
         {{-- Name --}}
         <flux:input
             wire:model="name"
-            :label="__('Full Name')"
+            :label="__('Full name')"
             type="text"
             required
             autofocus
@@ -91,13 +91,13 @@ new #[Layout('components.layouts.auth', ['title' => '注册 | REGISTER'])] class
             required
             autofocus
             autocomplete="username"
-            :placeholder="__('Please Enter Your Username to be Used for Log In.')"
+            :placeholder="__('Username to be used for Log In.')"
         />
 
-        {{-- Email Address --}}
+        {{-- Email --}}
         <flux:input
             wire:model="email"
-            :label="__('Email address')"
+            :label="__('Email')"
             type="email"
             required
             autocomplete="email"
@@ -135,6 +135,6 @@ new #[Layout('components.layouts.auth', ['title' => '注册 | REGISTER'])] class
 
     <div class="space-x-1 rtl:space-x-reverse text-center text-sm text-zinc-600 dark:text-zinc-400">
         <span>{{ __('Already have an account?') }}</span>
-        <flux:link :href="route('login')" wire:navigate class="app-text">{{ __('Log in') }}</flux:link>
+        <flux:link :href="route('login')" wire:navigate class="app-text">{{ __('Log In') }}</flux:link>
     </div>
 </div>

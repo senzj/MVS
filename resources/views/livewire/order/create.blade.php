@@ -1,5 +1,6 @@
 @section('title', 'Create Orders')
-<div class="container mx-auto p-4 max-w-6xl" x-data="{ 
+<div class="container" 
+    x-data="{ 
     showCustomerModal: false, 
     showEmployeeModal: false, 
     showProductModal: false,
@@ -19,16 +20,32 @@
         <div class="flex items-center justify-between">
             <div>
                 <h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                    <i class="fas fa-plus-circle mr-2"></i>Create New Order
+                    <i class="fas fa-plus-circle mr-2"></i>{{ __('Create New Order') }}
                 </h2>
-                <p class="text-sm text-zinc-600 dark:text-zinc-400">
-                    <i class="fas fa-calendar mr-1"></i>Date: {{ now()->toFormattedDateString() }} | <i class="fas fa-clock mr-1"></i>{{ now()->format('H:i:s') }}
-                </p>
+                <div class="inline-flex items-center gap-2 px-2 py-1 text-gray-500 text-sm"
+                    x-data="{
+                        locale: '{{ app()->getLocale() }}',
+                        nowMs: Date.now(),
+                        get intlLocale() { return this.locale === 'cn' ? 'zh-CN' : this.locale; },
+                        tick() { this.nowMs = Date.now(); },
+                        start() { this.tick(); setInterval(() => this.tick(), 1000); },
+                        get formattedDate() {
+                            return new Intl.DateTimeFormat(this.intlLocale, { weekday: 'long', year:'numeric', month:'long', day:'numeric' }).format(this.nowMs);
+                        },
+                        get formattedTime() {
+                            return new Intl.DateTimeFormat(this.intlLocale, { hour:'numeric', minute:'2-digit', second:'2-digit', hour12: true }).format(this.nowMs);
+                        }
+                    }"
+                    x-init="start()">
+                    <span class="hidden sm:inline" x-text="formattedDate"></span>
+                    <span class="hidden sm:inline">•</span>
+                    <span x-text="formattedTime"></span>
+                </div>  
             </div>
             <a href="{{ route('orders') }}" class="flex items-center gap-1" wire:navigate>
                 <button type="button" class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
                     <i class="fas fa-arrow-left"></i>
-                    <span>Back to Orders</span>
+                    <span>{{ __('Back to Dashboard') }}</span>
                 </button>
             </a>
         </div>
@@ -40,13 +57,13 @@
         {{-- Order Information Card --}}
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow p-6">
             <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-                <i class="fas fa-file-invoice mr-2"></i>Order Information
+                <i class="fas fa-file-invoice mr-2"></i>{{ __('Order Information') }}
             </h3>
             
             {{-- Order Number --}}
             <div class="mb-4">
                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    <i class="fas fa-hashtag mr-1"></i>Order Number
+                    <i class="fas fa-hashtag mr-1"></i>{{ __('Order Number') }}
                 </label>
                 <div class="w-full px-3 py-2 bg-zinc-100 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-900 dark:text-zinc-100 font-mono">
                     {{ $orderNumber }}
@@ -58,7 +75,7 @@
                 {{-- Order Type Toggle --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-route mr-1"></i>Order Type
+                        <i class="fas fa-route mr-1"></i>{{ __('Order Type') }}
                     </label>
                     <div class="flex items-center space-x-3">
 
@@ -75,7 +92,9 @@
                         <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300 transition-all duration-300 flex items-center">
                             <i class="mr-1 transition-all duration-300"
                             :class="$wire.orderType === 'deliver' ? 'fas fa-truck text-blue-500' : 'fas fa-walking text-orange-500'"></i>
-                            <span x-text="$wire.orderType === 'deliver' ? 'Delivery' : 'Walk-In'"></span>
+                            <span
+                                x-text="$wire.orderType === 'deliver' ? '{{ __('Delivery') }}' : '{{ __('Walk-In') }}'">
+                            </span>
                         </span>
                     </div>
                     @error('orderType') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
@@ -84,11 +103,11 @@
                 {{-- Payment Type --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-credit-card mr-1"></i>Payment Type
+                        <i class="fas fa-credit-card mr-1"></i>{{ __('Payment Method') }}
                     </label>
                     <select wire:model="paymentType" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
-                        <option value="cash">Cash</option>
-                        <option value="gcash">GCash</option>
+                        <option value="cash">{{ __('Cash') }}</option>
+                        <option value="gcash">{{ __('GCash') }}</option>
                     </select>
                     @error('paymentType') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
                 </div>
@@ -98,7 +117,7 @@
             @if($orderType === 'deliver')
             <div>
                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    <i class="fas fa-user-tie mr-1"></i>Delivery Person
+                    <i class="fas fa-user-tie mr-1"></i>{{ __('Delivery Person') }}
                 </label>
 
                 <div x-data="{
@@ -128,7 +147,7 @@
                             @click="toggle()"
                             class="cursor-pointer w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
                         <span class="truncate">
-                            {{ optional($this->selectedEmployee)->name ?? 'Select delivery person' }}
+                            {{ optional($this->selectedEmployee)->name ?? __('Select delivery person') }}
                         </span>
                         <i class="fas fa-chevron-down ml-2 text-sm"></i>
                     </button>
@@ -147,7 +166,7 @@
                                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
                                 <input type="text"
                                     wire:model.live="employeeSearch"
-                                    placeholder="Search employees..."
+                                    placeholder={{ __('Search delivery person...') }}
                                     class="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
                         </div>
@@ -158,11 +177,11 @@
                                     $isInTransit = $this->isEmployeeInTransit($employee->id);
                                 @endphp
                                 <li class="mb-2 last:mb-0">
-                                    <div 
-                                        x-data="{ inTransit: {{ $isInTransit ? 'true' : 'false' }}, employeeId: {{ $employee->id }}, employeeName: @js($employee->name) }"
+                                    <div x-data="{ inTransit: {{ $isInTransit ? 'true' : 'false' }}, employeeId: {{ $employee->id }}, employeeName: @js($employee->name) }"
                                         @click="
+                                            const tmpl = @js(__('Delivery Person :name is currently delivering. Assign anyway?'));
                                             if (inTransit) {
-                                                if (confirm(`Delivery Person ${employeeName} is currently delivering. Assign anyway?`)) {
+                                                if (confirm(tmpl.replace(':name', employeeName))) {
                                                     $wire.forceSelectEmployee(employeeId);
                                                     open = false;
                                                 }
@@ -171,15 +190,15 @@
                                                 open = false;
                                             }
                                         "
-                                        class="p-3 border border-zinc-200 dark:border-zinc-600 rounded-lg cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700 {{ $isInTransit ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' : '' }}"
-                                    >
+                                        class="p-3 border border-zinc-200 dark:border-zinc-600 rounded-lg cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700 {{ $isInTransit ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' : '' }}">
+                                       
                                         <div class="font-medium text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
                                             <span>
                                                 <i class="fas fa-user-tie mr-1"></i>{{ $employee->name }}
                                             </span>
                                             @if($isInTransit)
                                                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                                                    <i class="fas fa-shipping-fast mr-1"></i>In Transit
+                                                    <i class="fas fa-shipping-fast mr-1"></i>{{ __('In transit') }}
                                                 </span>
                                             @endif
                                         </div>
@@ -187,7 +206,7 @@
                                 </li>
                             @empty
                                 <li class="p-6 text-center text-zinc-500 dark:text-zinc-400">
-                                    <i class="fas fa-user-slash mr-2"></i>No Available Delivery Person. Try to create one.
+                                    <i class="fas fa-user-slash mr-2"></i>{{ __('No Available Delivery Person. Try to create one.') }}
                                 </li>
                             @endforelse
                         </ul>
@@ -221,13 +240,13 @@
         @if($orderType === 'deliver')
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow p-6">
             <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-                <i class="fas fa-user mr-2"></i>Customer Information
+                <i class="fas fa-user mr-2"></i>{{ __('Customer Information') }}
             </h3>
 
             {{-- Customer Selection --}}
             <div class="mb-4">
                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    <i class="fas fa-users mr-1"></i>Customer
+                    <i class="fas fa-users mr-1"></i>{{ __('Customer Name') }}
                 </label>
 
                 <div x-data="{
@@ -257,7 +276,7 @@
                             @click="toggle()"
                             class="cursor-pointer w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
                         <span class="truncate">
-                            {{ optional($this->selectedCustomer)->name ?? 'Select a customer' }}
+                            {{ optional($this->selectedCustomer)->name ?? __('Select a customer') }}
                         </span>
                         <i class="fas fa-chevron-down ml-2 text-sm"></i>
                     </button>
@@ -276,7 +295,7 @@
                                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
                                 <input type="text"
                                     wire:model.live="customerSearch"
-                                    placeholder="Search customers"
+                                    placeholder="{{ __('Search customers...') }}"
                                     class="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
                         </div>
@@ -300,7 +319,7 @@
                                 </li>
                             @empty
                                 <li class="p-6 text-center text-zinc-500 dark:text-zinc-400">
-                                    <i class="fas fa-user-slash mr-2"></i>No Available Customer. Try to create one.
+                                    <i class="fas fa-user-slash mr-2"></i>{{ __('No Available Customer. Try to create one.') }}
                                 </li>
                             @endforelse
                         </ul>
@@ -317,21 +336,21 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            <i class="fas fa-phone mr-1"></i>Contact Number
+                            <i class="fas fa-phone mr-1"></i>{{ __('Contact Number') }}
                         </label>
                         <input type="text" wire:model="customerContact" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
                         @error('customerContact') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            <i class="fas fa-building mr-1"></i>Unit
+                            <i class="fas fa-building mr-1"></i>{{ __('Unit') }}
                         </label>
                         <input type="text" wire:model="customerUnit" placeholder="e.g., Unit 123" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
                         @error('customerUnit') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            <i class="fas fa-map-marker-alt mr-1"></i>Address
+                            <i class="fas fa-map-marker-alt mr-1"></i>{{ __('Address') }}
                         </label>
                         <input type="text" wire:model="customerAddress" placeholder="e.g., 123 Main Street" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
                         @error('customerAddress') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
@@ -345,11 +364,11 @@
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                    <i class="fas fa-shopping-cart mr-2"></i>Order Items
+                    <i class="fas fa-shopping-cart mr-2"></i>{{ __('Order Items') }}
                 </h3>
                 <button type="button" wire:click="addOrderItem" class="cursor-pointer inline-flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
                     <i class="fas fa-plus"></i>
-                    Add Item
+                    {{ __('Add Item') }}
                 </button>
             </div>
 
@@ -358,7 +377,7 @@
                     <div class="border border-zinc-200 dark:border-zinc-600 rounded-lg p-4">
                         <div class="flex items-center justify-between mb-3">
                             <h4 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                                <i class="fas fa-box mr-1"></i>Item {{ $index + 1 }}
+                                <i class="fas fa-box mr-1"></i>{{ __('Item') }} {{ $index + 1 }}
                             </h4>
                             @if(count($orderItems) > 1)
                                 <button type="button" wire:click="removeOrderItem({{ $index }})" class="cursor-pointer text-red-600 hover:text-red-800">
@@ -372,7 +391,7 @@
                             {{-- Product Selection --}}
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    <i class="fas fa-tag mr-1"></i>Product
+                                    <i class="fas fa-tag mr-1"></i>{{ __('Product') }}
                                 </label>
 
                                 {{-- Custom dropdown --}}
@@ -403,7 +422,7 @@
                                             @click="toggle()"
                                             class="cursor-pointer w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
                                         <span class="ml-1">
-                                            {{ blank($item['product_name'] ?? null) ? 'Select a product' : $item['product_name'] }}
+                                            {{ blank($item['product_name'] ?? null) ? __('Select a product') : $item['product_name'] }}
                                         </span>
                                         <span class="ml-1 font-semibold">
                                             @if(isset($item['price'])) ₱{{ number_format($item['price'], 2) }} @endif
@@ -422,9 +441,7 @@
                                         <div class="sticky top-0 z-10 p-2 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-600">
                                             <div class="relative">
                                                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
-                                                <input type="text"
-                                                    wire:model.live="productSearch"
-                                                    placeholder="Search products..."
+                                                <input type="text" wire:model.live="productSearch" placeholder="{{ __('Search products...') }}"
                                                     class="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                             </div>
                                         </div>
@@ -439,14 +456,14 @@
                                                         <div class="text-right">
                                                             <div class="font-mono">₱{{ number_format($product->price, 2) }}</div>
                                                             <div class="text-xs text-zinc-600 dark:text-zinc-400">
-                                                                <i class="fas fa-boxes mr-1"></i>Stock: {{ $product->stocks ?? 0 }}
+                                                                <i class="fas fa-boxes mr-1"></i>{{ __('Stock') }}: {{ $product->stocks ?? 0 }}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </li>
                                             @empty
                                                 <li class="px-3 py-2 text-center text-zinc-500 dark:text-zinc-400">
-                                                    <i class="fas fa-box-open mr-2"></i>No Available Product. Try to create one.
+                                                    <i class="fas fa-box-open mr-2"></i>{{ __('No Available Product. Try to create one.') }}
                                                 </li>
                                             @endforelse
                                         </ul>
@@ -461,7 +478,7 @@
                             {{-- Quantity --}}
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    <i class="fas fa-sort-numeric-up mr-1"></i>Quantity / Per Kilo
+                                    <i class="fas fa-sort-numeric-up mr-1"></i>{{ __('Quantity / per kilo') }}
                                 </label>
                                 <input type="number" 
                                     wire:model.live="orderItems.{{ $index }}.quantity" 
@@ -474,7 +491,7 @@
                             {{-- Total --}}
                             <div>
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    <i class="fas fa-calculator mr-1"></i>Total
+                                    <i class="fas fa-calculator mr-1"></i>{{ __('Total') }}
                                 </label>
                                 <div class="px-3 py-2 bg-zinc-100 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-900 dark:text-zinc-100">
                                     ₱{{ number_format(($item['quantity'] ?? 0) * ($item['price'] ?? 0), 2) }}
@@ -482,11 +499,11 @@
                             </div>
                         </div>
 
-                        @if(!empty($item['product_name']))
+                        {{-- @if(!empty($item['product_name']))
                             <div class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                                <i class="fas fa-info-circle mr-1"></i>Selected: {{ $item['product_name'] }} (₱{{ number_format($item['price'], 2) }} each)
+                                <i class="fas fa-info-circle mr-1"></i>{{ __('Selected') }}: {{ $item['product_name'] }} (₱{{ number_format($item['price'], 2) }})
                             </div>
-                        @endif
+                        @endif --}}
                     </div>
                 @endforeach
             </div>
@@ -495,7 +512,7 @@
             <div class="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-600">
                 <div class="flex justify-between items-center">
                     <span class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                        <i class="fas fa-receipt mr-2"></i>Total Amount:
+                        <i class="fas fa-receipt mr-2"></i>{{ __('Total Amount') }}:
                     </span>
                     <span class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($this->totalAmount, 2) }}</span>
                 </div>
@@ -505,16 +522,16 @@
         {{-- Submit Button --}}
         <div class="flex justify-end gap-3">
             <button type="button" onclick="window.history.back()" class="cursor-pointer px-6 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-700">
-                <i class="fas fa-times mr-1"></i>Cancel
+                <i class="fas fa-times mr-1"></i>{{ __('Cancel') }}
             </button>
             <button type="submit" class="cursor-pointer px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                <i class="fas fa-save mr-1"></i>Create Order
+                <i class="fas fa-save mr-1"></i>{{ __('Create Order') }}
             </button>
         </div>
     </form>
 
 
-    {{-- Modal Payment --}}
+    {{-- Modal Payment for walk-in --}}
     <div x-data="{ show: @entangle('showPaymentModal') }" 
         x-show="show" 
         x-cloak
@@ -535,7 +552,7 @@
                 <div class="px-6 py-4 border-b border-gray-200">
                     <div class="flex items-center justify-between">
                         <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                            Process Payment
+                            {{ __('Process Payment') }}
                         </h3>
                         <button wire:click="closePaymentModal" 
                                 class="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors">
@@ -552,9 +569,9 @@
                     {{-- Payment Type Display --}}
                     <div class="mb-4 flex justify-between">
                         <label class="block text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-                            Payment Method: 
+                            {{ __('Payment Method') }}: 
                             <span class="font-semibold text-green-400">
-                                {{ $paymentType === 'cash' ? 'Cash' : 'GCash' }}
+                                {{ $paymentType === 'cash' ? __('Cash') : __('Online') }}
                             </span>
                         </label>
                         
@@ -570,13 +587,13 @@
                                 <div class="absolute top-full left-0 mb-2 w-70 p-3 bg-gray-900 dark:bg-zinc-700 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
                                     
                                     {{-- Tooltip content --}}
-                                    <p class="font-medium mb-2">GCash Payment Steps:</p>
+                                    <p class="font-medium mb-2">{{ __('Online Payment Steps') }}:</p>
                                     <ol class="list-decimal list-inside space-y-1">
-                                        <li>Open your GCash app</li>
-                                        <li>Scan the QR code below</li>
-                                        <li>Confirm the amount: ₱{{ number_format($this->totalAmount, 2) }}</li>
-                                        <li>Complete the payment</li>
-                                        <li>Click "Complete Order" button</li>
+                                        <li>{{ __('Open your GCash app or any online payment app') }}</li>
+                                        <li>{{ __('Scan the QR code below') }}</li>
+                                        <li>{{ __('Confirm the amount') }}: ₱{{ number_format($this->totalAmount, 2) }}</li>
+                                        <li>{{ __('Complete the payment') }}</li>
+                                        <li>{{ __('Click "Complete Order" button') }}</li>
                                     </ol>
                                 </div>
                             </div>
@@ -585,7 +602,7 @@
 
                     {{-- Order Summary --}}
                     <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                        <h4 class="font-medium text-zinc-900 dark:text-zinc-100 mb-2">Order Summary</h4>
+                        <h4 class="font-medium text-zinc-900 dark:text-zinc-100 mb-2">{{ __('Order Summary') }}</h4>
                         <div class="space-y-1 text-sm">
                             @foreach($orderItems as $item)
                                 @if($item['product_id'])
@@ -597,7 +614,7 @@
                             @endforeach
                             <div class="border-t pt-2 mt-2 font-semibold">
                                 <div class="flex justify-between">
-                                    <span>Total Amount:</span>
+                                    <span>{{ __('Total Amount') }}:</span>
                                     <span>₱{{ number_format($this->totalAmount, 2) }}</span>
                                 </div>
                             </div>
@@ -609,7 +626,7 @@
                         <div class="space-y-4">
                             <div>
                                 <label for="amountReceived" class="block text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-1">
-                                    Amount Received
+                                    {{ __('Amount Received') }}
                                 </label>
                                 <div class="relative">
                                     <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">₱</span>
@@ -629,7 +646,7 @@
                             {{-- Change Amount --}}
                             <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-sm font-medium text-green-800">Change:</span>
+                                    <span class="text-sm font-medium text-green-800">{{ __('Change') }}:</span>
                                     <span class="text-lg font-bold text-green-900">
                                         ₱{{ number_format($changeAmount, 2) }}
                                     </span>
@@ -651,14 +668,14 @@
                                         alt="GCash QR Code"
                                         class="max-w-full max-h-70 object-contain rounded-lg" />
                                 @else
-                                    <span class="text-gray-400 text-sm">No Image</span>
+                                    <span class="text-gray-400 text-sm">{{ __('No Image') }}</span>
                                 @endif
                             </div>
 
                             {{-- Caption below --}}
                             <div>
                                 <p class="text-sm text-gray-500 mt-1">
-                                    Scan to pay ₱{{ number_format($this->totalAmount, 2) }}.
+                                    {{ __('Scan to pay') }}: ₱{{ number_format($this->totalAmount, 2) }}.
                                 </p>
                             </div>
 
@@ -671,7 +688,7 @@
                     <div class="flex space-x-3">
                         <button wire:click="closePaymentModal" 
                                 class="cursor-pointer flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500">
-                            Cancel
+                            {{ __('Cancel') }}
                         </button>
                         
                         <button wire:click="processPayment"
@@ -681,11 +698,11 @@
                                 class="cursor-pointer flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
                             
                             <span wire:loading.remove wire:target="processPayment">
-                                Complete Order
+                                {{ __('Complete Order') }}
                             </span>
                             <span wire:loading wire:target="processPayment" class="flex items-center justify-center">
                                 <i class="fas fa-spinner fa-spin mr-2"></i>
-                                Processing...
+                                {{ __('Processing...') }}
                             </span>
                         </button>
                     </div>
