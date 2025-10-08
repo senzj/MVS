@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ env('STORE_NAME') }}</title>
 
-    @vite('resources/css/app.css', 'resources/js/app.js')
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="app-bg-gradient app-text min-h-screen flex flex-col items-center justify-center font-serif">
 
@@ -28,7 +28,7 @@
             @else
                 <div class="flex flex-col items-center">
                     {{-- Main login button --}}
-                    <a href="{{ route('login') }}" 
+                    <a href="{{ route('login') }}"
                     class="px-6 py-2 app-btn font-semibold rounded-lg shadow-md hover:bg-[#e6c200] transition">
                         {{ __('Log in') }}
                     </a>
@@ -39,7 +39,7 @@
 
                     {{-- Small register link --}}
                     @if (!$has_accounts)
-                        <a href="{{ route('register') }}" 
+                        <a href="{{ route('register') }}"
                         class="mt-3 text-sm app-text hover:underline">
                             {{ __('Register') }}
                         </a>
