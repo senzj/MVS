@@ -236,12 +236,9 @@
                 <canvas id="categoryBreakdownChart"></canvas>
             </div>
         </div>
-    </div> {{-- end Statistical Charts --}}
+    </div>
 
-<!-- Add chart i18n strings for JS (uses JSON translations via __()) -->
-// ...existing code...
-
-<!-- Add chart i18n strings for JS (uses JSON translations via __()) -->
+{{-- Add chart i18n strings for JS (uses JSON translations via __()) --}}
 <script>
   window.__dashboardI18n = {
     sales:                 "{{ __('Sales (₱)') }}",
