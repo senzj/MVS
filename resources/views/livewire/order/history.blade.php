@@ -8,6 +8,11 @@
         showFilters: false,
         currentYear: '',
         currentMonth: '',
+        // i18n fallbacks
+        i18n: {
+            allYears: '{{ __('All Years') }}',
+            allMonths: '{{ __('All Months') }}',
+        },
         // Date indicator auto-hide
         showDateIndicator: false,
         dateIndicatorTimeout: null,
@@ -133,15 +138,16 @@
         <div class="container mx-auto p-4 max-w-7xl">
             <div class="mb-3">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    {{-- Header --}}
                     <div>
-                        <h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Order Records</h2>
+                        <h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ __('Orders History') }}</h2>
                         <p class="text-sm text-zinc-600 dark:text-zinc-400">
-                            Browse and search orders by various criteria.
+                            {{ __('Browse and search orders by various criteria.') }}
                             @if($totalOrders > 0)
                                 <span class="font-medium">
-                                    {{ number_format($loadedOrders) }} of {{ number_format($totalOrders) }} orders loaded
+                                    {{ number_format($loadedOrders) }} {{ __('of') }} {{ number_format($totalOrders) }} {{ __('orders loaded') }}
                                     @if($hasMorePages)
-                                        <span class="text-xs text-zinc-500">(scroll for more)</span>
+                                        <span class="text-xs text-zinc-500">({{ __('scroll for more') }})</span>
                                     @endif
                                 </span>
                             @endif
@@ -152,12 +158,12 @@
                     <div class="flex items-center gap-3">
                         {{-- View Toggle --}}
                         <div class="flex items-center gap-2">
-                            <span class="text-sm text-zinc-600 dark:text-zinc-400">View:</span>
+                            <span class="text-sm text-zinc-600 dark:text-zinc-400">{{ __('Layout') }}:</span>
                             <div class="flex items-center bg-zinc-100 dark:bg-zinc-700 rounded-lg p-1">
                                 <button
                                     @click="viewMode = 'list'"
                                     :class="viewMode === 'list' ? 'bg-white dark:bg-zinc-600 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'"
-                                    class="flex items-center justify-center p-2 rounded-md transition-all duration-200"
+                                    class="cursor-pointer flex items-center justify-center p-2 rounded-md transition-all duration-200"
                                     title="List View"
                                 >
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -168,7 +174,7 @@
                                 <button
                                     @click="viewMode = 'grid'"
                                     :class="viewMode === 'grid' ? 'bg-white dark:bg-zinc-600 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'"
-                                    class="flex items-center justify-center p-2 rounded-md transition-all duration-200"
+                                    class="cursor-pointer flex items-center justify-center p-2 rounded-md transition-all duration-200"
                                     title="Grid View"
                                 >
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -195,7 +201,7 @@
                                 wire:model.live.debounce.300ms="search"
                                 id="order-search"
                                 type="text"
-                                placeholder="Search by receipt number or customer name..."
+                                placeholder="{{ __('Search by receipt number or customer name...') }}"
                                 class="w-full pl-10 pr-4 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 dark:placeholder-zinc-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
                             >
                             @if($search)
@@ -215,7 +221,7 @@
                             class="px-4 py-2.5 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-all duration-200 flex items-center gap-2"
                         >
                             <i class="fas fa-filter"></i>
-                            <span>Filters</span>
+                            <span>{{ __('Filter') }}</span>
                             <i class="fas fa-chevron-down transition-transform duration-200" :class="showFilters ? 'rotate-180' : ''"></i>
                         </button>
                     </div>
@@ -370,11 +376,11 @@
 
                     {{-- year --}}
                     <div class="text-sm font-bold text-zinc-900 dark:text-zinc-100 mt-0.5" 
-                         x-text="currentYear || 'All Years'"></div>
+                         x-text="currentYear || i18n.allYears"></div>
 
                     {{-- month --}}
                     <div class="text-xs font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wide" 
-                         x-text="currentMonth || 'All Months'"></div>
+                         x-text="currentMonth || i18n.allMonths"></div>
 
                 </div>
             </div>
@@ -389,7 +395,8 @@
                 <div class="absolute top-1/2 -left-[1px] transform -translate-y-1/2">
                     <div class="w-0 h-0 border-r-[9px] border-r-zinc-200/50 dark:border-r-zinc-700/50
                                border-t-[9px] border-t-transparent 
-                               border-b-[9px] border-b-transparent"></div>
+                               border-b-[9px] border-b-transparent">
+                    </div>
                 </div>
             </div>
         </div>
@@ -405,7 +412,7 @@
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Loading orders...</span>
+                    <span>{{ __('Loading orders...') }}</span>
                 </div>
             </div>
         </div>
@@ -420,7 +427,8 @@
 
             @foreach($months as $monthKey => $days)
                 @php
-                    $monthLabel = \Carbon\Carbon::createFromFormat('Y-m', $monthKey)->format('F');
+                    $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
+                    $monthLabel = \Carbon\Carbon::createFromFormat('Y-m', $monthKey)->locale($loc)->isoFormat('MMMM');
                 @endphp
 
                 {{-- Month header --}}
@@ -430,7 +438,7 @@
 
                 @foreach($days as $dayKey => $orders)
                     @php
-                        $dayLabel = \Carbon\Carbon::parse($dayKey)->timezone($tz)->format('F j (l)');
+                        $dayLabel = \Carbon\Carbon::parse($dayKey)->timezone($tz)->locale($loc)->isoFormat('MMMM D (dddd)');
                     @endphp
 
                     {{-- Day header --}}
@@ -454,30 +462,37 @@
                                         'cancelled'  => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
                                         default      => 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
                                     };
-                                    $timeLabel = $o->created_at->timezone($tz)->format('g:i A');
+                                    $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
+                                    $timeLabel = $o->created_at->timezone($tz)->locale($loc)->isoFormat('LT');
                                 @endphp
 
                                 <button
                                     wire:click="openOrder({{ $o->id }})"
                                     wire:key="grid-order-{{ $o->id }}"
-                                    class="cursor-pointer text-left bg-white dark:bg-zinc-800 rounded-lg border border-zinc-400 dark:border-zinc-500 p-4 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-all duration-200"
+                                    class="cursor-pointer text-left bg-white dark:bg-zinc-800 rounded-lg p-4 shadow-sm hover:shadow-lg transition-all duration-200 dark:ring-1 dark:ring-white/10 hover:dark:ring-white/20"
                                     title="View order">
                                     <div class="flex items-start justify-between">
                                         <div>
-                                            <div class="text-sm text-zinc-500 dark:text-zinc-400">Receipt #</div>
+                                            <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Receipt #') }}</div>
                                             <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $o->receipt_number ?? '—' }}</div>
                                         </div>
                                         <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full {{ $statusClasses }}">
-                                            {{ ucfirst(str_replace('_', ' ', $status)) }}
+                                            {{ __([
+                                                'pending'    => 'Pending',
+                                                'in_transit' => 'In transit',
+                                                'delivered'  => 'Delivered',
+                                                'completed'  => 'Completed',
+                                                'cancelled'  => 'Cancelled',
+                                            ][$status] ?? ucfirst(str_replace('_', ' ', $status))) }}
                                         </span>
                                     </div>
 
                                     <div class="mt-3 flex items-center gap-3 text-sm">
                                         <div class="text-zinc-600 dark:text-zinc-300">
-                                            <i class="fas fa-user mr-1 text-zinc-400"></i>{{ $o->customer->name ?? 'Walk-in' }}
+                                            <i class="fas fa-user mr-1 text-zinc-400"></i>{{ $o->customer->name ?? __('Walk-In') }}
                                         </div>
                                         <div class="text-zinc-600 dark:text-zinc-300">
-                                            <i class="fas fa-user-tie mr-1 text-zinc-400"></i>{{ $o->employee->name ?? 'Unassigned' }}
+                                            <i class="fas fa-user-tie mr-1 text-zinc-400"></i>{{ $o->employee->name ?? __('Unassigned') }}
                                         </div>
                                         <div class="ml-auto text-zinc-500 dark:text-zinc-400">
                                             <i class="fas fa-clock mr-1 text-zinc-400"></i>{{ $timeLabel }}
@@ -491,9 +506,9 @@
                                         </div>
                                         <div class="text-xs {{ $o->is_paid ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400' }}">
                                             @if($o->is_paid)
-                                                <i class="fas fa-check-circle mr-1"></i>Paid
+                                                <i class="fas fa-check-circle mr-1"></i>{{ __('Paid') }}
                                             @else
-                                                <i class="fas fa-circle-exclamation mr-1"></i>Unpaid
+                                                <i class="fas fa-circle-exclamation mr-1"></i>{{ __('Unpaid') }}
                                             @endif
                                         </div>
                                     </div>
@@ -514,7 +529,8 @@
                                         'cancelled'  => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
                                         default      => 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
                                     };
-                                    $timeLabel = $o->created_at->timezone($tz)->format('g:i A');
+                                    $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
+                                    $timeLabel = $o->created_at->timezone($tz)->locale($loc)->isoFormat('LT');
                                 @endphp
 
                                 <li wire:key="list-order-{{ $o->id }}">
@@ -527,7 +543,7 @@
                                                 {{-- Header Row: Receipt # and Time --}}
                                                 <div class="flex justify-between items-start mb-3">
                                                     <div>
-                                                        <div class="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Receipt #</div>
+                                                        <div class="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">{{ __('Receipt #') }}</div>
                                                         <div class="font-mono font-semibold text-lg text-zinc-900 dark:text-zinc-100">
                                                             {{ $o->receipt_number ?? '—' }}
                                                         </div>
@@ -537,7 +553,7 @@
                                                             <i class="fas fa-clock mr-1"></i>{{ $timeLabel }}
                                                         </div>
                                                         <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                                                            {{ $o->created_at->timezone($tz)->format('M j, Y') }}
+                                                            {{ $o->created_at->timezone($tz)->locale($loc)->isoFormat('ll') }}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -546,7 +562,7 @@
                                                 <div class="flex justify-between items-center mb-3">
                                                     <div class="flex items-center text-sm text-zinc-600 dark:text-zinc-300">
                                                         <i class="fas fa-user mr-2 text-zinc-400"></i>
-                                                        <span class="font-medium">{{ $o->customer->name ?? 'Walk-in Customer' }}</span>
+                                                        <span class="font-medium">{{ $o->customer->name ?? __('Walk-In') }}</span>
                                                     </div>
                                                     <span class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full {{ $statusClasses }}">
                                                         @if($status === 'pending')
@@ -560,7 +576,16 @@
                                                         @elseif($status === 'cancelled')
                                                             <i class="fas fa-times-circle mr-1"></i>
                                                         @endif
-                                                        {{ ucwords(str_replace('_', ' ', $status)) }}
+                                                        <span class="ml-1">
+                                                            {{ __([
+                                                                'preparing'  => 'Preparing',
+                                                                'pending'    => 'Pending',
+                                                                'in_transit' => 'In transit',
+                                                                'delivered'  => 'Delivered',
+                                                                'completed'  => 'Completed',
+                                                                'cancelled'  => 'Cancelled',
+                                                            ][$status] ?? ucfirst(str_replace('_',' ', $status))) }}
+                                                        </span>
                                                     </span>
                                                 </div>
 
@@ -571,16 +596,16 @@
                                                         <div class="flex items-center text-sm">
                                                             @if($o->is_paid)
                                                                 <i class="fas fa-check-circle mr-2 text-green-500"></i>
-                                                                <span class="text-green-600 dark:text-green-400 font-medium">Paid</span>
+                                                                <span class="text-green-600 dark:text-green-400 font-medium">{{ __('Paid') }}</span>
                                                             @else
                                                                 <i class="fas fa-exclamation-circle mr-2 text-red-500"></i>
-                                                                <span class="text-red-600 dark:text-red-400 font-medium">Unpaid</span>
+                                                                <span class="text-red-600 dark:text-red-400 font-medium">{{ __('Unpaid') }}</span>
                                                             @endif
                                                         </div>
 
                                                         {{-- Payment Type --}}
                                                         <div class="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                                                            {{ $o->payment_type ?? 'N/A' }}
+                                                            {{ $o->payment_type ?? __('N/A') }}
                                                         </div>
 
                                                         {{-- Employee/Delivery Person --}}
@@ -597,7 +622,7 @@
                                                             ₱{{ number_format($o->order_total, 2) }}
                                                         </div>
                                                         <div class="text-xs text-zinc-500 dark:text-zinc-400">
-                                                            Total Amount
+                                                            {{ __('Total Amount') }}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -614,14 +639,14 @@
             <div class="flex items-center justify-center min-h-[60vh]">
                 <div class="text-center text-zinc-600 dark:text-zinc-400">
                     <i class="fas fa-search text-5xl mb-3"></i>
-                    <p class="text-lg font-medium">No orders found matching your criteria.</p>
-                    <p class="text-sm mt-2">Try adjusting your search terms or filters.</p>
+                    <p class="text-lg font-medium">{{ __('No orders found matching your criteria.') }}</p>
+                    <p class="text-sm mt-2">{{ __('Try adjusting your search terms or filters.') }}</p>
                     @if($search || $statusFilter || $paymentFilter || $yearFilter)
                         <button
                             wire:click="clearFilters"
                             class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200"
                         >
-                            Clear All Filters
+                            {{ __('Clear All Filters') }}
                         </button>
                     @endif
                 </div>
@@ -633,7 +658,7 @@
             <div wire:loading.delay wire:target="loadMore" class="flex justify-center items-center py-8">
                 <div class="flex justify-center items-center py-8">
                     <i class="fas fa-spinner fa-spin animate-spin"></i>
-                    <span>Fetching Orders...</span>
+                    <span>{{ __('Fetching Orders...') }}</span>
                 </div>
             </div>
         @endif
@@ -656,8 +681,8 @@
             <div class="flex justify-center py-8">
                 <div class="text-center text-zinc-500 dark:text-zinc-400">
                     <i class="fas fa-box-open text-2xl mb-2"></i>
-                    <p class="text-sm">You've reached the end of the results</p>
-                    <p class="text-xs">{{ number_format($totalOrders) }} orders total</p>
+                    <p class="text-sm">{{ __('You\'ve reached the end of the results') }}</p>
+                    <p class="text-xs">{{ number_format($totalOrders) }} {{ __('orders total') }}</p>
                 </div>
             </div>
         @endif
@@ -666,29 +691,21 @@
 
     {{-- Order Details Modal (same as before) --}}
     @if($selectedOrder && $showOrderModal)
-        <div
-            x-cloak
-            x-show="showOrderModal"
-            x-transition.opacity
-            class="fixed inset-0 z-50"
-            x-trap.noscroll.inert="showOrderModal"
-        >
+        <div x-cloak x-show="showOrderModal" x-transition.opacity x-trap.noscroll.inert="showOrderModal"
+            class="fixed inset-0 z-50">
+
             <div class="absolute inset-0 bg-zinc-500/80" @click="showOrderModal=false; $wire.closeOrder()"></div>
 
-            <div
-                x-show="showOrderModal"
-                x-transition.scale
-                class="absolute inset-0 flex items-center justify-center p-4"
-            >
+            <div x-show="showOrderModal" x-transition.scale
+                class="absolute inset-0 flex items-center justify-center p-4">
+
                 <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                     <div class="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-700">
                         <h3 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">
-                            <i class="fas fa-file-invoice mr-2"></i>Order Details
+                            <i class="fas fa-file-invoice mr-2"></i>{{ __('Order Details') }}
                         </h3>
-                        <button
-                            @click="showOrderModal=false; $wire.closeOrder()"
-                            class="cursor-pointer text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors duration-200"
-                        >
+                        <button @click="showOrderModal=false; $wire.closeOrder()"
+                            class="cursor-pointer text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors duration-200">
                             <i class="fas fa-times text-xl"></i>
                         </button>
                     </div>
@@ -699,7 +716,7 @@
                             {{-- Order Information --}}
                             <div class="space-y-4">
                                 <h4 class="font-semibold text-zinc-900 dark:text-zinc-100">
-                                    <i class="fas fa-shopping-bag mr-2"></i>Order Information
+                                    <i class="fas fa-shopping-bag mr-2"></i>{{ __('Order Information') }}
                                 </h4>
                                 @php
                                     $status = $selectedOrder->status;
@@ -717,7 +734,7 @@
                                     {{-- order id --}}
                                     <div class="flex justify-between">
                                         <dt class="text-sm text-zinc-600 dark:text-zinc-400">
-                                            <i class="fas fa-hashtag mr-1"></i>Order ID:
+                                            <i class="fas fa-hashtag mr-1"></i>{{ __('Order ID') }}:
                                         </dt>
                                         <dd class="text-sm font-medium text-zinc-900 dark:text-zinc-100">#{{ $selectedOrder->id }}</dd>
                                     </div>
@@ -725,7 +742,7 @@
                                     {{-- receipt number --}}
                                     <div class="flex justify-between">
                                         <dt class="text-sm text-zinc-600 dark:text-zinc-400">
-                                            <i class="fas fa-receipt mr-1"></i>Receipt Number:
+                                            <i class="fas fa-receipt mr-1"></i>{{ __('Receipt Number') }}:
                                         </dt>
                                         <dd class="text-sm font-mono font-medium text-zinc-900 dark:text-zinc-100">{{ $selectedOrder->receipt_number }}</dd>
                                     </div>
@@ -733,7 +750,7 @@
                                     {{-- Employee --}}
                                     <div class="flex justify-between">
                                         <dt class="text-sm text-zinc-600 dark:text-zinc-400">
-                                            <i class="fas fa-user-tie mr-1"></i>Delivered By:
+                                            <i class="fas fa-user-tie mr-1"></i>{{ __('Delivered By') }}:
                                         </dt>
                                         <dd class="text-sm text-zinc-900 dark:text-zinc-100">{{ $selectedOrder->employee->name ?? 'N/A' }}</dd>
                                     </div>
@@ -741,7 +758,7 @@
                                     {{-- Order Status --}}
                                     <div class="flex justify-between">
                                         <dt class="text-sm text-zinc-600 dark:text-zinc-400">
-                                            <i class="fas fa-info-circle mr-1"></i>Order Status:
+                                            <i class="fas fa-info-circle mr-1"></i>{{ __('Order Status') }}:
                                         </dt>
                                         <dd>
                                             <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full {{ $statusClasses }}">
@@ -756,7 +773,16 @@
                                                 @elseif($status === 'cancelled')
                                                     <i class="fas fa-times-circle mr-1"></i>
                                                 @endif
-                                                {{ ucwords(str_replace('_', ' ', $status)) }}
+                                                <span class="ml-1">
+                                                    {{ __([
+                                                        'preparing'  => 'Preparing',
+                                                        'pending'    => 'Pending',
+                                                        'in_transit' => 'In transit',
+                                                        'delivered'  => 'Delivered',
+                                                        'completed'  => 'Completed',
+                                                        'cancelled'  => 'Cancelled',
+                                                    ][$status] ?? ucfirst(str_replace('_',' ', $status))) }}
+                                                </span>
                                             </span>
                                         </dd>
                                     </div>
@@ -764,23 +790,31 @@
                                     {{-- Payment status --}}
                                     <div class="flex justify-between">
                                         <dt class="text-sm text-zinc-600 dark:text-zinc-400">
-                                            <i class="fas fa-credit-card mr-1"></i>Payment Status:
+                                            <i class="fas fa-credit-card mr-1"></i>{{ __('Status') }}:
                                         </dt>
                                         <dd>
                                             <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full {{ $selectedOrder->is_paid ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' }}">
                                                 @if($selectedOrder->is_paid)
-                                                    <i class="fas fa-check-circle"></i> Paid
+                                                    <i class="fas fa-check-circle"></i> {{ __('Paid') }}
                                                 @else
-                                                    <i class="fas fa-exclamation-triangle"></i> Unpaid
+                                                    <i class="fas fa-exclamation-triangle"></i> {{ __('Unpaid') }}
                                                 @endif
                                             </span>
                                         </dd>
                                     </div>
                                     <div class="flex justify-between">
                                         <dt class="text-sm text-zinc-600 dark:text-zinc-400">
-                                            <i class="fas fa-money-bill mr-1"></i>Payment Type:
+                                            <i class="fas fa-money-bill mr-1"></i>{{ __('Payment Method') }}:
                                         </dt>
-                                        <dd class="text-sm text-zinc-900 dark:text-zinc-100 uppercase">{{ $selectedOrder->payment_type }}</dd>
+                                        @php
+                                            $map = [
+                                                'cash'   => 'Cash',
+                                                'online' => 'Online',
+                                            ];
+                                            $code = strtolower($selectedOrder->payment_type ?? '');
+                                            $label = $map[$code] ?? ($selectedOrder->payment_type ?? __('N/A'));
+                                        @endphp
+                                        <dd class="text-sm text-zinc-900 dark:text-zinc-100">{{ __($label) }}</dd>
                                     </div>
                                 </dl>
                             </div>
@@ -788,38 +822,38 @@
                             {{-- Customer Information --}}
                             <div class="space-y-4">
                                 <h4 class="font-semibold text-zinc-900 dark:text-zinc-100">
-                                    <i class="fas fa-user mr-2"></i>Customer Information
+                                    <i class="fas fa-user mr-2"></i>{{ __('Customer Information') }}
                                 </h4>
                                 @if($selectedOrder->customer)
                                     <dl class="space-y-2">
                                         <div class="flex justify-between">
                                             <dt class="text-sm text-zinc-600 dark:text-zinc-400">
-                                                <i class="fas fa-id-badge mr-1"></i>Name:
+                                                <i class="fas fa-id-badge mr-1"></i>{{ __('Customer Name') }}:
                                             </dt>
                                             <dd class="text-sm text-zinc-900 dark:text-zinc-100">{{ $selectedOrder->customer->name }}</dd>
                                         </div>
                                         <div class="flex justify-between">
                                             <dt class="text-sm text-zinc-600 dark:text-zinc-400">
-                                                <i class="fas fa-map-marker-alt mr-1"></i>Unit & Address:
+                                                <i class="fas fa-map-marker-alt mr-1"></i>{{ __('Unit & Address') }}:
                                             </dt>
                                             @if ($selectedOrder->customer->unit || $selectedOrder->customer->address)
                                                 <dd class="text-sm text-zinc-900 dark:text-zinc-100">
                                                     {{ $selectedOrder->customer->unit ? $selectedOrder->customer->unit . ', ' : '' }}{{ $selectedOrder->customer->address }}
                                                 </dd>
                                             @else
-                                                <dd class="text-sm text-zinc-900 dark:text-zinc-100">Not Provided</dd>
+                                                <dd class="text-sm text-zinc-900 dark:text-zinc-100">{{ __('N/A') }}</dd>
                                             @endif
                                         </div>
                                         <div class="flex justify-between">
                                             <dt class="text-sm text-zinc-600 dark:text-zinc-400">
-                                                <i class="fas fa-phone mr-1"></i>Contact:
+                                                <i class="fas fa-phone mr-1"></i>{{ __('Contact Number') }}:
                                             </dt>
-                                            <dd class="text-sm text-zinc-900 dark:text-zinc-100">{{ $selectedOrder->customer->contact_number ?? 'N/A' }}</dd>
+                                            <dd class="text-sm text-zinc-900 dark:text-zinc-100">{{ $selectedOrder->customer->contact_number ?? __('N/A') }}</dd>
                                         </div>
                                     </dl>
                                 @else
                                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                                        <i class="fas fa-user-slash mr-1"></i>No customer information available
+                                        <i class="fas fa-user-slash mr-1"></i>{{ __('No customer information available') }}
                                     </p>
                                 @endif
                             </div>
@@ -828,7 +862,7 @@
                         {{-- Products List --}}
                         <div>
                             <h4 class="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-                                <i class="fas fa-shopping-basket mr-2"></i>Ordered Items
+                                <i class="fas fa-shopping-basket mr-2"></i>{{ __('Ordered Items') }}
                             </h4>
                             @if($selectedOrder->orderItems && count($selectedOrder->orderItems) > 0)
                                 <div class="overflow-x-auto">
@@ -836,19 +870,19 @@
                                         <thead class="bg-zinc-200 dark:bg-zinc-900">
                                             <tr>
                                                 <th class="px-4 py-2 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
-                                                    ID #
+                                                    {{ __('ID #') }}
                                                 </th>
                                                 <th class="px-4 py-2 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
-                                                    Product
+                                                    {{ __('Product') }}
                                                 </th>
                                                 <th class="px-4 py-2 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
-                                                    Quantity
+                                                    {{ __('Quantity') }}
                                                 </th>
                                                 <th class="px-4 py-2 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
-                                                    Unit Price
+                                                    {{ __('Unit Price') }}
                                                 </th>
                                                 <th class="px-4 py-2 text-center text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
-                                                    Total
+                                                    {{ __('Total') }}
                                                 </th>
                                             </tr>
                                         </thead>
@@ -880,14 +914,14 @@
                                 <div class="mt-4 border-t border-zinc-200 dark:border-zinc-700 pt-4">
                                     <div class="flex justify-between items-center">
                                         <span class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                                            <i class="fas fa-receipt mr-2"></i>Total Amount:
+                                            <i class="fas fa-receipt mr-2"></i>{{ __('Total Amount') }}:
                                         </span>
                                         <span class="text-xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($selectedOrder->order_total, 2) }}</span>
                                     </div>
                                 </div>
                             @else
                                 <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                                    <i class="fas fa-exclamation-triangle mr-1"></i>No items found for this order
+                                    <i class="fas fa-exclamation-triangle mr-1"></i>{{ __('No items found for this order') }}
                                 </p>
                             @endif
                         </div>
@@ -898,7 +932,7 @@
                             @click="showOrderModal=false; $wire.closeOrder()"
                             class="cursor-pointer px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-700 transition-colors duration-200"
                         >
-                            <i class="fas fa-times mr-1"></i>Close
+                            <i class="fas fa-times mr-1"></i>{{ __('Close') }}
                         </button>
                     </div>
                 </div>

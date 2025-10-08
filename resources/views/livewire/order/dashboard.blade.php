@@ -25,7 +25,7 @@
                 <span class="hidden sm:inline" x-text="formattedDate"></span>
                 <span class="hidden sm:inline">•</span>
                 <span x-text="formattedTime"></span>
-            </div>  
+            </div>
         </div>
         <div class="flex items-center gap-2">
 
@@ -184,12 +184,12 @@
                                                 <i class="fas fa-{{ $order->is_paid ? 'check-circle' : 'exclamation-triangle' }}"></i>
                                                 {{ $order->is_paid ? __('Paid') : __('Unpaid') }}
                                             </span>
-                                            
+
                                             {{-- Always show editable checkbox in edit mode --}}
                                             <label class="inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" 
+                                                <input type="checkbox"
                                                        {{ $order->is_paid ? 'checked' : '' }}
-                                                       class="rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500 cursor-pointer" 
+                                                       class="rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                                        wire:click="togglePaid({{ $order->id }})" />
                                                 <span class="ml-1 text-xs text-zinc-600 dark:text-zinc-400">
                                                     {{ $order->is_paid ? __('Mark Unpaid') : __('Mark Paid') }}
@@ -237,12 +237,14 @@
                                 </td>
 
                                 {{-- order date and time --}}
-                                <td class="px-6 py-4 whitespace-nowrap">
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <div class="text-sm text-zinc-900 dark:text-zinc-100">
-                                        <small class="text-xs text-zinc-500 dark:text-zinc-400">
-                                            <i class="fas fa-clock mr-1"></i>
+                                        <small class="block text-xs text-zinc-500 dark:text-zinc-400">
                                             @php $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale(); @endphp
-                                            {{ $order->created_at->locale($loc)->isoFormat('LL | LT') }}
+                                            <time datetime="{{ $order->updated_at->toIso8601String() }}">
+                                                <span class="block">{{ $order->updated_at->locale($loc)->isoFormat('LL') }}</span>
+                                                <span class="block">{{ $order->updated_at->locale($loc)->isoFormat('hh:mm A') }}</span>
+                                            </time>
                                         </small>
                                     </div>
                                 </td>
@@ -250,12 +252,12 @@
                                 {{-- action buttons --}}
                                 <td class="px-6 py-4 whitespace-nowrap text-base font-medium">
                                     <div class="flex items-center justify-center gap-1">
-                                        
+
                                         {{-- View Order --}}
                                         <div class="w-15 flex justify-center">
                                             <button wire:click="viewOrderDetails({{ $order->id }})"
-                                                class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium 
-                                                    text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 
+                                                class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium
+                                                    text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300
                                                     hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                                                 title="View Details">
                                                 <i class="fas fa-eye text-lg"></i>
@@ -267,8 +269,8 @@
                                         <div class="w-15 flex justify-center">
                                             @if($editingOrderId === $order->id)
                                                 <button wire:click="saveEdit({{ $order->id }})"
-                                                    class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
-                                                        text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 
+                                                    class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium
+                                                        text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300
                                                         hover:bg-green-100 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                                                     title="Save Changes">
                                                     <i class="fas fa-save text-lg"></i>
@@ -276,8 +278,8 @@
                                                 </button>
                                             @else
                                                 <button wire:click="editOrder({{ $order->id }})"
-                                                    class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
-                                                        text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-300 
+                                                    class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium
+                                                        text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-300
                                                         hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
                                                     title="Edit Order">
                                                     <i class="fas fa-edit text-lg"></i>
@@ -292,10 +294,10 @@
                                                 @php
                                                     $deliveryStatus = $this->getDeliveryPersonStatus($order->id);
                                                 @endphp
-                                                
+
                                                 @if($deliveryStatus === 'no_person')
                                                     {{-- No delivery person assigned --}}
-                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
+                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium
                                                         text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50"
                                                         title="No delivery person assigned">
                                                         <i class="fas fa-user-slash text-lg"></i>
@@ -306,8 +308,8 @@
                                                     {{-- Delivery person available --}}
                                                     <button wire:click="startDelivery({{ $order->id }})"
                                                         @disabled($editingOrderId)
-                                                        class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
-                                                            text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 
+                                                        class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium
+                                                            text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300
                                                             hover:bg-indigo-100 dark:hover:bg-indigo-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                         title="Start Delivery">
                                                         <i class="fas fa-truck text-lg"></i>
@@ -318,8 +320,8 @@
                                                     {{-- Can add to batch or delivery person has active deliveries --}}
                                                     <button wire:click="startDelivery({{ $order->id }})"
                                                         @disabled($editingOrderId)
-                                                        class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
-                                                            text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 
+                                                        class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium
+                                                            text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300
                                                             hover:bg-yellow-100 dark:hover:bg-yellow-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                         title="Add to delivery batch">
                                                         <i class="fas fa-plus-circle text-lg"></i>
@@ -328,7 +330,7 @@
 
                                                 @elseif($deliveryStatus === 'preparing')
                                                     {{-- Order is already in the batch --}}
-                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
+                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium
                                                         text-yellow-600 dark:text-yellow-400"
                                                         title="Order is already in batch preparation">
                                                         <i class="fas fa-hourglass-half text-lg"></i>
@@ -337,7 +339,7 @@
 
                                                 @elseif($deliveryStatus === 'waiting')
                                                     {{-- Order missed the batch window and is waiting --}}
-                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
+                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium
                                                         text-purple-600 dark:text-purple-400 cursor-not-allowed opacity-75"
                                                         title="Missed batch window, waiting for next opportunity">
                                                         <i class="fas fa-clock-rotate-left text-lg"></i>
@@ -346,21 +348,21 @@
 
                                                 @else
                                                     {{-- Fallback for any other status --}}
-                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
+                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium
                                                         text-orange-600 dark:text-orange-400 cursor-not-allowed opacity-75"
                                                         title="Delivery person is currently busy">
                                                         <i class="fas fa-clock text-lg"></i>
                                                         <span class="text-xs">{{ __('Busy') }}</span>
                                                     </div>
                                                 @endif
-                                            
+
                                             @elseif($order->status === 'preparing')
                                                 @php
                                                     $employeeId = $order->delivered_by;
                                                     $batchInfo = $this->getBatchInfo($employeeId);
                                                     $remainingTime = $batchInfo['remaining_time'] ?? 0; // seconds
                                                 @endphp
-                                                <div 
+                                                <div
                                                     x-data="{
                                                         r: {{ $remainingTime }},
                                                         started: false,
@@ -395,19 +397,19 @@
                                             @elseif($order->status === 'in_transit')
                                                 <button wire:click="markDelivered({{ $order->id }})"
                                                     @disabled($editingOrderId)
-                                                    class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
-                                                        text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300 
+                                                    class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium
+                                                        text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300
                                                         hover:bg-purple-100 dark:hover:bg-purple-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     title="Mark as Delivered">
                                                     <i class="fas fa-box-open text-lg"></i>
                                                     <span class="text-xs">{{ __('Delivered') }}</span>
                                                 </button>
-                                                
+
                                             @elseif($order->status === 'delivered' && !$order->is_paid)
                                                 <button wire:click="togglePaid({{ $order->id }})"
                                                     @disabled($editingOrderId)
-                                                    class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
-                                                        text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 
+                                                    class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium
+                                                        text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300
                                                         hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     title="Mark as Paid">
                                                     <i class="fas fa-money-bill-transfer text-lg"></i>
@@ -417,8 +419,8 @@
                                             @elseif($order->status === 'delivered' && $order->is_paid)
                                                 <button wire:click="markFinished({{ $order->id }})"
                                                     @disabled($editingOrderId)
-                                                    class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium 
-                                                        text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 
+                                                    class="cursor-pointer inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium
+                                                        text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300
                                                         hover:bg-green-100 dark:hover:bg-green-900/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     title="Mark as Finished">
                                                     <i class="fas fa-check-double text-lg"></i>
@@ -593,12 +595,12 @@
                                                 <i class="fas fa-{{ $order->is_paid ? 'check-circle' : 'exclamation-triangle' }}"></i>
                                                 {{ $order->is_paid ? __('Paid') : __('Unpaid') }}
                                             </span>
-                                            
+
                                             {{-- Always show editable checkbox in edit mode --}}
                                             <label class="inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" 
+                                                <input type="checkbox"
                                                        {{ $order->is_paid ? 'checked' : '' }}
-                                                       class="rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500 cursor-pointer" 
+                                                       class="rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
                                                        wire:click="togglePaid({{ $order->id }})" />
                                                 <span class="ml-1 text-xs text-zinc-600 dark:text-zinc-400">
                                                     {{ $order->is_paid ? __('Mark Unpaid') : __('Mark Paid') }}
@@ -641,30 +643,26 @@
                                 {{-- date and time of delivery --}}
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <div class="text-sm text-zinc-900 dark:text-zinc-100">
-                                        <div class="flex flex-col gap-1">
-                                            <small class="text-xs text-zinc-500 dark:text-zinc-400">
-                                                <i class="fas fa-clock mr-1 text-zinc-400"></i>
-                                                @php $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale(); @endphp
-                                                {{ $order->created_at->locale($loc)->isoFormat('LL | LT') }}
-                                            </small>
-                                            <small class="text-xs text-zinc-500 dark:text-zinc-400">
-                                                <i class="fas fa-calendar-check mr-1 text-zinc-400"></i>
-                                                {{ $order->updated_at->locale($loc)->isoFormat('LL | LT') }}
-                                            </small>
-                                        </div>
+                                        <small class="block text-xs text-zinc-500 dark:text-zinc-400">
+                                            @php $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale(); @endphp
+                                            <time datetime="{{ $order->updated_at->toIso8601String() }}">
+                                                <span class="block">{{ $order->updated_at->locale($loc)->isoFormat('LL') }}</span>
+                                                <span class="block">{{ $order->updated_at->locale($loc)->isoFormat('hh:mm A') }}</span>
+                                            </time>
+                                        </small>
                                     </div>
                                 </td>
 
                                 {{-- action buttons --}}
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                                     <div class="flex items-center justify-center gap-3">
-                                        
+
                                         {{-- view button --}}
                                         <button wire:click="viewOrderDetails({{ $order->id }})" class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="View Details">
                                             <i class="fas fa-eye text-lg"></i>
                                             <span class="text-xs">{{ __('View') }}</span>
                                         </button>
-                                        
+
                                         {{-- edit / save button --}}
                                         @if($editingOrderId === $order->id)
                                             <button wire:click="saveEdit({{ $order->id }})" class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/20 rounded-lg transition-colors" title="Save Changes">
@@ -716,7 +714,7 @@
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
-                
+
                 {{-- body div --}}
                 <div class="p-6 space-y-6">
 
@@ -807,7 +805,15 @@
                                     <dt class="text-sm text-zinc-600 dark:text-zinc-400">
                                         <i class="fas fa-money-bill mr-1"></i>{{ __('Payment Method') }}:
                                     </dt>
-                                    <dd class="text-sm text-zinc-900 dark:text-zinc-100 uppercase">{{ $selectedOrder->payment_type }}</dd>
+                                    @php
+                                        $map = [
+                                            'cash'   => 'Cash',
+                                            'online' => 'Online',
+                                        ];
+                                        $code = strtolower($selectedOrder->payment_type ?? '');
+                                        $label = $map[$code] ?? ($selectedOrder->payment_type ?? __('N/A'));
+                                    @endphp
+                                    <dd class="text-sm text-zinc-900 dark:text-zinc-100">{{ __($label) }}</dd>
                                 </div>
                             </dl>
                         </div>
@@ -858,7 +864,7 @@
                         </div>
 
                     </div>
-                    
+
                     {{-- Products List --}}
                     <div>
                         <h4 class="font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
@@ -927,7 +933,7 @@
                                     </tbody>
                                 </table>
                             </div>
-                            
+
                             {{-- Order Total Amount --}}
                             <div class="mt-4 border-t border-zinc-200 dark:border-zinc-700 pt-4">
                                 <div class="flex justify-between items-center">
@@ -945,9 +951,9 @@
                     </div>
 
                 </div> {{-- body div end --}}
-                
+
                 <div class="flex justify-end gap-3 px-6 py-4 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-700">
-                    <button wire:click="closeOrderDetailsModal" 
+                    <button wire:click="closeOrderDetailsModal"
                         class="cursor-pointer px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-700">
                         <i class="fas fa-times mr-1"></i>{{ __('Close') }}
                     </button>

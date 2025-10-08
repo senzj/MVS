@@ -1,6 +1,6 @@
 @section('title', 'Customer Dashboard')
 
-<div class="container mx-auto p-6 max-w-7xl" 
+<div class="container" 
      x-data="{ 
         showCreateModal: false, 
         showEditModal: false, 
@@ -41,13 +41,13 @@
         <div class="flex items-center justify-between">
             <div>
                 <h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                    <i class="fas fa-users mr-2"></i>Customer Management
+                    <i class="fas fa-users mr-2"></i>{{ __('Customer Management') }}
                 </h2>
-                <p class="text-sm text-zinc-600 dark:text-zinc-400">Manage your customer database and contact information</p>
+                <p class="text-sm text-zinc-600 dark:text-zinc-400">{{ __('Manage your customer database and contact information') }}</p>
             </div>
             <button @click="openCreateModal()" class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                 <i class="fas fa-user-plus"></i>
-                Add Customer
+                {{ __('Add Customer') }}
             </button>
         </div>
     </div>
@@ -61,7 +61,7 @@
                 </div>
                 <div class="ml-4">
                     <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $customers->total() }}</div>
-                    <div class="text-sm text-zinc-600 dark:text-zinc-400">Total Customers</div>
+                    <div class="text-sm text-zinc-600 dark:text-zinc-400">{{ __('Total Customers') }}</div>
                 </div>
             </div>
         </div>
@@ -82,7 +82,7 @@
                         @endphp
                         {{ $avgOrdersPerCustomer }}
                     </div>
-                    <div class="text-sm text-zinc-600 dark:text-zinc-400">Avg Orders per Customer</div>
+                    <div class="text-sm text-zinc-600 dark:text-zinc-400">{{ __('Average Orders per Customer') }}</div>
                 </div>
             </div>
         </div>
@@ -96,7 +96,7 @@
                     <div class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                         {{ $allCustomers->where('created_at', '>=', now()->startOfMonth())->count() }}
                     </div>
-                    <div class="text-sm text-zinc-600 dark:text-zinc-400">New This Month</div>
+                    <div class="text-sm text-zinc-600 dark:text-zinc-400">{{ __('New Customers this Month') }}</div>
                 </div>
             </div>
         </div>
@@ -108,13 +108,13 @@
             {{-- Search --}}
             <div>
                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    <i class="fas fa-search mr-1"></i>Search Customers
+                    <i class="fas fa-search mr-1"></i>{{ __('Search Customer') }}
                 </label>
                 {{-- FIXED: Changed from wire:model.live.debounce.300ms to wire:model.live --}}
                 <input 
                     type="text" 
                     wire:model.live="search" 
-                    placeholder="Search by name, address, unit, or contact..." 
+                    placeholder="{{ __('Search by name, address, unit, or contact number') }}" 
                     class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
             </div>
@@ -122,7 +122,7 @@
             @if($search)
                 <div class="mt-9 text-sm text-zinc-600 dark:text-zinc-400">
                     <i class="fas fa-info-circle mr-1"></i>
-                    Showing results for: <strong>"{{ $search }}"</strong>
+                    {{ __('Showing results for') }}: <strong>"{{ $search }}"</strong>
                 </div>
             @endif
         </div>
@@ -141,7 +141,7 @@
                         <th wire:click="sortByField('id')" class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-600">
                             <div class="flex items-center justify-center gap-1">
                                 <i class="fas fa-hashtag"></i>
-                                ID
+                                {{ __('ID') }}
                                 @if($sortBy === 'id')
                                     <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }}"></i>
                                 @endif
@@ -152,7 +152,7 @@
                         <th wire:click="sortByField('name')" class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-600">
                             <div class="flex items-center justify-center gap-1">
                                 <i class="fas fa-user"></i>
-                                Name
+                                {{ __('Customer Name') }}
                                 @if($sortBy === 'name')
                                     <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }}"></i>
                                 @endif
@@ -161,24 +161,24 @@
 
                         {{-- Unit & Address --}}
                         <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
-                            <i class="fas fa-map-marker-alt mr-1"></i>Unit & Address
+                            <i class="fas fa-map-marker-alt mr-1"></i>{{ __('Unit & Address') }}
                         </th>
 
                         {{-- Contact Number --}}
                         <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
-                            <i class="fas fa-phone mr-1"></i>Contact Number
+                            <i class="fas fa-phone mr-1"></i>{{ __('Contact Number') }}
                         </th>
 
                         {{-- Orders Count --}}
                         <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
-                            <i class="fas fa-shopping-bag mr-1"></i>Orders
+                            <i class="fas fa-shopping-bag mr-1"></i>{{ __('Orders Count') }}
                         </th>
 
                         {{-- Created At --}}
                         <th wire:click="sortByField('created_at')" class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-600">
                             <div class="flex items-center justify-center gap-1">
                                 <i class="fas fa-calendar"></i>
-                                Created At
+                                {{ __('Created At') }}
                                 @if($sortBy === 'created_at')
                                     <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }}"></i>
                                 @endif
@@ -187,7 +187,7 @@
 
                         {{-- Actions --}}
                         <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
-                            <i class="fas fa-cogs mr-1"></i>Actions
+                            <i class="fas fa-cogs mr-1"></i>{{ __('Actions') }}
                         </th>
                     </tr>
                 </thead>
@@ -270,12 +270,12 @@
                                 <div class="flex items-center justify-center gap-2">
                                     <button @click="openEditModal({{ $customer->id }})" class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Edit Customer">
                                         <i class="fas fa-edit text-lg"></i>
-                                        <span class="text-xs">Edit</span>
+                                        <span class="text-xs">{{ __('Edit') }}</span>
                                     </button>
                                     
                                     <button @click="openDeleteModal({{ $customer->id }})" class="cursor-pointer inline-flex flex-col items-center gap-1 px-3 py-2 text-sm font-medium text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors" title="Delete Customer">
                                         <i class="fas fa-trash text-lg"></i>
-                                        <span class="text-xs">Delete</span>
+                                        <span class="text-xs">{{ __('Delete') }}</span>
                                     </button>
                                 </div>
                             </td>
@@ -286,13 +286,13 @@
                                 <div class="text-zinc-500 dark:text-zinc-400">
                                     <i class="fas fa-users text-4xl mb-4"></i>
                                     @if($search)
-                                        <p class="text-sm">No customers found matching "{{ $search }}".</p>
+                                        <p class="text-sm">{{ __('No customers found.') }} "{{ $search }}".</p>
                                         <button wire:click="$set('search', '')" class="cursor-pointer bg-blue-600 p-2 text-white rounded hover:text-gray-200 hover:bg-blue-900 text-sm mt-2">
-                                            <i class="fas fa-times mr-1"></i>Clear search
+                                            <i class="fas fa-times mr-1"></i>{{ __('Clear search') }}
                                         </button>
                                     @else
-                                        <p class="text-sm">No customers found.</p>
-                                        <p class="text-xs mt-1">Add your first customer to get started.</p>
+                                        <p class="text-sm">{{ __('No customers found.') }}</p>
+                                        <p class="text-xs mt-1">{{ __('Add your first customer to get started.') }}</p>
                                     @endif
                                 </div>
                             </td>
@@ -315,7 +315,7 @@
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl max-w-lg w-full" @click.away="closeCreateModal()" x-transition.scale>
             <div class="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-700">
                 <h3 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">
-                    <i class="fas fa-user-plus mr-2"></i>Create New Customer
+                    <i class="fas fa-user-plus mr-2"></i>{{ __('Create New Customer') }}
                 </h3>
                 <button @click="closeCreateModal()" class="cursor-pointer text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
                     <i class="fas fa-times text-xl"></i>
@@ -328,16 +328,16 @@
                 {{-- Customer Name --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-user mr-1"></i>Customer Name <span class="text-red-500">*</span>
+                        <i class="fas fa-user mr-1"></i>{{ __('Customer Name') }} <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" wire:model="name" placeholder="Enter customer name" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" wire:model="name" placeholder="{{ __('Enter customer name') }}" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     @error('name') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
                 </div>
 
                 {{-- Unit & Address --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-map-marker-alt mr-1"></i>Unit & Address <span class="text-red-500">*</span>
+                        <i class="fas fa-map-marker-alt mr-1"></i>{{ __('Unit & Address') }} <span class="text-red-500">*</span>
                     </label>
                     <div class="flex gap-2">
                         <input type="text" wire:model="unit" placeholder="e.g. Unit 123" class="w-32 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -350,16 +350,12 @@
                 {{-- Contact Number --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-phone mr-1"></i>Contact Number <span class="text-red-500">*</span>
+                        <i class="fas fa-phone mr-1"></i>{{ __('Contact Number') }} <span class="text-red-500">*</span>
                     </label>
-                    <input 
-                        maxlength="11" 
-                        type="tel" 
-                        inputmode="numeric" 
-                        pattern="[0-9]*" 
-                        oninput="this.value = this.value.replace(/[^0-9]/g, '')" 
-                        wire:model="contact_number" 
-                        placeholder="Enter contact number (e.g., 09123456789)" 
+                    <input maxlength="11" type="tel" inputmode="numeric" pattern="[0-9]*" 
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                        wire:model="contact_number"
+                        placeholder="{{ __('Enter contact number (e.g., 09123456789)') }}"
                         class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                     @error('contact_number') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
@@ -367,10 +363,10 @@
 
                 <div class="flex justify-end gap-3 pt-4">
                     <button type="button" @click="closeCreateModal()" class="cursor-pointer px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-700">
-                        <i class="fas fa-times mr-1"></i>Cancel
+                        <i class="fas fa-times mr-1"></i>{{ __('Cancel') }}
                     </button>
                     <button type="submit" class="cursor-pointer px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                        <i class="fas fa-user-plus mr-1"></i>Create Customer
+                        <i class="fas fa-user-plus mr-1"></i>{{ __('Create Customer') }}
                     </button>
                 </div>
             </form>
@@ -382,7 +378,7 @@
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl max-w-lg w-full" @click.away="closeEditModal()" x-transition.scale>
             <div class="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-700">
                 <h3 class="text-lg font-medium text-zinc-900 dark:text-zinc-100">
-                    <i class="fas fa-user-edit mr-2"></i>Edit Customer
+                    <i class="fas fa-user-edit mr-2"></i>{{ __('Edit Customer') }}
                 </h3>
                 <button @click="closeEditModal()" class="cursor-pointer text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
                     <i class="fas fa-times text-xl"></i>
@@ -393,16 +389,16 @@
                 {{-- Customer Name --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-user mr-1"></i>Customer Name <span class="text-red-500">*</span>
+                        <i class="fas fa-user mr-1"></i>{{ __('Customer Name') }} <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" wire:model="name" placeholder="Enter customer name" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <input type="text" wire:model="name" placeholder="{{ __('Enter customer name') }}" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     @error('name') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
                 </div>
 
                 {{-- Unit & Address --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-map-marker-alt mr-1"></i>Unit & Address <span class="text-red-500">*</span>
+                        <i class="fas fa-map-marker-alt mr-1"></i>{{ __('Unit & Address') }} <span class="text-red-500">*</span>
                     </label>
                     <div class="flex gap-2">
                         <input type="text" wire:model="unit" placeholder="e.g. Unit 123" class="w-32 px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -415,16 +411,12 @@
                 {{-- Contact Number --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-phone mr-1"></i>Contact Number <span class="text-red-500">*</span>
+                        <i class="fas fa-phone mr-1"></i>{{ __('Contact Number') }} <span class="text-red-500">*</span>
                     </label>
-                    <input 
-                        maxlength="11" 
-                        type="tel" 
-                        inputmode="numeric" 
-                        pattern="[0-9]*" 
+                    <input maxlength="11" type="tel" inputmode="numeric" pattern="[0-9]*" 
                         oninput="this.value = this.value.replace(/[^0-9]/g, '')" 
                         wire:model="contact_number" 
-                        placeholder="Enter contact number (e.g., 09123456789)" 
+                        placeholder="{{ __('Enter contact number (e.g., 09123456789)') }}" 
                         class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                     @error('contact_number') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
@@ -432,10 +424,10 @@
 
                 <div class="flex justify-end gap-3 pt-4">
                     <button type="button" @click="closeEditModal()" class="cursor-pointer px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-700">
-                        <i class="fas fa-times mr-1"></i>Cancel
+                        <i class="fas fa-times mr-1"></i>{{ __('Cancel') }}
                     </button>
                     <button type="submit" class="cursor-pointer px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                        <i class="fas fa-save mr-1"></i>Update Customer
+                        <i class="fas fa-save mr-1"></i>{{ __('Update Customer') }}
                     </button>
                 </div>
             </form>
@@ -449,16 +441,16 @@
                 <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-900 rounded-full mb-4">
                     <i class="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-xl"></i>
                 </div>
-                <h3 class="text-lg font-medium text-zinc-900 dark:text-zinc-100 text-center mb-2">Delete Customer</h3>
+                <h3 class="text-lg font-medium text-zinc-900 dark:text-zinc-100 text-center mb-2">{{ __('Delete Customer') }}</h3>
                 <p class="text-sm text-zinc-600 dark:text-zinc-400 text-center mb-6">
-                    Are you sure you want to delete this customer? This action cannot be undone and will permanently remove all customer data.
+                    {{ __('Are you sure you want to delete this customer? This action cannot be undone and will permanently remove all customer data.') }}
                 </p>
                 <div class="flex justify-center gap-3">
                     <button @click="closeDeleteModal()" class="cursor-pointer px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-lg hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-600 dark:hover:bg-zinc-700">
-                        <i class="fas fa-times mr-1"></i>Cancel
+                        <i class="fas fa-times mr-1"></i>{{ __('Cancel') }}
                     </button>
                     <button wire:click="deleteCustomer()" class="cursor-pointer px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
-                        <i class="fas fa-trash mr-1"></i>Confirm Delete
+                        <i class="fas fa-trash mr-1"></i>{{ __('Confirm Delete') }}
                     </button>
                 </div>
             </div>
