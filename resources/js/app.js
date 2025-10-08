@@ -22,7 +22,16 @@ function registerDashboardChartsListener() {
 
   window.addEventListener('dashboard-charts-data', (event) => {
     const payload = event.detail?.data || {};
+    window.__dashboardChartsPayload = payload; // remember last data
     initDashboardCharts(payload);
+  });
+
+  // Rebuild charts after any Livewire DOM update (captures language changes)
+  document.addEventListener('livewire:message.processed', () => {
+    if (window.__dashboardChartsPayload) {
+      destroyDashboardCharts();
+      initDashboardCharts(window.__dashboardChartsPayload);
+    }
   });
 
   // Optional: cleanup when navigating away

@@ -122,6 +122,15 @@
     "Sales & Profit (Last 30 Days)": "销售额与利润（最近30天）",
     "Process Payment": "处理支付",
     "Order Summary": "订单摘要",
+    "Sales (₱)": "销售 (₱)",
+    "Estimated Profit (₱)": "预计利润 (₱)",
+    "Current Week": "本周",
+    "Previous Week": "上周",
+    "Monthly Sales (₱)": "每月销售额 (₱)",
+    "Monthly Orders": "每月订单量",
+    "Amount (₱)": "金额 (₱)",
+    "Number of Orders": "订单数量",
+    "Sales Amount (₱)": "销售额 (₱)",
 
     "Orders by Day (Current vs Previous Week)": "每日订单（本周 vs 上周）",
     "Monthly Trends (Last 6 Months)": "月度趋势（最近6个月）",
@@ -283,7 +292,6 @@
     "Are you sure you want to Hide this product? This will mark it as unavailable for sale.": "您确定要隐藏此产品吗？这将标记为不可出售。",
     "Delete Product": "删除产品",
     "Are you sure you want to delete this product? This action cannot be undone.": "您确定要删除此产品吗？此操作无法撤销。",
-
 
     "Customer": "客户",
     "Customer Management": "客户管理",

@@ -15,7 +15,7 @@
                 serverTs: {{ now()->timestamp }} * 1000,
                 clientStart: Date.now(),
                 nowMs: {{ now()->timestamp }} * 1000,
-                get intlLocale() { return this.locale === 'cn' ? 'zh-CN' : this.locale; },
+                get intlLocale() { return this.locale === 'zh' ? 'zh-CN' : this.locale; },
                 tick() { const elapsed = Date.now() - this.clientStart; this.nowMs = this.serverTs + elapsed; },
                 start() { this.tick(); setInterval(() => this.tick(), 1000); },
                 get formattedDate() {
@@ -236,6 +236,44 @@
                 <canvas id="categoryBreakdownChart"></canvas>
             </div>
         </div>
-    </div>
+    </div> {{-- end Statistical Charts --}}
 
-</div>
+<!-- Add chart i18n strings for JS (uses JSON translations via __()) -->
+// ...existing code...
+
+<!-- Add chart i18n strings for JS (uses JSON translations via __()) -->
+<script>
+  window.__dashboardI18n = {
+    sales:                 "{{ __('Sales (₱)') }}",
+    estimated_profit:      "{{ __('Estimated Profit (₱)') }}",
+    orders:                "{{ __('Orders') }}",
+    current_week:          "{{ __('Current Week') }}",
+    previous_week:         "{{ __('Previous Week') }}",
+    monthly_sales:         "{{ __('Monthly Sales (₱)') }}",
+    monthly_orders:        "{{ __('Monthly Orders') }}",
+    amount_currency:       "{{ __('Amount (₱)') }}",
+    num_orders:            "{{ __('Number of Orders') }}",
+    sales_amount_currency: "{{ __('Sales Amount (₱)') }}",
+  };
+
+  // Pass current locale to JavaScript
+  window.__appLocale = "{{ app()->getLocale() }}";
+
+  // Known category translations (fallback if backend didn't localize)
+  window.__categoryMap = {
+    "Meat & Poultry": "{{ __('Meat & Poultry') }}",
+    "Vegetables": "{{ __('Vegetables') }}",
+    "Fruits": "{{ __('Fruits') }}",
+    "Dairy": "{{ __('Dairy') }}",
+    "Eggs": "{{ __('Eggs') }}",
+    "Seafood": "{{ __('Seafood') }}",
+    "Beverages": "{{ __('Beverages') }}",
+    "Snacks": "{{ __('Snacks') }}",
+    "Condiments & Spices": "{{ __('Condiments & Spices') }}",
+    "Grains & Cereals": "{{ __('Grains & Cereals') }}",
+    "Frozen Goods": "{{ __('Frozen Goods') }}",
+    "Bakery Goods": "{{ __('Bakery Goods') }}",
+    "Gas": "{{ __('Gas') }}",
+    "Other": "{{ __('Other') }}",
+  };
+</script>
