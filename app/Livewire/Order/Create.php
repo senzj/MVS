@@ -30,29 +30,32 @@ class Create extends Component
     public $customerUnit = '';
     public $customerAddress = '';
     public $customerContact = '';
-    
+
+    // New customer state
+    public $isCreatingNewCustomer = false;
+
     // Product items
     public $orderItems = [];
-    
+
     // Remove modal states - Alpine.js will handle these
     public $currentItemIndex = null;
-    
+
     // Payment modal states
     public $showPaymentModal = false;
     public $amountReceived = 0;
     public $changeAmount = 0;
     public $processingPayment = false;
-    
+
     // Search terms
     public $customerSearch = '';
     public $employeeSearch = '';
     public $productSearch = '';
-    
+
     // Collections for dropdowns
     public $customers = [];
     public $employees = [];
     public $products = [];
-    
+
     protected $rules = [
         'orderType' => 'required|in:deliver,walk_in',
         'paymentType' => 'required|in:cash,gcash',
@@ -111,11 +114,11 @@ class Create extends Component
         // Get the highest receipt number for the current year
         $currentYear = now()->format('Y');
         $prefix = "OR-{$currentYear}-";
-        
+
         $lastReceiptNumber = Order::where('receipt_number', 'like', "{$prefix}%")
             ->orderByDesc('receipt_number')
             ->value('receipt_number');
-        
+
         if ($lastReceiptNumber) {
             // Extract the number part and increment
             $lastNumber = (int) substr($lastReceiptNumber, -5);
@@ -124,9 +127,28 @@ class Create extends Component
             // First order of the year
             $nextNumber = 1;
         }
-        
+
         // Format: OR-YEAR-XXXXX (5 digits with leading zeros)
         return $prefix . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+    }
+
+    // New customer state management
+    public function createNewCustomer()
+    {
+        $this->isCreatingNewCustomer = true;
+        $this->selectedCustomerId = null;
+        $this->customerName = '';
+        $this->customerUnit = '';
+        $this->customerAddress = '';
+        $this->customerContact = '';
+        $this->resetErrorBag(['selectedCustomerId', 'customerName', 'customerContact', 'customerAddress']);
+    }
+
+    public function cancelNewCustomer()
+    {
+        $this->isCreatingNewCustomer = false;
+        $this->reset('customerName', 'customerUnit', 'customerAddress', 'customerContact');
+        $this->resetErrorBag(['customerName', 'customerContact', 'customerAddress']);
     }
 
     // Simplified customer selection
@@ -139,6 +161,7 @@ class Create extends Component
             $this->customerUnit = $customer->unit ?? '';
             $this->customerAddress = $customer->address ?? '';
             $this->customerContact = $customer->contact_number ?? '';
+            $this->isCreatingNewCustomer = false;
         }
         $this->customerSearch = '';
     }
@@ -152,7 +175,7 @@ class Create extends Component
         }
 
         $isInTransit = $this->isEmployeeInTransit($employeeId);
-        
+
         if ($isInTransit) {
             // This will be handled by the frontend confirmation
             $this->dispatchBrowserEvent('confirm-employee-selection', [
@@ -190,7 +213,7 @@ class Create extends Component
             $this->customerAddress = '';
             $this->customerContact = '';
         }
-        
+
         // Clear any validation errors
         $this->resetErrorBag();
     }
@@ -308,7 +331,7 @@ class Create extends Component
     {
         unset($this->orderItems[$index]);
         $this->orderItems = array_values($this->orderItems);
-        
+
         // Ensure at least one item exists
         if (empty($this->orderItems)) {
             $this->addOrderItem();
@@ -363,7 +386,7 @@ class Create extends Component
         if (empty($this->employeeSearch)) {
             return collect($this->employees);
         }
-        
+
         return collect($this->employees)->filter(function ($employee) {
             return stripos($employee->name, $this->employeeSearch) !== false;
         });
@@ -430,10 +453,10 @@ class Create extends Component
     public function processPayment()
     {
         $this->processingPayment = true;
-        
+
         if ($this->paymentType === 'cash') {
             $totalAmount = $this->getTotalAmountProperty();
-            
+
             $this->validate([
                 'amountReceived' => 'required|numeric|min:' . $totalAmount
             ], [
@@ -455,19 +478,25 @@ class Create extends Component
     {
         // Debug: Log the current orderType value
         // Log::info('Creating order with orderType: ' . $this->orderType);
-        
+
         // Dynamic validation based on order type
         $rules = $this->rules;
-        
+
         if ($this->orderType === 'deliver') {
-            $rules['selectedEmployeeId'] = 'required|exists:employees,id';
-            $rules['selectedCustomerId'] = 'required|exists:customers,id';
-            $rules['customerName'] = 'required|string|max:255';
+            if ($this->isCreatingNewCustomer) {
+                $rules['customerName'] = 'required|string|max:255';
+                $rules['customerContact'] = 'required|string|max:20';
+                $rules['customerAddress'] = 'required|string|max:255';
+                $rules['selectedCustomerId'] = 'nullable';
+            } else {
+                $rules['selectedEmployeeId'] = 'required|exists:employees,id';
+                $rules['selectedCustomerId'] = 'required|exists:customers,id';
+            }
         }
-        
-        $this->validate($rules);
 
         // For walk-in orders, show payment modal instead of creating order directly
+        $this->validate($rules);
+
         if ($this->orderType === 'walk_in' && !$this->processingPayment) {
             $this->openPaymentModal();
             return;
@@ -498,9 +527,37 @@ class Create extends Component
         DB::transaction(function () {
             $totalAmount = $this->getTotalAmountProperty();
 
+            // Handle customer creation or selection for delivery orders
+            $customerIdForOrder = null;
+            if ($this->orderType === 'deliver') {
+                if ($this->isCreatingNewCustomer) {
+                    // Create a new customer
+                    $newCustomer = Customer::create([
+                        'name' => $this->customerName,
+                        'unit' => ucwords($this->customerUnit),
+                        'address' => ucwords($this->customerAddress),
+                        'contact_number' => $this->customerContact,
+                        'created_by' => Auth::id(),
+                    ]);
+                    $customerIdForOrder = $newCustomer->id;
+                } else {
+                    // Use existing customer and update their details
+                    $customerIdForOrder = $this->selectedCustomerId;
+                    if ($this->selectedCustomerId) {
+                        $customer = Customer::find($this->selectedCustomerId);
+                        $customer->update([
+                            'name' => $this->customerName,
+                            'unit' => ucwords($this->customerUnit),
+                            'address' => ucwords($this->customerAddress),
+                            'contact_number' => $this->customerContact,
+                        ]);
+                    }
+                }
+            }
+
             // Create the order
             $order = Order::create([
-                'customer_id' => $this->orderType === 'deliver' ? $this->selectedCustomerId : null,
+                'customer_id' => $customerIdForOrder,
                 'created_by' => Auth::id(),
                 'delivered_by' => $this->orderType === 'deliver' ? $this->selectedEmployeeId : null,
                 'order_total' => $totalAmount,
@@ -509,13 +566,14 @@ class Create extends Component
                 'status' => $this->orderType === 'walk_in' ? 'completed' : 'pending',
                 'is_paid' => $this->orderType === 'walk_in' ? true : false,
                 'receipt_number' => $this->orderNumber,
+
                 // Store payment details for walk-in orders
                 'amount_received' => $this->orderType === 'walk_in' ? $this->amountReceived : null,
                 'change_amount' => $this->orderType === 'walk_in' ? $this->changeAmount : null,
             ]);
 
             // Update customer information if changed (only for delivery orders)
-            if ($this->orderType === 'deliver' && $this->selectedCustomerId) {
+            if ($this->orderType === 'deliver' && $this->selectedCustomerId && !$this->isCreatingNewCustomer) {
                 $customer = Customer::find($this->selectedCustomerId);
                 $customer->update([
                     'name' => $this->customerName,

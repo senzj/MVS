@@ -1,8 +1,8 @@
 @section('title', 'Create Orders')
-<div class="container" 
-    x-data="{ 
-    showCustomerModal: false, 
-    showEmployeeModal: false, 
+<div class="container"
+    x-data="{
+    showCustomerModal: false,
+    showEmployeeModal: false,
     showProductModal: false,
     currentItemIndex: null,
     openProductModal(index) {
@@ -14,7 +14,7 @@
         this.currentItemIndex = null;
     }
 }">
-    
+
     {{-- Header --}}
     <div class="mb-6">
         <div class="flex items-center justify-between">
@@ -40,7 +40,7 @@
                     <span class="hidden sm:inline" x-text="formattedDate"></span>
                     <span class="hidden sm:inline">•</span>
                     <span x-text="formattedTime"></span>
-                </div>  
+                </div>
             </div>
             <a href="{{ route('orders') }}" class="flex items-center gap-1" wire:navigate>
                 <button type="button" class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
@@ -53,13 +53,13 @@
 
     {{-- Order Form --}}
     <form wire:submit.prevent="createOrder" class="space-y-6">
-        
+
         {{-- Order Information Card --}}
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow p-6">
             <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
                 <i class="fas fa-file-invoice mr-2"></i>{{ __('Order Information') }}
             </h3>
-            
+
             {{-- Order Number --}}
             <div class="mb-4">
                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
@@ -81,7 +81,7 @@
 
                         {{-- Order Type toggle --}}
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" 
+                            <input type="checkbox"
                                    class="sr-only peer"
                                    :checked="$wire.orderType === 'deliver'"
                                    @change="$wire.set('orderType', $event.target.checked ? 'deliver' : 'walk_in')">
@@ -159,7 +159,7 @@
                         x-cloak
                         :class="dropUp ? 'bottom-full mb-1' : 'top-full mt-1'"
                         class="absolute z-20 w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg shadow-lg">
-                        
+
                         {{-- Sticky floating search --}}
                         <div class="sticky top-0 z-10 p-2 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-600">
                             <div class="relative">
@@ -191,7 +191,7 @@
                                             }
                                         "
                                         class="p-3 border border-zinc-200 dark:border-zinc-600 rounded-lg cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700 {{ $isInTransit ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' : '' }}">
-                                       
+
                                         <div class="font-medium text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
                                             <span>
                                                 <i class="fas fa-user-tie mr-1"></i>{{ $employee->name }}
@@ -246,7 +246,7 @@
             {{-- Customer Selection --}}
             <div class="mb-4">
                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    <i class="fas fa-users mr-1"></i>{{ __('Customer Name') }}
+                    <i class="fas fa-users mr-1"></i>{{ __('Customer') }}
                 </label>
 
                 <div x-data="{
@@ -276,7 +276,11 @@
                             @click="toggle()"
                             class="cursor-pointer w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
                         <span class="truncate">
-                            {{ optional($this->selectedCustomer)->name ?? __('Select a customer') }}
+                            @if($isCreatingNewCustomer)
+                                <i class="fas fa-user-plus mr-2 text-green-500"></i>{{ __('Creating New Customer') }}
+                            @else
+                                {{ optional($this->selectedCustomer)->name ?? __('Select a customer') }}
+                            @endif
                         </span>
                         <i class="fas fa-chevron-down ml-2 text-sm"></i>
                     </button>
@@ -299,8 +303,17 @@
                                     class="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
                         </div>
-                        
+
                         <ul class="max-h-80 overflow-y-auto p-2">
+                            {{-- Create New Customer Option --}}
+                            <li class="mb-2 last:mb-0">
+                                <div wire:click="createNewCustomer"
+                                     @click="open = false"
+                                     class="p-3 border border-dashed border-green-400 dark:border-green-600 rounded-lg cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 dark:text-green-400 text-center">
+                                    <i class="fas fa-plus-circle mr-2"></i>{{ __("Customer doesn't exist? Create one.") }}
+                                </div>
+                            </li>
+
                             @forelse($this->filteredCustomers as $customer)
                                 <li class="mb-2 last:mb-0">
                                     <div wire:click="selectCustomer({{ $customer->id }})"
@@ -332,28 +345,46 @@
             </div>
 
             {{-- Customer Details (Editable) --}}
-            @if($selectedCustomerId)
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            <i class="fas fa-phone mr-1"></i>{{ __('Contact Number') }}
-                        </label>
-                        <input type="text" wire:model="customerContact" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
-                        @error('customerContact') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            <i class="fas fa-building mr-1"></i>{{ __('Unit') }}
-                        </label>
-                        <input type="text" wire:model="customerUnit" placeholder="e.g., Unit 123" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
-                        @error('customerUnit') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                            <i class="fas fa-map-marker-alt mr-1"></i>{{ __('Address') }}
-                        </label>
-                        <input type="text" wire:model="customerAddress" placeholder="e.g., 123 Main Street" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
-                        @error('customerAddress') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
+            @if($selectedCustomerId || $isCreatingNewCustomer)
+                <div class="border-t border-zinc-200 dark:border-zinc-600 pt-4 mt-4">
+                    @if($isCreatingNewCustomer)
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Create Customer') }}</h4>
+                            <button type="button" wire:click="cancelNewCustomer" class="text-xs text-red-500 hover:underline">
+                                {{ __('Cancel') }}
+                            </button>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                <i class="fas fa-user mr-1"></i>{{ __('Customer Name') }}
+                            </label>
+                            <input type="text" wire:model="customerName" placeholder="e.g., John Doe" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 mb-2">
+                            @error('customerName') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
+                        </div>
+                    @endif
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                <i class="fas fa-phone mr-1"></i>{{ __('Contact Number') }}
+                            </label>
+                            <input type="tel" wire:model="customerContact" maxlength="11" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
+                            @error('customerContact') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                <i class="fas fa-building mr-1"></i>{{ __('Unit') }}
+                            </label>
+                            <input type="text" wire:model="customerUnit" placeholder="e.g., Unit 123" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
+                            @error('customerUnit') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                <i class="fas fa-map-marker-alt mr-1"></i>{{ __('Address') }}
+                            </label>
+                            <input type="text" wire:model="customerAddress" placeholder="e.g., 123 Main Street" class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
+                            @error('customerAddress') <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
+                        </div>
                     </div>
                 </div>
             @endif
@@ -387,7 +418,7 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            
+
                             {{-- Product Selection --}}
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -416,7 +447,7 @@
                                         window.addEventListener('resize', () => open && reposition());
                                         window.addEventListener('scroll', () => open && reposition(), true);
                                     " class="relative">
-                                    
+
                                     <button type="button"
                                             x-ref="trigger"
                                             @click="toggle()"
@@ -437,7 +468,7 @@
                                          x-cloak
                                          :class="dropUp ? 'bottom-full mb-1' : 'top-full mt-1'"
                                          class="absolute z-20 w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg shadow-lg">
-                                        
+
                                         <div class="sticky top-0 z-10 p-2 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-600">
                                             <div class="relative">
                                                 <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
@@ -445,7 +476,7 @@
                                                     class="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                             </div>
                                         </div>
-                                        
+
                                         <ul class="max-h-60 overflow-y-auto">
                                             @forelse($this->filteredProducts ?? $products as $product)
                                                 <li class="px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-700 cursor-pointer"
@@ -480,10 +511,10 @@
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                                     <i class="fas fa-sort-numeric-up mr-1"></i>{{ __('Quantity / per kilo') }}
                                 </label>
-                                <input type="number" 
-                                    wire:model.live="orderItems.{{ $index }}.quantity" 
-                                    min="1" 
-                                    
+                                <input type="number"
+                                    wire:model.live="orderItems.{{ $index }}.quantity"
+                                    min="1"
+
                                     class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100">
                                 @error("orderItems.{$index}.quantity") <span class="text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</span> @enderror
                             </div>
@@ -532,12 +563,12 @@
 
 
     {{-- Modal Payment for walk-in --}}
-    <div x-data="{ show: @entangle('showPaymentModal') }" 
-        x-show="show" 
+    <div x-data="{ show: @entangle('showPaymentModal') }"
+        x-show="show"
         x-cloak
         class="fixed inset-0 z-50 overflow-y-auto"
         style="display: none;">
-        
+
         {{-- Modal --}}
         <div class="flex items-center justify-center min-h-screen p-4 bg-black/50 transition-opacity">
             <div class="relative bg-white dark:bg-zinc-800 rounded-lg shadow-xl max-w-md w-full mx-auto"
@@ -547,14 +578,14 @@
                 x-transition:leave="transition ease-in duration-200"
                 x-transition:leave-start="opacity-100 transform scale-100"
                 x-transition:leave-end="opacity-0 transform scale-95">
-                
+
                 {{-- Modal Heade --}}
                 <div class="px-6 py-4 border-b border-gray-200">
                     <div class="flex items-center justify-between">
                         <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                             {{ __('Process Payment') }}
                         </h3>
-                        <button wire:click="closePaymentModal" 
+                        <button wire:click="closePaymentModal"
                                 class="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -569,12 +600,12 @@
                     {{-- Payment Type Display --}}
                     <div class="mb-4 flex justify-between">
                         <label class="block text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-                            {{ __('Payment Method') }}: 
+                            {{ __('Payment Method') }}:
                             <span class="font-semibold text-green-400">
                                 {{ $paymentType === 'cash' ? __('Cash') : __('Online') }}
                             </span>
                         </label>
-                        
+
                         {{-- tooltip button --}}
                         @if ($paymentType == 'gcash')
                             <div class="relative group">
@@ -582,10 +613,10 @@
                                 <button type="button" class="cursor-pointer flex items-center justify-center w-6 h-6 text-gray-400 hover:text-gray-600 dark:text-zinc-400 dark:hover:text-zinc-300 transition-colors duration-200">
                                     <i class="fas fa-info-circle"></i>
                                 </button>
-                                
+
                                 {{-- Tooltip content --}}
                                 <div class="absolute top-full left-0 mb-2 w-70 p-3 bg-gray-900 dark:bg-zinc-700 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                                    
+
                                     {{-- Tooltip content --}}
                                     <p class="font-medium mb-2">{{ __('Online Payment Steps') }}:</p>
                                     <ol class="list-decimal list-inside space-y-1">
@@ -630,10 +661,10 @@
                                 </label>
                                 <div class="relative">
                                     <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">₱</span>
-                                    <input type="number" 
+                                    <input type="number"
                                         id="amountReceived"
                                         wire:model.live="amountReceived"
-                                        step="0.01" 
+                                        step="0.01"
                                         min="0"
                                         class="w-full pl-8 pr-3 py-2 rounded-lg focus:ring border border-gray-500"
                                         placeholder="0.00">
@@ -662,7 +693,7 @@
                             {{-- Fixed-size container for image --}}
                             <div class="mx-auto bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center overflow-hidden
                                 {{ $currentImage ? '' : 'w-32 h-32' }}">
-                                
+
                                 @if ($currentImage)
                                     <img src="{{ $currentImage }}"
                                         alt="GCash QR Code"
@@ -682,21 +713,21 @@
                         </div>
                     @endif
                 </div>
-                
+
                 {{--  Modal Footer --}}
                 <div class="px-6 py-4 border-t border-gray-200">
                     <div class="flex space-x-3">
-                        <button wire:click="closePaymentModal" 
+                        <button wire:click="closePaymentModal"
                                 class="cursor-pointer flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500">
                             {{ __('Cancel') }}
                         </button>
-                        
+
                         <button wire:click="processPayment"
                                 wire:loading.attr="disabled"
                                 wire:target="processPayment"
                                 @if($paymentType === 'cash' && $changeAmount < 0) disabled @endif
                                 class="cursor-pointer flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                            
+
                             <span wire:loading.remove wire:target="processPayment">
                                 {{ __('Complete Order') }}
                             </span>
