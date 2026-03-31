@@ -22,11 +22,10 @@ new #[Layout('components.layouts.auth', ['title' => 'Register'])] class extends 
     {
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'username' => [
-                'required', 
-                'string', 
-                'max:255', 
+                'required',
+                'string',
+                'max:255',
                 // Custom validation to check for case-insensitive uniqueness after transformation
                 function ($attribute, $value, $fail) {
                     $transformedUsername = ucwords($value);
@@ -35,7 +34,7 @@ new #[Layout('components.layouts.auth', ['title' => 'Register'])] class extends 
                     }
                 }
             ],
-            'password' => ['required', 'string', 'confirmed', 
+            'password' => ['required', 'string', 'confirmed',
                 Rules\Password::min(8) // minimum of 8 characters
                     ->mixedCase() // upper and lower case letters
                     ->letters() // letters
@@ -46,7 +45,6 @@ new #[Layout('components.layouts.auth', ['title' => 'Register'])] class extends 
 
         $formatted_data = [
             'name' => ucwords($validated['name']),
-            'email' => strtolower($validated['email']),
             'username' => ucwords($validated['username']),
         ];
 
