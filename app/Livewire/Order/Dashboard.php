@@ -210,7 +210,7 @@ class Dashboard extends Component
         }
 
         $employeeId = $order->delivered_by;
-        
+
         // Check if delivery person is currently delivering (has actual in_transit orders)
         $hasActiveDeliveries = Order::where('delivered_by', $employeeId)
             ->where('status', 'in_transit')
@@ -221,7 +221,7 @@ class Dashboard extends Component
         }
 
         // Check if order is already in a batch
-        if (isset($this->batchDeliveryOrders[$employeeId]) && 
+        if (isset($this->batchDeliveryOrders[$employeeId]) &&
             in_array($orderId, $this->batchDeliveryOrders[$employeeId])) {
             return;
         }
@@ -230,7 +230,7 @@ class Dashboard extends Component
         if (!$this->isBatchDeliveryActive($employeeId)) {
             // Start new batch timer
             $this->startBatchDeliveryTimer($employeeId);
-            
+
             // Clear any missed batch state since we're starting fresh
             Cache::forget("missed_batch_{$employeeId}");
         }
@@ -248,10 +248,10 @@ class Dashboard extends Component
     {
         $startTime = now()->timestamp;
         $endTime = $startTime + $this->batchDeliveryDuration;
-        
+
         // Store start time in cache (survives page refreshes)
         Cache::put("batch_start_time_{$employeeId}", $startTime, now()->addMinutes(10));
-        
+
         $this->batchDeliveryTimers[$employeeId] = $endTime;
         $this->batchDeliveryOrders[$employeeId] = [];
     }
@@ -299,8 +299,12 @@ class Dashboard extends Component
     }
 
     // Get remaining batch time for an employee
-    public function getRemainingBatchTime($employeeId): int
+    public function getRemainingBatchTime($employeeId = null): int
     {
+        if (!$employeeId) {
+            return 0;
+        }
+
         if (!$this->isBatchDeliveryActive($employeeId)) {
             return 0;
         }
@@ -310,8 +314,12 @@ class Dashboard extends Component
     }
 
     // Process batch delivery (move all orders to in_transit)
-    public function processBatchDelivery($employeeId, $orderIds = null): void
+    public function processBatchDelivery($employeeId = null, $orderIds = null): void
     {
+        if (!$employeeId) {
+            return;
+        }
+
         // Ensure we have order IDs even if component state was lost
         if ($orderIds === null) {
             if (isset($this->batchDeliveryOrders[$employeeId]) && !empty($this->batchDeliveryOrders[$employeeId])) {
@@ -352,8 +360,12 @@ class Dashboard extends Component
     }
 
     // Force start batch delivery (manual trigger)
-    public function forceBatchDelivery($employeeId): void
+    public function forceBatchDelivery($employeeId = null): void
     {
+        if (!$employeeId) {
+            return;
+        }
+
         $this->processBatchDelivery($employeeId);
     }
 
@@ -365,25 +377,25 @@ class Dashboard extends Component
                 $this->processBatchDelivery($employeeId);
             }
         }
-        
+
         // Also check for any preparing orders that might have been missed
         $preparingOrders = Order::where('status', 'preparing')
             ->whereNotNull('delivered_by')
             ->get(['id', 'delivered_by', 'updated_at']);
-            
+
         foreach ($preparingOrders as $order) {
             $employeeId = $order->delivered_by;
-            
+
             // Check if batch start time exists in cache
             $batchStartTime = Cache::get("batch_start_time_{$employeeId}");
-            
+
             if ($batchStartTime) {
                 $timeElapsed = now()->timestamp - $batchStartTime;
             } else {
                 // Fallback to order updated_at if no cache (might have been processed by scheduled command)
                 $timeElapsed = now()->diffInSeconds($order->updated_at);
             }
-            
+
             // If batch time has expired but timer wasn't caught
             if ($timeElapsed >= $this->batchDeliveryDuration) {
                 $this->processBatchDelivery($employeeId);
@@ -443,7 +455,7 @@ class Dashboard extends Component
         // Check if currently in a batch preparation phase
         if ($this->isBatchDeliveryActive($employeeId)) {
             // Check if this specific order is already in the batch
-            if (isset($this->batchDeliveryOrders[$employeeId]) && 
+            if (isset($this->batchDeliveryOrders[$employeeId]) &&
                 in_array($orderId, $this->batchDeliveryOrders[$employeeId])) {
                 return 'preparing'; // This order is already in the batch
             } else {
@@ -461,8 +473,12 @@ class Dashboard extends Component
     }
 
     // Get batch info for an employee
-    public function getBatchInfo($employeeId)
+    public function getBatchInfo($employeeId = null)
     {
+        if (!$employeeId) {
+            return null;
+        }
+
         // First check if the batch has expired
         if (isset($this->batchDeliveryTimers[$employeeId])) {
             if (now()->timestamp >= $this->batchDeliveryTimers[$employeeId]) {
@@ -486,8 +502,12 @@ class Dashboard extends Component
     }
 
     // Get orders that are currently in batch for an employee
-    public function getActiveBatchOrders($employeeId)
+    public function getActiveBatchOrders($employeeId = null)
     {
+        if (!$employeeId) {
+            return collect();
+        }
+
         if (!isset($this->batchDeliveryOrders[$employeeId])) {
             return collect();
         }
@@ -621,7 +641,7 @@ class Dashboard extends Component
             session()->flash('error', 'Order not found.');
             return;
         }
-            
+
         DB::transaction(function () {
             $order = Order::with('orderItems')->find($this->deleteOrderId);
             if (!$order) return;
@@ -629,7 +649,7 @@ class Dashboard extends Component
             // Store receipt number for flash message before deletion
             $receiptNumber = $order->receipt_number;
 
-            // Only rollback inventory if order status is not 'cancelled' 
+            // Only rollback inventory if order status is not 'cancelled'
             // (cancelled orders already have their inventory rolled back)
             if ($order->status !== 'cancelled') {
                 $this->rollbackInventory($order);
@@ -665,7 +685,7 @@ class Dashboard extends Component
                     $this->batchDeliveryOrders[$employeeId],
                     fn($id) => $id !== $orderId
                 );
-                
+
                 // If no orders left in batch, clear the timer and cache
                 if (empty($this->batchDeliveryOrders[$employeeId])) {
                     unset($this->batchDeliveryTimers[$employeeId]);

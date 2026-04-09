@@ -2,9 +2,16 @@
 
 namespace Database\Seeders;
 
+use App\Models\Customer;
+use App\Models\Employee;
+use App\Models\Log;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,11 +20,24 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        Schema::disableForeignKeyConstraints();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        OrderItem::truncate();
+        Order::truncate();
+        Log::truncate();
+        Product::truncate();
+        Employee::truncate();
+        Customer::truncate();
+        User::truncate();
+
+        Schema::enableForeignKeyConstraints();
+
+        $this->call([
+            UserSeeder::class,
+            CustomerSeeder::class,
+            EmployeeSeeder::class,
+            ProductSeeder::class,
+            OrderSeeder::class,
         ]);
     }
 }

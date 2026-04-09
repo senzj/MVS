@@ -10,7 +10,6 @@ use Livewire\Volt\Component;
 
 new #[Layout('components.layouts.auth', ['title' => 'Register'])] class extends Component {
     public string $name = '';
-    public string $email = '';
     public string $username = '';
     public string $password = '';
     public string $password_confirmation = '';
@@ -90,16 +89,6 @@ new #[Layout('components.layouts.auth', ['title' => 'Register'])] class extends 
             autofocus
             autocomplete="username"
             :placeholder="__('Username to be used for Log In.')"
-        />
-
-        {{-- Email --}}
-        <flux:input
-            wire:model="email"
-            :label="__('Email')"
-            type="email"
-            required
-            autocomplete="email"
-            placeholder="email@example.com"
         />
 
         {{-- Password --}}

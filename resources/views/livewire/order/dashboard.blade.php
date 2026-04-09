@@ -362,37 +362,45 @@
                                                     $batchInfo = $this->getBatchInfo($employeeId);
                                                     $remainingTime = $batchInfo['remaining_time'] ?? 0; // seconds
                                                 @endphp
-                                                <div
-                                                    x-data="{
-                                                        r: {{ $remainingTime }},
-                                                        started: false,
-                                                        tick() {
-                                                            if (this.started) return;
-                                                            this.started = true;
-                                                            let iv = setInterval(() => {
-                                                                if (this.r > 0) {
-                                                                    this.r--;
-                                                                } else {
-                                                                    clearInterval(iv);
-                                                                    // Call server once to promote (guard if already processed)
-                                                                    $wire.processBatchDelivery({{ $employeeId }});
-                                                                }
-                                                            }, 1000);
-                                                        }
-                                                    }"
-                                                    x-init="tick()"
-                                                    class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium text-yellow-600 dark:text-yellow-400"
-                                                    title="Order is in batch preparation">
-                                                    <i class="fas fa-hourglass-half text-lg"></i>
-                                                    <span class="text-xs">{{ __('Preparing') }}</span>
-                                                    <template x-if="r > 0">
-                                                        <span class="text-[10px] font-mono bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded"
-                                                              x-text="Math.floor(r/60)+':' + String(r%60).padStart(2,'0')"></span>
-                                                    </template>
-                                                    <template x-if="r === 0">
-                                                        <span class="text-[10px] font-mono bg-green-100 dark:bg-green-900/30 px-1 rounded">0:00</span>
-                                                    </template>
-                                                </div>
+                                                @if($employeeId)
+                                                    <div
+                                                        x-data="{
+                                                            r: {{ $remainingTime }},
+                                                            started: false,
+                                                            tick() {
+                                                                if (this.started) return;
+                                                                this.started = true;
+                                                                let iv = setInterval(() => {
+                                                                    if (this.r > 0) {
+                                                                        this.r--;
+                                                                    } else {
+                                                                        clearInterval(iv);
+                                                                        // Call server once to promote (guard if already processed)
+                                                                        $wire.processBatchDelivery({{ $employeeId }});
+                                                                    }
+                                                                }, 1000);
+                                                            }
+                                                        }"
+                                                        x-init="tick()"
+                                                        class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium text-yellow-600 dark:text-yellow-400"
+                                                        title="Order is in batch preparation">
+                                                        <i class="fas fa-hourglass-half text-lg"></i>
+                                                        <span class="text-xs">{{ __('Preparing') }}</span>
+                                                        <template x-if="r > 0">
+                                                            <span class="text-[10px] font-mono bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded"
+                                                                  x-text="Math.floor(r/60)+':' + String(r%60).padStart(2,'0')"></span>
+                                                        </template>
+                                                        <template x-if="r === 0">
+                                                            <span class="text-[10px] font-mono bg-green-100 dark:bg-green-900/30 px-1 rounded">0:00</span>
+                                                        </template>
+                                                    </div>
+                                                @else
+                                                    <div class="inline-flex flex-col items-center gap-0.5 px-3 py-2 text-sm font-medium text-orange-600 dark:text-orange-400"
+                                                        title="Delivery person is missing for this preparing order">
+                                                        <i class="fas fa-user-slash text-lg"></i>
+                                                        <span class="text-xs">{{ __('No Staff') }}</span>
+                                                    </div>
+                                                @endif
 
                                             @elseif($order->status === 'in_transit')
                                                 <button wire:click="markDelivered({{ $order->id }})"
