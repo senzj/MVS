@@ -116,7 +116,7 @@ class Dashboard extends Component
         $this->validate();
 
         $customer = Customer::find($this->selectedCustomerId);
-        
+
         if ($customer) {
             $customer->update([
                 'name' => ucwords(trim($this->name)),
@@ -154,7 +154,7 @@ class Dashboard extends Component
 
         $customerName = $customer->name;
         $customer->delete();
-        
+
         $this->dispatch('show-success', ['message' => "Customer '{$customerName}' deleted successfully!"]);
         $this->selectedCustomerId = null;
     }
@@ -173,7 +173,7 @@ class Dashboard extends Component
     // FIXED: Search query - removed the computed property and made it direct
     public function render()
     {
-        $query = Customer::query();
+        $query = Customer::query()->withCount('orders');
 
         // Apply search filter
         if (!empty($this->search)) {
@@ -187,7 +187,11 @@ class Dashboard extends Component
         }
 
         // Apply sorting
-        $query->orderBy($this->sortBy, $this->sortDirection);
+        if ($this->sortBy === 'orders_count') {
+            $query->orderBy('orders_count', $this->sortDirection);
+        } else {
+            $query->orderBy($this->sortBy, $this->sortDirection);
+        }
 
         $customers = $query->paginate(10);
 

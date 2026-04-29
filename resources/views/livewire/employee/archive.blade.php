@@ -142,31 +142,87 @@
         </div>
     </div>
 
+    {{-- ─────────────────────────────────────────
+         MOBILE CARDS (< lg)
+    ───────────────────────────────────────────── --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden mb-6">
+        @forelse($archivedEmployees as $employee)
+            <div wire:key="archive-mobile-emp-{{ $employee->id }}"
+                 class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm overflow-hidden">
+
+                <div class="h-1 w-full bg-zinc-400 dark:bg-zinc-600"></div>
+
+                <div class="p-4 space-y-3">
+                    {{-- Name + ID + Status --}}
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center shrink-0 shadow-sm">
+                            <span class="text-white text-sm font-bold">{{ strtoupper(substr($employee->name, 0, 1)) }}</span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <p class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate">#{{ $employee->id }} - {{ $employee->name }}</p>
+                            <p class="text-xs text-zinc-400 dark:text-zinc-500"><i class="fas fa-phone mr-0.5"></i>{{ $employee->contact_number ?: 'N/A' }}</p>
+                        </div>
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold shrink-0
+                                     bg-gray-100 text-gray-700 dark:bg-gray-700/40 dark:text-gray-300">
+                            <i class="fas fa-archive mr-1 text-[8px]"></i>{{ __('Archived') }}
+                        </span>
+                    </div>
+
+                    {{-- Info --}}
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                            <i class="fas fa-calendar w-3.5 shrink-0 text-zinc-400"></i>
+                            {{ $employee->updated_at->locale(app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale())->isoFormat('LL') }}
+                        </div>
+                        <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                            <i class="fas fa-box w-3.5 shrink-0 text-zinc-400"></i>
+                            {{ $employee->orders_delivered ?: 0 }} {{ __('Orders Delivered') }}
+                        </div>
+                    </div>
+
+                    {{-- Actions --}}
+                    <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-100 dark:border-zinc-700">
+                        <button wire:click="restoreEmployee({{ $employee->id }})"
+                            class="emp-card-btn text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20 flex-1">
+                            <i class="fas fa-undo"></i>{{ __('Restore') }}
+                        </button>
+                        @if($employee->orders()->count() === 0)
+                            <button @click="openDeleteModal({{ $employee->id }})"
+                                class="emp-card-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
+                                <i class="fas fa-trash"></i>{{ __('Delete') }}
+                            </button>
+                        @else
+                            <div class="emp-card-btn text-zinc-400 dark:text-zinc-600 cursor-not-allowed" title="{{ __('Cannot delete - has order history') }}">
+                                <i class="fas fa-shield-alt"></i>{{ __('Protected') }}
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="sm:col-span-2 flex flex-col items-center justify-center py-20 text-zinc-400 dark:text-zinc-500">
+                <i class="fas fa-archive text-5xl mb-4 opacity-40"></i>
+                <p class="text-sm">{{ __('No archived employees found.') }}</p>
+            </div>
+        @endforelse
+    </div>
+
     {{-- Archived Employees Table --}}
-    <div class="bg-white dark:bg-zinc-800 rounded-lg shadow overflow-hidden">
+    <div class="hidden lg:block bg-white dark:bg-zinc-800 rounded-lg shadow overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                 <thead class="bg-zinc-50 dark:bg-zinc-700">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider cursor-pointer" wire:click="sortByField('id')">
-                            <div class="flex items-center gap-1">
-                                <i class="fas fa-hashtag"></i>
-                                {{ __('Employee ID') }}
-                                @if($sortBy === 'id')
-                                    <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }}"></i>
-                                @endif
-                            </div>
-                        </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider cursor-pointer" wire:click="sortByField('name')">
                             <div class="flex items-center gap-1">
                                 <i class="fas fa-user"></i>
-                                {{ __('Employee Name') }}
+                                {{ __('Employee') }}
                                 @if($sortBy === 'name')
                                     <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }}"></i>
                                 @endif
                             </div>
                         </th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider hidden">
                             <i class="fas fa-phone mr-1"></i>{{ __('Contact Number') }}
                         </th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider cursor-pointer" wire:click="sortByField('updated_at')">
@@ -178,8 +234,15 @@
                                 @endif
                             </div>
                         </th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
-                            <i class="fas fa-clipboard-list mr-1"></i>{{ __('Orders Delivered') }}
+                        <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider cursor-pointer" wire:click="sortByField('orders_delivered')">
+                            <div class="flex items-center justify-center gap-1">
+                                <i class="fas fa-clipboard-list mr-1"></i>{{ __('Orders Delivered') }}
+                                @if($sortBy === 'orders_delivered')
+                                    <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }}"></i>
+                                @else
+                                    <i class="fas fa-sort text-zinc-300 dark:text-zinc-600"></i>
+                                @endif
+                            </div>
                         </th>
                         <th class="px-6 py-3 text-center text-xs font-medium text-zinc-500 dark:text-zinc-300 uppercase tracking-wider">
                             <i class="fas fa-cogs mr-1"></i>{{ __('Actions') }}
@@ -190,17 +253,21 @@
                     @forelse($archivedEmployees as $employee)
                         <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
 
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-900 dark:text-zinc-100">
-                                #{{ $employee->id }}
-                            </td>
-
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                                    <i class="fas fa-user mr-2 text-zinc-400"></i>{{ $employee->name }}
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center shrink-0 shadow-sm">
+                                        <span class="text-white text-xs font-bold">{{ strtoupper(substr($employee->name, 0, 1)) }}</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                            #{{ $employee->id }} - {{ $employee->name }}
+                                        </div>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400"><i class="fas fa-phone mr-0.5"></i>{{ $employee->contact_number ?: 'N/A' }}</p>
+                                    </div>
                                 </div>
                             </td>
 
-                            <td class="px-6 py-4 text-center">
+                            <td class="px-6 py-4 text-center hidden">
                                 <div class="text-sm text-zinc-900 dark:text-zinc-100">
                                     <i class="fas fa-phone mr-1 text-zinc-400"></i>{{ $employee->contact_number ?: 'N/A' }}
                                 </div>
@@ -278,6 +345,9 @@
         @endif
     </div>
 
+    {{-- Mobile Pagination --}}
+    <div class="lg:hidden mt-3">{{ $archivedEmployees->links() }}</div>
+
     {{-- Permanent Delete Confirmation Modal --}}
     <div x-show="showDeleteModal" x-cloak class="fixed inset-0 bg-zinc-500/80 flex items-center justify-center p-4 z-50" x-transition>
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-xl max-w-md w-full" @click.away="closeDeleteModal()" x-transition.scale>
@@ -302,4 +372,14 @@
             </div>
         </div>
     </div>
+
+    <style>
+        .emp-card-btn {
+            display: inline-flex; align-items: center; gap: 0.25rem;
+            padding: 0.375rem 0.625rem; border-radius: 0.625rem;
+            font-size: 0.75rem; font-weight: 500;
+            transition: background-color 0.15s; cursor: pointer; white-space: nowrap;
+        }
+    </style>
+
 </div>

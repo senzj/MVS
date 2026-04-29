@@ -32,7 +32,13 @@ class ProductSeeder extends Seeder
             ['name' => 'Vinegar', 'category' => 'condiments', 'price' => 34.00],
             ['name' => 'White Rice 5kg', 'category' => 'grains', 'price' => 320.00],
             ['name' => 'Bread Loaf', 'category' => 'bakery', 'price' => 78.00],
-            ['name' => 'LPG Refill', 'category' => 'gas', 'price' => 980.00],
+            ['name' => 'Gas gas', 'category' => 'gas', 'price' => 980.00],
+            ['name' => 'Cabbage', 'category' => 'vegetables', 'price' => 50.00],
+            ['name' => 'Carrots', 'category' => 'vegetables', 'price' => 55.00],
+            ['name' => 'Cucumbers', 'category' => 'vegetables', 'price' => 45.00],
+            ['name' => 'Strawberries', 'category' => 'fruits', 'price' => 150.00],
+            ['name' => 'Grapes', 'category' => 'fruits', 'price' => 130.00],
+            ['name' => 'Pineapple', 'category' => 'fruits', 'price' => 90.00],
         ];
 
         foreach ($products as $product) {

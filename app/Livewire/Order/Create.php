@@ -42,7 +42,7 @@ class Create extends Component
 
     // Payment modal states
     public $showPaymentModal = false;
-    public $amountReceived = 0;
+    public $amountReceived = null;
     public $changeAmount = 0;
     public $processingPayment = false;
 
@@ -86,49 +86,53 @@ class Create extends Component
 
     public function loadData()
     {
-        $this->customers = Customer::orderBy('id')->get();
+        $this->customers = Customer::query()
+            ->orderBy('id', 'desc')
+            ->get();
 
         // Load employees with their in_transit status
-        $this->employees = Employee::where('status', 'active')
+        $this->employees = Employee::query()
+            ->where('status', 'active')
             ->where('is_archived', false)
-            ->orderBy('id')
+            ->orderBy('id', 'desc')
             ->get();
 
         // Only load products that are actually available
-        $this->products = Product::where('is_in_stock', true)
+        $this->products = Product::query()
+            ->where('is_in_stock', true)
             ->where('stocks', '>', 0)
-            ->orderBy('id')
+            ->orderBy('id', 'desc')
             ->get();
     }
 
     // Check if employee is currently in transit
-    public function isEmployeeInTransit($employeeId)
+    public function isEmployeeInTransit(int $employeeId)
     {
-        return Order::where('delivered_by', $employeeId)
+        return Order::query()
+            ->where('delivered_by', $employeeId)
             ->where('status', 'in_transit')
             ->exists();
     }
 
     public function generateOrderNumber()
     {
-        // Get the highest receipt number for the current year
-        $currentYear = now()->format('Y');
-        $prefix = "OR-{$currentYear}-";
+        // Format order numbers as: ORYYMMDDXXXXX (5-digit sequence)
+        $datePart = now()->format('ymd');
+        $prefix = "OR{$datePart}";
 
-        $lastReceiptNumber = Order::where('receipt_number', 'like', "{$prefix}%")
+        $lastReceiptNumber = Order::query()
+            ->where('receipt_number', 'like', "{$prefix}%")
             ->orderByDesc('receipt_number')
             ->value('receipt_number');
 
         if ($lastReceiptNumber) {
-            // Extract the number part and increment
-            $lastNumber = (int) substr($lastReceiptNumber, -5);
+            $numericPart = substr($lastReceiptNumber, strlen($prefix));
+            $lastNumber = is_numeric($numericPart) ? (int) $numericPart : 0;
             $nextNumber = $lastNumber + 1;
         } else {
-            // First order of the year
             $nextNumber = 1;
         }
 
-        // Format: OR-YEAR-XXXXX (5 digits with leading zeros)
         return $prefix . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
     }
 
@@ -152,7 +156,7 @@ class Create extends Component
     }
 
     // Simplified customer selection
-    public function selectCustomer($customerId)
+    public function selectCustomer(int $customerId)
     {
         $customer = Customer::find($customerId);
         if ($customer) {
@@ -167,7 +171,7 @@ class Create extends Component
     }
 
     // Handle employee selection with confirmation for in-transit employees
-    public function selectEmployeeWithCheck($employeeId)
+    public function selectEmployeeWithCheck(int $employeeId)
     {
         $employee = Employee::find($employeeId);
         if (!$employee) {
@@ -189,14 +193,14 @@ class Create extends Component
     }
 
     // Simplified employee selection
-    public function selectEmployee($employeeId)
+    public function selectEmployee(int $employeeId)
     {
         $this->selectedEmployeeId = $employeeId;
         $this->employeeSearch = '';
     }
 
     // Force select employee (after confirmation)
-    public function forceSelectEmployee($employeeId)
+    public function forceSelectEmployee(int $employeeId)
     {
         $this->selectEmployee($employeeId);
     }
@@ -229,10 +233,11 @@ class Create extends Component
     }
 
     // Product selection with item index
-    public function selectProduct($productId, $itemIndex)
+    public function selectProduct(int $productId, int $itemIndex)
     {
         // Block selecting unavailable products (safety)
-        $product = Product::where('id', $productId)
+        $product = Product::query()
+            ->where('id', $productId)
             ->where('is_in_stock', true)
             ->where('stocks', '>', 0)
             ->first();
@@ -253,11 +258,16 @@ class Create extends Component
     }
 
     // Handle real-time updates for order items
-    public function updatedOrderItems($value, $name)
+    public function updatedOrderItems($value, $key)
     {
+        // $key is like "0.quantity" or "1.product_id"
+        $parts = explode('.', $key);
+        $index = (int) $parts[0];
+        $field = $parts[1] ?? '';
+
         // If product_id was updated, hydrate name/price and clamp to stock
-        if (strpos($name, '.product_id') !== false) {
-            $index = (int) explode('.', $name)[0];
+        if ($field === 'product_id') {
+            $index = (int) explode('.', $key)[0];
             $productId = $this->orderItems[$index]['product_id'];
 
             if ($productId) {
@@ -286,8 +296,8 @@ class Create extends Component
         }
 
         // If quantity was updated, clamp to available stock
-        if (strpos($name, '.quantity') !== false) {
-            $index = (int) explode('.', $name)[0];
+        if ($field === 'quantity') {
+            $index = (int) explode('.', $key)[0];
             $productId = $this->orderItems[$index]['product_id'] ?? null;
 
             if ($productId) {
@@ -308,7 +318,7 @@ class Create extends Component
         }
     }
 
-    public function calculateItemTotal($index)
+    public function calculateItemTotal(int $index)
     {
         $quantity = (int) ($this->orderItems[$index]['quantity'] ?? 0);
         $price = (float) ($this->orderItems[$index]['price'] ?? 0);
@@ -327,7 +337,7 @@ class Create extends Component
         ];
     }
 
-    public function removeOrderItem($index)
+    public function removeOrderItem(int $index)
     {
         unset($this->orderItems[$index]);
         $this->orderItems = array_values($this->orderItems);
@@ -338,7 +348,7 @@ class Create extends Component
         }
     }
 
-    public function updateQuantity($index, $quantity)
+    public function updateQuantity(int $index, int $quantity)
     {
         if ($quantity > 0) {
             $this->orderItems[$index]['quantity'] = $quantity;
@@ -378,7 +388,7 @@ class Create extends Component
             });
         }
 
-        return $query->orderBy('name')->get();
+        return $query->orderBy('name','asc')->get();
     }
 
     public function getFilteredEmployeesProperty()
@@ -447,7 +457,21 @@ class Create extends Component
     public function updatedAmountReceived()
     {
         $totalAmount = $this->getTotalAmountProperty();
-        $this->changeAmount = max(0, $this->amountReceived - $totalAmount);
+
+        // Don't calculate or show errors while the field is being cleared/typed
+        if ($this->amountReceived === '' || $this->amountReceived === null) {
+            $this->changeAmount = 0;
+            $this->resetErrorBag(['amountReceived']);
+            return;
+        }
+
+        $received = is_numeric($this->amountReceived) ? (float) $this->amountReceived : 0;
+        $this->changeAmount = max(0, $received - $totalAmount);
+
+        // Clear the error once they've typed a valid value
+        if ($received >= $totalAmount) {
+            $this->resetErrorBag(['amountReceived']);
+        }
     }
 
     public function processPayment()
@@ -458,9 +482,15 @@ class Create extends Component
             $totalAmount = $this->getTotalAmountProperty();
 
             $this->validate([
-                'amountReceived' => 'required|numeric|min:' . $totalAmount
+                'amountReceived' => [
+                    'required',
+                    'numeric',
+                    'min:' . $totalAmount,
+                ]
             ], [
-                'amountReceived.min' => 'Amount received must be at least ₱' . number_format($totalAmount, 2)
+                'amountReceived.required' => 'Please enter the amount received.',
+                'amountReceived.numeric'  => 'Amount must be a valid number.',
+                'amountReceived.min'      => 'Amount received must be at least ₱' . number_format($totalAmount, 2),
             ]);
         }
 
@@ -590,7 +620,10 @@ class Create extends Component
                 }
 
                 // Lock the product row to avoid overselling
-                $product = Product::where('id', $item['product_id'])->lockForUpdate()->first();
+                $product = Product::query()
+                    ->where('id', $item['product_id'])
+                    ->lockForUpdate()
+                    ->first();
 
                 // Re-validate inside the transaction
                 $qty = (int) $item['quantity'];

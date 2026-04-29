@@ -40,7 +40,7 @@ class Archive extends Component
     public function restoreEmployee($employeeId)
     {
         $employee = Employee::find($employeeId);
-        
+
         if ($employee && $employee->is_archived) {
             $employee->update(['is_archived' => false]);
             $this->dispatch('show-success', ['message' => 'Employee restored successfully!']);
@@ -59,7 +59,7 @@ class Archive extends Component
     public function permanentlyDeleteEmployee()
     {
         $employee = Employee::find($this->selectedEmployeeId);
-        
+
         if (!$employee) {
             $this->dispatch('show-error', ['message' => 'Employee not found!']);
             return;
@@ -67,7 +67,7 @@ class Archive extends Component
 
         // Check if employee has any orders
         $hasOrders = $employee->orders()->count() > 0;
-        
+
         if ($hasOrders) {
             $this->dispatch('show-error', ['message' => 'Cannot permanently delete employee with order history!']);
             return;
@@ -76,7 +76,7 @@ class Archive extends Component
         // Permanently delete
         $employeeName = $employee->name;
         $employee->delete();
-        
+
         $this->dispatch('show-success', ['message' => "Employee '{$employeeName}' permanently deleted!"]);
         $this->selectedEmployeeId = null;
     }
@@ -95,7 +95,13 @@ class Archive extends Component
         }
 
         // Apply sorting
-        $query->orderBy($this->sortBy, $this->sortDirection);
+        if ($this->sortBy === 'orders_delivered') {
+            $query->withCount(['orders' => function ($q) {
+                $q->whereIn('status', ['delivered', 'completed']);
+            }])->orderBy('orders_count', $this->sortDirection);
+        } else {
+            $query->orderBy($this->sortBy, $this->sortDirection);
+        }
 
         return $query->paginate(10);
     }

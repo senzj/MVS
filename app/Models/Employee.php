@@ -68,4 +68,12 @@ class Employee extends Model
         
         return ucfirst($this->status);
     }
+
+    // Get count of delivered orders
+    public function getOrdersDeliveredAttribute()
+    {
+        return $this->orders()
+            ->whereIn('status', ['delivered', 'completed'])
+            ->count();
+    }
 }

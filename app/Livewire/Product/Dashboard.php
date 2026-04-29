@@ -165,7 +165,7 @@ class Dashboard extends Component
         $this->validate();
 
         $product = Product::find($this->selectedProductId);
-        
+
         if (!$product) {
             $this->dispatch('show-error', ['message' => 'Product not found!']);
             return;
@@ -213,14 +213,14 @@ class Dashboard extends Component
     public function deleteProduct()
     {
         $product = Product::find($this->selectedProductId);
-        
+
         if (!$product) {
             $this->dispatch('show-error', ['message' => 'Product not found!']);
             return;
         }
 
         $hasOrderHistory = $product->orderItems()->count() > 0;
-        
+
         if ($hasOrderHistory) {
             $this->dispatch('show-error', ['message' => 'Cannot permanently delete product with order history!']);
             return;
@@ -228,7 +228,7 @@ class Dashboard extends Component
 
         $productName = $product->name;
         $product->delete();
-        
+
         $this->dispatch('show-success', ['message' => "Product '{$productName}' permanently deleted!"]);
         $this->dispatch('close-delete-modal');
         $this->selectedProductId = null;
@@ -268,7 +268,7 @@ class Dashboard extends Component
             // Log for debugging
             // Log::info('Applying category filter: ' . $this->categoryFilter);
             $query->where('category', $this->categoryFilter);
-            
+
             // Debug: Check what products exist with this category
             $categoryProducts = Product::where('category', $this->categoryFilter)->get();
             // Log::info('Products with category "' . $this->categoryFilter . '": ' . $categoryProducts->count());
@@ -306,7 +306,7 @@ class Dashboard extends Component
 
         // Get categories - FIXED: Make sure we get all available categories from database
         $categories = Product::getCategories();
-        
+
         // Also get categories that actually exist in the database
         $existingCategories = Product::whereNotNull('category')
             ->where('category', '!=', '')
@@ -327,7 +327,7 @@ class Dashboard extends Component
     {
         $allProducts = Product::all();
         $categoryData = [];
-        
+
         foreach ($allProducts as $product) {
             $cat = $product->category;
             if (!isset($categoryData[$cat])) {
@@ -335,7 +335,7 @@ class Dashboard extends Component
             }
             $categoryData[$cat]++;
         }
-        
+
         $this->dispatch('show-success', ['message' => 'Check logs for category debug info']);
     }
 }

@@ -663,7 +663,7 @@
                                     <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">₱</span>
                                     <input type="number"
                                         id="amountReceived"
-                                        wire:model.live="amountReceived"
+                                        wire:model.live.debounce.300ms="amountReceived"
                                         step="0.01"
                                         min="0"
                                         class="w-full pl-8 pr-3 py-2 rounded-lg focus:ring border border-gray-500"

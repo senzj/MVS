@@ -5,8 +5,12 @@ namespace App\Models;
 use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @mixin Builder
+ */
 class Order extends Model
 {
     protected $fillable = [

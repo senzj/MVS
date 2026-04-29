@@ -6,27 +6,36 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Collection;
 use Livewire\Component;
 
 class Dashboard extends Component
 {
-    public $todayStats;
-    public $topSellingProducts;
-    public $salesVsProfitData;
-    public $ordersByDayData;
-    public $monthlyTrendsData;
-    public $categoryBreakdownData;
+    private const ESTIMATED_PROFIT_MARGIN = 0.25;
 
-    public function mount()
+    public array $todayStats = [];
+    public array $topSellingProducts = [];
+    public array $salesVsProfitData = [];
+    public array $ordersByDayData = [];
+    public array $monthlyTrendsData = [];
+    public array $categoryBreakdownData = [];
+    public array $businessInsights = [];
+
+    public function mount(): void
     {
-        $this->todayStats = $this->getTodayStats();
-        $this->topSellingProducts = $this->getTopSellingProducts();
-        $this->salesVsProfitData = $this->getSalesVsProfitData();
-        $this->ordersByDayData = $this->getOrdersByDayData();
-        $this->monthlyTrendsData = $this->getMonthlyTrendsData();
-        $this->categoryBreakdownData = $this->getCategoryBreakdownData();
+        $orders = Order::all();
+        $orderItems = OrderItem::all();
+        $orderItems->load(['order', 'product']);
+        $products = Product::all();
+
+        $this->todayStats = $this->getTodayStats($orders, $orderItems);
+        $this->topSellingProducts = $this->getTopSellingProducts($orderItems);
+        $this->salesVsProfitData = $this->getSalesVsProfitData($orders);
+        $this->ordersByDayData = $this->getOrdersByDayData($orders);
+        $this->monthlyTrendsData = $this->getMonthlyTrendsData($orders);
+        $this->categoryBreakdownData = $this->getCategoryBreakdownData($orderItems);
+        $this->businessInsights = $this->getBusinessInsights($orders, $orderItems, $products);
 
         // Dispatch data to the browser so JS can render charts after Livewire mounts
         $this->dispatch('dashboard-charts-data', data: [
@@ -34,122 +43,183 @@ class Dashboard extends Component
             'ordersByDayData' => $this->ordersByDayData,
             'monthlyTrendsData' => $this->monthlyTrendsData,
             'categoryBreakdownData' => $this->categoryBreakdownData,
+            'businessInsights' => $this->businessInsights,
         ]);
     }
 
-    private function getTodayStats()
+    private function dateInRange($date, Carbon $start, ?Carbon $end = null): bool
+    {
+        if (! $date) {
+            return false;
+        }
+
+        $carbonDate = $date instanceof Carbon ? $date : Carbon::parse($date);
+
+        if ($carbonDate->lt($start)) {
+            return false;
+        }
+
+        if ($end && $carbonDate->gt($end)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function filterOrders(Collection $orders, Carbon $start, ?Carbon $end = null): Collection
+    {
+        return $orders->filter(function (Order $order) use ($start, $end) {
+            return $order->status !== 'cancelled' && $this->dateInRange($order->created_at, $start, $end);
+        })->values();
+    }
+
+    private function filterOrderItems(Collection $orderItems, Carbon $start, ?Carbon $end = null): Collection
+    {
+        return $orderItems->filter(function (OrderItem $orderItem) use ($start, $end) {
+            $order = $orderItem->order;
+
+            return $order
+                && $order->status !== 'cancelled'
+                && $this->dateInRange($order->created_at, $start, $end);
+        })->values();
+    }
+
+    private function formatCategoryName(?string $category): string
+    {
+        if (! $category) {
+            return __('Uncategorized');
+        }
+
+        $categories = Product::getCategories();
+        $label = $categories[$category] ?? ucfirst(str_replace('_', ' ', $category));
+
+        return __($label);
+    }
+
+    private function summarizeTopProducts(Collection $orderItems, Carbon $start, ?Carbon $end = null, int $limit = 3): array
+    {
+        return $this->filterOrderItems($orderItems, $start, $end)
+            ->groupBy('product_id')
+            ->map(function (Collection $group) {
+                $firstItem = $group->first();
+                $product = $firstItem?->product;
+                $totalSold = (int) $group->sum('quantity');
+                $totalRevenue = round((float) $group->sum('total_price'), 2);
+
+                return [
+                    'product_id' => $firstItem?->product_id,
+                    'name' => $product?->name ?? __('Unknown product'),
+                    'category' => $product?->category,
+                    'category_label' => $this->formatCategoryName($product?->category),
+                    'total_sold' => $totalSold,
+                    'total_revenue' => $totalRevenue,
+                    'avg_price' => $totalSold > 0 ? round($totalRevenue / $totalSold, 2) : 0,
+                ];
+            })
+            ->sortByDesc('total_sold')
+            ->values()
+            ->take($limit)
+            ->all();
+    }
+
+    private function summarizeMonthTopProducts(Collection $orderItems, int $limit = 5): array
+    {
+        $start = Carbon::now()->subWeeks(4)->startOfDay();
+
+        return $this->filterOrderItems($orderItems, $start)
+            ->groupBy('product_id')
+            ->map(function (Collection $group) {
+                $firstItem = $group->first();
+                $product = $firstItem?->product;
+                $totalSold = (int) $group->sum('quantity');
+                $totalRevenue = round((float) $group->sum('total_price'), 2);
+
+                return [
+                    'product_id' => $firstItem?->product_id,
+                    'name' => $product?->name ?? __('Unknown product'),
+                    'category' => $product?->category,
+                    'category_label' => $this->formatCategoryName($product?->category),
+                    'total_sold' => $totalSold,
+                    'total_revenue' => $totalRevenue,
+                    'avg_weekly' => round($totalSold / 4, 1),
+                ];
+            })
+            ->sortByDesc('total_sold')
+            ->values()
+            ->take($limit)
+            ->all();
+    }
+
+    private function getTodayStats(Collection $orders, Collection $orderItems): array
     {
         $today = Carbon::today();
-        
-        $todaySales = Order::whereDate('created_at', $today)
-            ->where('status', '!=', 'cancelled')
-            ->sum('order_total');
-
-        $totalOrdersToday = Order::whereDate('created_at', $today)
-            ->where('status', '!=', 'cancelled')
-            ->count();
-
-        $avgOrderValue = $totalOrdersToday > 0 ? $todaySales / $totalOrdersToday : 0;
-
-        $pendingOrders = Order::whereDate('created_at', $today)
-            ->whereIn('status', ['pending', 'preparing', 'in_transit'])
-            ->count();
-
-        // Compare with yesterday
+        $todayEnd = $today->copy()->endOfDay();
         $yesterday = Carbon::yesterday();
-        $yesterdaySales = Order::whereDate('created_at', $yesterday)
-            ->where('status', '!=', 'cancelled')
-            ->sum('order_total');
+        $yesterdayEnd = $yesterday->copy()->endOfDay();
 
+        $todayOrders = $this->filterOrders($orders, $today, $todayEnd);
+        $todayItems = $this->filterOrderItems($orderItems, $today, $todayEnd);
+        $yesterdayOrders = $this->filterOrders($orders, $yesterday, $yesterdayEnd);
+
+        $todaySales = round((float) $todayOrders->sum('order_total'), 2);
+        $todayOrderCount = $todayOrders->count();
+        $yesterdaySales = round((float) $yesterdayOrders->sum('order_total'), 2);
         $salesGrowth = $yesterdaySales > 0 ? (($todaySales - $yesterdaySales) / $yesterdaySales) * 100 : 0;
+        $profit = round($todaySales * self::ESTIMATED_PROFIT_MARGIN, 2);
 
         return [
-            'sales' => floatval($todaySales), // Keep raw for calculations
-            'orders' => intval($totalOrdersToday),
-            'avg_order' => floatval($avgOrderValue),
-            'pending' => intval($pendingOrders),
+            'sales' => $todaySales,
+            'income' => $todaySales,
+            'profit' => $profit,
+            'orders' => $todayOrderCount,
+            'avg_order' => $todayOrderCount > 0 ? round($todaySales / $todayOrderCount, 2) : 0,
+            'pending' => $todayOrders->whereIn('status', ['pending', 'preparing', 'in_transit'])->count(),
+            'completed' => $todayOrders->whereIn('status', ['delivered', 'completed'])->count(),
+            'paid' => $todayOrders->where('is_paid', true)->count(),
+            'unpaid' => $orders->filter(fn (Order $order) => ! $order->is_paid && ! in_array($order->status, ['completed', 'cancelled'], true))->count(),
+            'units_sold' => (int) $todayItems->sum('quantity'),
             'sales_growth' => round($salesGrowth, 1),
-            'raw_sales' => floatval($todaySales) // Keep this for backward compatibility
+            'profit_margin' => self::ESTIMATED_PROFIT_MARGIN * 100,
+            'raw_sales' => $todaySales,
         ];
     }
 
-    private function getTopSellingProducts()
+    private function getTopSellingProducts(Collection $orderItems): array
     {
         $today = Carbon::today();
         $thisWeek = Carbon::now()->startOfWeek();
-        
-        // Top selling product today
-        $topToday = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->whereDate('orders.created_at', $today)
-            ->where('orders.status', '!=', 'cancelled')
-            ->select('products.name', DB::raw('SUM(order_items.quantity) as total_sold'))
-            ->groupBy('products.id', 'products.name')
-            ->orderBy('total_sold', 'desc')
-            ->first();
 
-        // Top selling product this week
-        $topWeek = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->where('orders.created_at', '>=', $thisWeek)
-            ->where('orders.status', '!=', 'cancelled')
-            ->select('products.name', DB::raw('SUM(order_items.quantity) as total_sold'))
-            ->groupBy('products.id', 'products.name')
-            ->orderBy('total_sold', 'desc')
-            ->first();
-
-        // Top 5 products by average weekly sales
-        $topAvg = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->where('orders.created_at', '>=', Carbon::now()->subWeeks(4))
-            ->where('orders.status', '!=', 'cancelled')
-            ->select(
-                'products.name',
-                DB::raw('SUM(order_items.quantity) as total_sold'),
-                DB::raw('ROUND(SUM(order_items.quantity) / 4, 1) as avg_weekly')
-            )
-            ->groupBy('products.id', 'products.name')
-            ->orderBy('total_sold', 'desc')
-            ->limit(5)
-            ->get();
+        $topToday = $this->summarizeTopProducts($orderItems, $today, $today->copy()->endOfDay(), 5);
+        $topWeek = $this->summarizeTopProducts($orderItems, $thisWeek, null, 5);
+        $topAverage = $this->summarizeMonthTopProducts($orderItems, 5);
 
         return [
             'today' => $topToday,
             'week' => $topWeek,
-            'average' => $topAvg
+            'average' => $topAverage,
         ];
     }
 
-    private function getSalesVsProfitData()
+    private function getSalesVsProfitData(Collection $orders): array
     {
         try {
-            $last30Days = Carbon::now()->subDays(29); // 30 days including today
-            
-            $dailyData = Order::where('created_at', '>=', $last30Days)
-                ->where('status', '!=', 'cancelled')
-                ->selectRaw('DATE(created_at) as date, SUM(order_total) as sales, COUNT(*) as orders')
-                ->groupBy('date')
-                ->orderBy('date')
-                ->get();
+            $last30Days = Carbon::now()->subDays(29)->startOfDay();
 
             $labels = [];
             $salesData = [];
             $ordersData = [];
             $profitData = [];
 
-            // Fill in missing days with zero values
             for ($i = 29; $i >= 0; $i--) {
-                $date = Carbon::now()->subDays($i)->format('Y-m-d');
-                $dayData = $dailyData->firstWhere('date', $date);
-                
-                $labels[] = Carbon::parse($date)->format('M d');
-                $salesValue = $dayData ? floatval($dayData->sales) : 0;
-                $ordersValue = $dayData ? intval($dayData->orders) : 0;
-                
+                $date = Carbon::now()->subDays($i)->startOfDay();
+                $dayOrders = $this->filterOrders($orders, $date, $date->copy()->endOfDay());
+                $salesValue = round((float) $dayOrders->sum('order_total'), 2);
+                $ordersValue = $dayOrders->count();
+
+                $labels[] = $date->format('M d');
                 $salesData[] = $salesValue;
                 $ordersData[] = $ordersValue;
-                // Assuming 25% profit margin
-                $profitData[] = round($salesValue * 0.25, 2);
+                $profitData[] = round($salesValue * self::ESTIMATED_PROFIT_MARGIN, 2);
             }
 
             return [
@@ -169,7 +239,7 @@ class Dashboard extends Component
         }
     }
 
-    private function getOrdersByDayData()
+    private function getOrdersByDayData(Collection $orders): array
     {
         try {
             $currentWeek = Carbon::now()->startOfWeek();
@@ -183,13 +253,8 @@ class Dashboard extends Component
                 $currentDay = $currentWeek->copy()->addDays($i);
                 $previousDay = $previousWeek->copy()->addDays($i);
 
-                $currentWeekData[] = Order::whereDate('created_at', $currentDay)
-                    ->where('status', '!=', 'cancelled')
-                    ->count();
-
-                $previousWeekData[] = Order::whereDate('created_at', $previousDay)
-                    ->where('status', '!=', 'cancelled')
-                    ->count();
+                $currentWeekData[] = $this->filterOrders($orders, $currentDay, $currentDay->copy()->endOfDay())->count();
+                $previousWeekData[] = $this->filterOrders($orders, $previousDay, $previousDay->copy()->endOfDay())->count();
             }
 
             return [
@@ -207,31 +272,24 @@ class Dashboard extends Component
         }
     }
 
-    private function getMonthlyTrendsData()
+    private function getMonthlyTrendsData(Collection $orders): array
     {
         try {
-            $last6Months = Carbon::now()->subMonths(5)->startOfMonth(); // 6 months including current
-            
-            $monthlyData = Order::where('created_at', '>=', $last6Months)
-                ->where('status', '!=', 'cancelled')
-                ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(order_total) as sales, COUNT(*) as orders')
-                ->groupBy('year', 'month')
-                ->orderBy('year')
-                ->orderBy('month')
-                ->get();
+            $last6Months = Carbon::now()->subMonths(5)->startOfMonth();
 
             $labels = [];
             $salesData = [];
             $ordersData = [];
 
-            // Fill in the last 6 months
             for ($i = 5; $i >= 0; $i--) {
-                $date = Carbon::now()->subMonths($i);
-                $monthData = $monthlyData->where('year', $date->year)->where('month', $date->month)->first();
-                
+                $date = Carbon::now()->subMonths($i)->startOfMonth();
+                $monthStart = $date->copy()->startOfMonth();
+                $monthEnd = $date->copy()->endOfMonth();
+                $monthOrders = $this->filterOrders($orders, $monthStart, $monthEnd);
+
                 $labels[] = $date->format('M Y');
-                $salesData[] = $monthData ? floatval($monthData->sales) : 0;
-                $ordersData[] = $monthData ? intval($monthData->orders) : 0;
+                $salesData[] = round((float) $monthOrders->sum('order_total'), 2);
+                $ordersData[] = $monthOrders->count();
             }
 
             return [
@@ -249,20 +307,23 @@ class Dashboard extends Component
         }
     }
 
-    private function getCategoryBreakdownData()
+    private function getCategoryBreakdownData(Collection $orderItems): array
     {
         try {
             $last30Days = Carbon::now()->subDays(30);
-            
-            $categoryData = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
-                ->join('products', 'order_items.product_id', '=', 'products.id')
-                ->where('orders.created_at', '>=', $last30Days)
-                ->where('orders.status', '!=', 'cancelled')
-                ->selectRaw('products.category, SUM(order_items.total_price) as sales')
-                ->whereNotNull('products.category') // Ensure category exists
-                ->groupBy('products.category')
-                ->orderBy('sales', 'desc')
-                ->get();
+
+            $categoryData = $this->filterOrderItems($orderItems, $last30Days)
+                ->groupBy(function (OrderItem $orderItem) {
+                    return $orderItem->product?->category ?? 'other';
+                })
+                ->map(function (Collection $group, string $category) {
+                    return [
+                        'category' => $category,
+                        'sales' => round((float) $group->sum('total_price'), 2),
+                    ];
+                })
+                ->sortByDesc('sales')
+                ->values();
 
             $labels = [];
             $salesData = [];
@@ -272,17 +333,10 @@ class Dashboard extends Component
             ];
 
             foreach ($categoryData as $index => $category) {
-                // Check if Product model has getCategories method, otherwise use raw category
-                if (method_exists(Product::class, 'getCategories')) {
-                    $categoryNames = Product::getCategories();
-                    $labels[] = $categoryNames[$category->category] ?? ucfirst(str_replace('_', ' ', $category->category));
-                } else {
-                    $labels[] = ucfirst(str_replace('_', ' ', $category->category));
-                }
-                $salesData[] = floatval($category->sales);
+                $labels[] = $this->formatCategoryName($category['category'] ?? null);
+                $salesData[] = (float) $category['sales'];
             }
 
-            // If no data, provide empty arrays
             if (empty($labels)) {
                 return [
                     'labels' => [],
@@ -304,6 +358,57 @@ class Dashboard extends Component
                 'colors' => []
             ];
         }
+    }
+
+    private function getBusinessInsights(Collection $orders, Collection $orderItems, Collection $products): array
+    {
+        $last30Days = Carbon::now()->subDays(29)->startOfDay();
+        $monthOrders = $this->filterOrders($orders, $last30Days);
+        $monthItems = $this->filterOrderItems($orderItems, $last30Days);
+        $monthSales = round((float) $monthOrders->sum('order_total'), 2);
+        $monthProfit = round($monthSales * self::ESTIMATED_PROFIT_MARGIN, 2);
+        $monthOrdersCount = $monthOrders->count();
+        $completedOrders = $monthOrders->whereIn('status', ['delivered', 'completed'])->count();
+        $paidOrders = $monthOrders->where('is_paid', true)->count();
+        $unitsSold = (int) $monthItems->sum('quantity');
+        $activeProducts = $products->filter(fn (Product $product) => (int) $product->stocks > 0)->count();
+        $lowStockProducts = $products->filter(fn (Product $product) => (int) $product->stocks > 0 && (int) $product->stocks < 10)->count();
+        $outOfStockProducts = $products->filter(fn (Product $product) => (int) $product->stocks <= 0)->count();
+
+        $categorySummary = $monthItems
+            ->groupBy(function (OrderItem $orderItem) {
+                return $orderItem->product?->category ?? 'other';
+            })
+            ->map(function (Collection $group, string $category) {
+                return [
+                    'category' => $category,
+                    'label' => $this->formatCategoryName($category),
+                    'sales' => round((float) $group->sum('total_price'), 2),
+                ];
+            })
+            ->sortByDesc('sales')
+            ->first();
+
+        $topProduct = $this->summarizeMonthTopProducts($orderItems, 1)[0] ?? null;
+
+        return [
+            'month_sales' => $monthSales,
+            'month_profit' => $monthProfit,
+            'month_orders' => $monthOrdersCount,
+            'month_units_sold' => $unitsSold,
+            'average_daily_sales' => round($monthSales / 30, 2),
+            'average_order_value' => $monthOrdersCount > 0 ? round($monthSales / $monthOrdersCount, 2) : 0,
+            'completion_rate' => $monthOrdersCount > 0 ? round(($completedOrders / $monthOrdersCount) * 100, 1) : 0,
+            'payment_rate' => $monthOrdersCount > 0 ? round(($paidOrders / $monthOrdersCount) * 100, 1) : 0,
+            'active_products' => $activeProducts,
+            'low_stock_products' => $lowStockProducts,
+            'out_of_stock_products' => $outOfStockProducts,
+            'top_category' => $categorySummary['label'] ?? __('No category data'),
+            'top_category_sales' => $categorySummary['sales'] ?? 0,
+            'top_category_key' => $categorySummary['category'] ?? null,
+            'top_product_name' => $topProduct['name'] ?? __('No product data'),
+            'top_product_sales' => $topProduct['total_sold'] ?? 0,
+        ];
     }
 
     public function render()

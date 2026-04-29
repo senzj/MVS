@@ -20,17 +20,19 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        Schema::disableForeignKeyConstraints();
+        // Truncate tables in the correct order to avoid foreign key constraint issues
+        // Schema::disableForeignKeyConstraints();
 
-        OrderItem::truncate();
-        Order::truncate();
-        Log::truncate();
-        Product::truncate();
-        Employee::truncate();
-        Customer::truncate();
-        User::truncate();
+        // OrderItem::truncate();
+        // Order::truncate();
+        // Log::truncate();
+        // Product::truncate();
+        // Employee::truncate();
+        // Customer::truncate();
+        // User::truncate();
 
-        Schema::enableForeignKeyConstraints();
+        // Re-enable foreign key constraints after truncation
+        // Schema::enableForeignKeyConstraints();
 
         $this->call([
             UserSeeder::class,

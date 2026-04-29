@@ -105,7 +105,7 @@ class Dashboard extends Component
         $this->validate();
 
         $employee = Employee::find($this->selectedEmployeeId);
-        
+
         if ($employee) {
             $employee->update([
                 'name' => ucwords(trim($this->name)),
@@ -192,7 +192,13 @@ class Dashboard extends Component
         }
 
         // Apply sorting
-        $query->orderBy($this->sortBy, $this->sortDirection);
+        if ($this->sortBy === 'orders_delivered') {
+            $query->withCount(['orders' => function ($q) {
+                $q->whereIn('status', ['delivered', 'completed']);
+            }])->orderBy('orders_count', $this->sortDirection);
+        } else {
+            $query->orderBy($this->sortBy, $this->sortDirection);
+        }
 
         return $query->paginate(10);
     }
