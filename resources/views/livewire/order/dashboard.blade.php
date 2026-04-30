@@ -58,6 +58,77 @@
             </div>
         </div>
 
+        {{-- Search + Filters --}}
+        <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm p-4">
+            <div wire:loading.class="opacity-50 pointer-events-none" wire:target="search,paymentFilter,statusFilter,clearFilters"
+                class="grid grid-cols-1 lg:grid-cols-4 gap-3 items-end">
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                        <i class="fas fa-search mr-1"></i>{{ __('Search Orders') }}
+                    </label>
+                    <div class="relative">
+                        <input type="text"
+                               wire:model.live.debounce.300ms="search"
+                               placeholder="{{ __('Order number, customer, or delivered by') }}"
+                               class="w-full pl-3 pr-9 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
+                                      bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
+                                      focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
+                        @if($search)
+                            <button type="button" wire:click="$set('search', '')"
+                                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-red-500 transition-colors">
+                                <i class="fas fa-times-circle text-sm"></i>
+                            </button>
+                        @else
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 dark:text-zinc-600 pointer-events-none">
+                                <i class="fas fa-search text-sm"></i>
+                            </span>
+                        @endif
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                        <i class="fas fa-credit-card mr-1"></i>{{ __('Payment') }}
+                    </label>
+                    <select wire:model.live="paymentFilter"
+                        class="w-full py-2.5 px-3 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
+                        <option value="all">{{ __('All Payments') }}</option>
+                        <option value="paid">{{ __('Paid') }}</option>
+                        <option value="unpaid">{{ __('Unpaid') }}</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                        <i class="fas fa-filter mr-1"></i>{{ __('Status') }}</label>
+                    <select wire:model.live="statusFilter"
+                        class="w-full py-2.5 px-3 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
+                        <option value="all">{{ __('All Statuses') }}</option>
+                        <option value="pending">{{ __('Pending') }}</option>
+                        <option value="preparing">{{ __('Preparing') }}</option>
+                        <option value="in_transit">{{ __('In transit') }}</option>
+                        <option value="delivered">{{ __('Delivered') }}</option>
+                        <option value="completed">{{ __('Completed') }}</option>
+                        <option value="cancelled">{{ __('Cancelled') }}</option>
+                    </select>
+                </div>
+            </div>
+
+            {{-- Clear filters quick action (appears above results) --}}
+            @if($search || $paymentFilter !== 'all' || $statusFilter !== 'all')
+                <div class="flex items-center w-full mt-4 justify-end" wire:loading.remove wire:target="search,paymentFilter,statusFilter,clearFilters">
+                    <button type="button"
+                        wire:click="clearFilters"
+                        wire:target="clearFilters"
+                        wire:loading.attr="disabled"
+                        class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-700 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition">
+                        <i class="fas fa-times-circle text-sm"></i>
+                        {{ __('Clear filters') }}
+                    </button>
+                </div>
+            @endif
+        </div>
+
         {{-- Tab Bar + Counters --}}
         <div class="grid w-full grid-cols-2 gap-0 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-1 shadow-sm overflow-hidden">
             {{-- Ongoing Tab --}}
@@ -96,19 +167,30 @@
         </div>
     </div>
 
-
     {{-- ═══════════════════════════════════════════════
          ONGOING ORDERS PANEL
     ════════════════════════════════════════════════ --}}
     <div x-show="activeTab === 'ongoing'" x-transition:enter="transition ease-out duration-150"
          x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
 
-        @if($ongoing->isEmpty())
-            <div class="flex flex-col items-center justify-center py-20 text-zinc-400 dark:text-zinc-500">
-                <i class="fas fa-inbox text-5xl mb-4 opacity-40"></i>
-                <p class="text-sm">{{ __('No ongoing orders today.') }}</p>
+        <div wire:loading.flex wire:target="search,paymentFilter,statusFilter,clearFilters"
+            class="justify-center py-10">
+            <div class="flex items-center gap-2 rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm dark:border-blue-900/40 dark:bg-zinc-800 dark:text-blue-300">
+                <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V2z"></path>
+                </svg>
+                <span>{{ __('Loading orders...') }}</span>
             </div>
-        @else
+        </div>
+
+        <div wire:loading.remove wire:target="search,paymentFilter,statusFilter,clearFilters">
+            @if($ongoing->isEmpty())
+                <div class="flex flex-col items-center justify-center py-20 text-zinc-400 dark:text-zinc-500">
+                    <i class="fas fa-inbox text-5xl mb-4 opacity-40"></i>
+                    <p class="text-sm">{{ __('No ongoing orders today.') }}</p>
+                </div>
+            @else
             {{-- ── Mobile Cards (< lg) ── --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
                 @foreach($ongoing as $order)
@@ -644,7 +726,8 @@
                     </table>
                 </div>
             </div>
-        @endif
+            @endif
+        </div>
     </div>
 
 
@@ -654,12 +737,24 @@
     <div x-show="activeTab === 'completed'" x-transition:enter="transition ease-out duration-150"
          x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
 
-        @if($completed->isEmpty())
-            <div class="flex flex-col items-center justify-center py-20 text-zinc-400 dark:text-zinc-500">
-                <i class="fas fa-archive text-5xl mb-4 opacity-40"></i>
-                <p class="text-sm">{{ __('No completed or cancelled orders today.') }}</p>
+        <div wire:loading.flex wire:target="search,paymentFilter,statusFilter,clearFilters"
+            class="justify-center py-10">
+            <div class="flex items-center gap-2 rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm dark:border-blue-900/40 dark:bg-zinc-800 dark:text-blue-300">
+                <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V2z"></path>
+                </svg>
+                <span>{{ __('Loading orders...') }}</span>
             </div>
-        @else
+        </div>
+
+        <div wire:loading.remove wire:target="search,paymentFilter,statusFilter,clearFilters">
+            @if($completed->isEmpty())
+                <div class="flex flex-col items-center justify-center py-20 text-zinc-400 dark:text-zinc-500">
+                    <i class="fas fa-archive text-5xl mb-4 opacity-40"></i>
+                    <p class="text-sm">{{ __('No completed or cancelled orders today.') }}</p>
+                </div>
+            @else
             {{-- ── Mobile Cards (< lg) ── --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
                 @foreach($completed as $order)
@@ -796,11 +891,11 @@
                     <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                         <thead class="bg-zinc-50 dark:bg-zinc-900/60">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Order Number') }}</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Customer Name') }}</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Order Number') }}</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Customer Name') }}</th>
                                 <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Status') }}</th>
                                 <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Payment') }}</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Delivered By') }}</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Delivered By') }}</th>
                                 <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Date & Time') }}</th>
                                 <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Actions') }}</th>
                             </tr>
@@ -948,7 +1043,8 @@
                     </table>
                 </div>
             </div>
-        @endif
+            @endif
+        </div>
     </div>
 
 

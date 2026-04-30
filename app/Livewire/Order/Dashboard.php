@@ -8,7 +8,6 @@ use App\Models\Order;
 use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
@@ -18,6 +17,17 @@ class Dashboard extends Component
     public $editingOrderId = null;
     public $editStatus = null;
     public $editDeliveredBy = null; // NEW
+
+    // Search and filters
+    public string $search = '';
+    public string $paymentFilter = 'all';
+    public string $statusFilter = 'all';
+
+    protected $queryString = [
+        'search' => ['except' => ''],
+        'paymentFilter' => ['except' => 'all'],
+        'statusFilter' => ['except' => 'all'],
+    ];
 
     // Batch delivery system
     public $batchDeliveryTimers = []; // Track timers for each delivery person
@@ -140,6 +150,28 @@ class Dashboard extends Component
     {
         $this->showOrderDetailsModal = false;
         $this->selectedOrder = null;
+    }
+
+    public function updatedSearch(): void
+    {
+        // Livewire re-renders automatically; this keeps URL state in sync.
+    }
+
+    public function updatedPaymentFilter(): void
+    {
+        // Livewire re-renders automatically; this keeps URL state in sync.
+    }
+
+    public function updatedStatusFilter(): void
+    {
+        // Livewire re-renders automatically; this keeps URL state in sync.
+    }
+
+    public function clearFilters(): void
+    {
+        $this->search = '';
+        $this->paymentFilter = 'all';
+        $this->statusFilter = 'all';
     }
 
     public function togglePaid($orderId)
@@ -745,7 +777,7 @@ class Dashboard extends Component
         // Ensure expired batches are processed even if user was away
         $this->autoProcessExpiredPreparing();
 
-        $orders = Order::with(['customer','employee','staff'])
+        $ordersQuery = Order::with(['customer', 'employee', 'staff'])
             ->where(function ($outer) {
                 $outer->where(function ($q) {
                         $q->where('created_at', '>=', DB::raw('CURRENT_DATE'))
@@ -756,8 +788,31 @@ class Dashboard extends Component
                           ->whereNotIn('status', ['completed', 'cancelled']);
                     });
             })
-            ->orderByDesc('created_at')
-            ->get();
+            ->when($this->search !== '', function ($query) {
+                $searchTerm = '%' . trim($this->search) . '%';
+
+                $query->where(function ($searchQuery) use ($searchTerm) {
+                    $searchQuery->where('receipt_number', 'like', $searchTerm)
+                        ->orWhereHas('customer', function ($customerQuery) use ($searchTerm) {
+                            $customerQuery->where('name', 'like', $searchTerm);
+                        })
+                        ->orWhereHas('employee', function ($employeeQuery) use ($searchTerm) {
+                            $employeeQuery->where('name', 'like', $searchTerm);
+                        });
+                });
+            })
+            ->when($this->paymentFilter === 'paid', function ($query) {
+                $query->where('is_paid', true);
+            })
+            ->when($this->paymentFilter === 'unpaid', function ($query) {
+                $query->where('is_paid', false);
+            })
+            ->when($this->statusFilter !== 'all', function ($query) {
+                $query->where('status', $this->statusFilter);
+            })
+            ->orderByDesc('created_at');
+
+        $orders = $ordersQuery->get();
 
         // Filter for ongoing vs completed based on status only
         $ongoing = $orders->whereNotIn('status', ['completed', 'cancelled']);
