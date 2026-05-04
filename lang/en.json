@@ -78,5 +78,41 @@
     "Monthly Orders": "Monthly Orders",
     "Amount (₱)": "Amount (₱)",
     "Number of Orders": "Number of Orders",
-    "Sales Amount (₱)": "Sales Amount (₱)"
+    "Sales Amount (₱)": "Sales Amount (₱)",
+    "Updating...": "Updating...",
+
+    "Order created successfully!": "Order created successfully!",
+    "Order not found.": "Order not found.",
+    "Order \":receipt\" has been marked as paid!": "Order \":receipt\" has been marked as paid!",
+    "Order \":receipt\" has been marked as delivered!": "Order \":receipt\" has been marked as delivered!",
+    "Order \":receipt\" has been marked as finished!": "Order \":receipt\" has been marked as finished!",
+    "Order \":receipt\" deleted successfully and inventory restored.": "Order \":receipt\" deleted successfully and inventory restored.",
+    "Order #:receipt cannot be edited once it is :status.": "Order #:receipt cannot be edited once it is :status.",
+    "This order cannot be edited.": "This order cannot be edited.",
+    "Order #:receipt updated.": "Order #:receipt updated.",
+
+    "Employee created successfully!": "Employee created successfully!",
+    "Employee updated successfully!": "Employee updated successfully!",
+    "Employee not found!": "Employee not found!",
+    "Cannot archive employee with ongoing orders!": "Cannot archive employee with ongoing orders!",
+    "Employee archived successfully!": "Employee archived successfully!",
+    "Employee restored successfully!": "Employee restored successfully!",
+    "Employee not found or not archived!": "Employee not found or not archived!",
+    "Cannot permanently delete employee with order history!": "Cannot permanently delete employee with order history!",
+    "Employee :name permanently deleted!": "Employee :name permanently deleted!",
+
+    "Customer created successfully!": "Customer created successfully!",
+    "Customer updated successfully!": "Customer updated successfully!",
+    "Customer not found!": "Customer not found!",
+    "Cannot delete customer with existing orders!": "Cannot delete customer with existing orders!",
+    "Customer :name deleted successfully!": "Customer :name deleted successfully!",
+
+    "Product created successfully!": "Product created successfully!",
+    "Product not found!": "Product not found!",
+    "Product :name updated successfully!": "Product :name updated successfully!",
+    ":name is now available for sale!": ":name is now available for sale!",
+    ":name has been marked as unavailable!": ":name has been marked as unavailable!",
+    "Cannot permanently delete product with order history!": "Cannot permanently delete product with order history!",
+    "Product :name permanently deleted!": "Product :name permanently deleted!",
+    "Check logs for category debug info": "Check logs for category debug info"
 }

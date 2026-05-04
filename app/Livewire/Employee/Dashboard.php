@@ -96,7 +96,7 @@ class Dashboard extends Component
         // close form modal
         $this->dispatch('close-create-modal');
 
-        $this->dispatch('show-success', ['message' => 'Employee created successfully!']);
+        $this->dispatch('show-success', ['message' => __('Employee created successfully!')]);
         $this->resetForm();
     }
 
@@ -116,10 +116,10 @@ class Dashboard extends Component
             // close form modal
             $this->dispatch('close-edit-modal');
 
-            $this->dispatch('show-success', ['message' => 'Employee updated successfully!']);
+            $this->dispatch('show-success', ['message' => __('Employee updated successfully!')]);
             $this->resetForm();
         } else {
-            $this->dispatch('show-error', ['message' => 'Employee not found!']);
+            $this->dispatch('show-error', ['message' => __('Employee not found!')]);
         }
     }
 
@@ -127,14 +127,14 @@ class Dashboard extends Component
     {
         $employee = Employee::find($this->selectedEmployeeId);
         if (!$employee) {
-            $this->dispatch('show-error', ['message' => 'Employee not found!']);
+            $this->dispatch('show-error', ['message' => __('Employee not found!')]);
             return;
         }
 
         // Check if employee has ongoing orders
         $ongoingOrders = $employee->orders()->whereIn('status', ['pending', 'in_progress', 'out_for_delivery'])->count();
         if ($ongoingOrders > 0) {
-            $this->dispatch('show-error', ['message' => 'Cannot archive employee with ongoing orders!']);
+            $this->dispatch('show-error', ['message' => __('Cannot archive employee with ongoing orders!')]);
             return;
         }
 
@@ -143,7 +143,7 @@ class Dashboard extends Component
 
         // Archive the employee instead of deleting
         $employee->update(['is_archived' => true]);
-        $this->dispatch('show-success', ['message' => 'Employee archived successfully!']);
+        $this->dispatch('show-success', ['message' => __('Employee archived successfully!')]);
         $this->selectedEmployeeId = null;
     }
 
@@ -153,7 +153,7 @@ class Dashboard extends Component
         $employee = Employee::find($employeeId);
         if ($employee && $employee->is_archived) {
             $employee->update(['is_archived' => false]);
-            $this->dispatch('show-success', ['message' => 'Employee restored successfully!']);
+            $this->dispatch('show-success', ['message' => __('Employee restored successfully!')]);
         }
     }
 

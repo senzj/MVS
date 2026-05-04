@@ -35,9 +35,9 @@ new #[Layout('components.layouts.auth', ['title' => 'Log In'])] class extends Co
         if (! Auth::attempt([
             'username' => ucwords($this->username),
             'password' => $this->password
-        ], 
+        ],
             $this->remember)) {
-            
+
                 RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -81,7 +81,7 @@ new #[Layout('components.layouts.auth', ['title' => 'Log In'])] class extends Co
     {
         return Str::transliterate(Str::lower($this->username).'|'.request()->ip());
     }
-}; 
+};
 ?>
 
 <div class="flex flex-col gap-2">
@@ -163,4 +163,7 @@ new #[Layout('components.layouts.auth', ['title' => 'Log In'])] class extends Co
             <flux:link :href="route('register')" wire:navigate>{{ __('Register') }}</flux:link>
         </div>
     @endif
+
+    {{-- Full-screen loading overlay for login submission --}}
+    @include('livewire.partials.loading-overlay', ['wireTarget' => 'login'])
 </div>

@@ -43,9 +43,9 @@ class Archive extends Component
 
         if ($employee && $employee->is_archived) {
             $employee->update(['is_archived' => false]);
-            $this->dispatch('show-success', ['message' => 'Employee restored successfully!']);
+            $this->dispatch('show-success', ['message' => __('Employee restored successfully!')]);
         } else {
-            $this->dispatch('show-error', ['message' => 'Employee not found or not archived!']);
+            $this->dispatch('show-error', ['message' => __('Employee not found or not archived!')]);
         }
     }
 
@@ -61,7 +61,7 @@ class Archive extends Component
         $employee = Employee::find($this->selectedEmployeeId);
 
         if (!$employee) {
-            $this->dispatch('show-error', ['message' => 'Employee not found!']);
+            $this->dispatch('show-error', ['message' => __('Employee not found!')]);
             return;
         }
 
@@ -69,7 +69,7 @@ class Archive extends Component
         $hasOrders = $employee->orders()->count() > 0;
 
         if ($hasOrders) {
-            $this->dispatch('show-error', ['message' => 'Cannot permanently delete employee with order history!']);
+            $this->dispatch('show-error', ['message' => __('Cannot permanently delete employee with order history!')]);
             return;
         }
 
@@ -77,7 +77,7 @@ class Archive extends Component
         $employeeName = $employee->name;
         $employee->delete();
 
-        $this->dispatch('show-success', ['message' => "Employee '{$employeeName}' permanently deleted!"]);
+        $this->dispatch('show-success', ['message' => __('Employee :name permanently deleted!', ['name' => $employeeName])]);
         $this->selectedEmployeeId = null;
     }
 

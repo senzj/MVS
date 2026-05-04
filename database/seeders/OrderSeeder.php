@@ -27,7 +27,7 @@ class OrderSeeder extends Seeder
 
         $statuses = ['pending', 'in_transit', 'delivered', 'completed', 'cancelled'];
 
-        $random = fake()->numberBetween(1, 5);
+        $random = fake()->numberBetween(1, 25);
 
         // Create random orders with items
         for ($i = 1; $i <= $random; $i++) {

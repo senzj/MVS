@@ -34,8 +34,7 @@
             class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold
                    hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/20 shrink-0">
             <i class="fas fa-user-plus"></i>
-            <span class="hidden xs:inline">{{ __('Add Customer') }}</span>
-            <span class="xs:hidden">{{ __('Add') }}</span>
+            <span>{{ __('Add Customer') }}</span>
         </button>
     </div>
 
@@ -626,5 +625,8 @@
         text-align: center;
     }
 </style>
+
+    {{-- Full-screen loading overlay for customer actions --}}
+    @include('livewire.partials.loading-overlay', ['wireTarget' => 'search,sortByField,createCustomer,updateCustomer,deleteCustomer'])
 
 </div>

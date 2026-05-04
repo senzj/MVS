@@ -345,6 +345,9 @@
         @endif
     </div>
 
+    {{-- Full-screen loading overlay for archive actions --}}
+    @include('livewire.partials.loading-overlay', ['wireTarget' => 'search,sortByField,restoreEmployee,permanentlyDeleteEmployee'])
+
     {{-- Mobile Pagination --}}
     <div class="lg:hidden mt-3">{{ $archivedEmployees->links() }}</div>
 

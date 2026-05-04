@@ -38,8 +38,7 @@
             class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold
                    hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/20 shrink-0">
             <i class="fas fa-plus"></i>
-            <span class="hidden xs:inline">{{ __('Add Product') }}</span>
-            <span class="xs:hidden">{{ __('Add') }}</span>
+            <span>{{ __('Add Product') }}</span>
         </button>
     </div>
 
@@ -177,16 +176,13 @@
     </div>
 
     {{-- Loading overlay --}}
-    <div wire:loading wire:target="categoryFilter,stockFilter,search,sortByField"
-         class="fixed bottom-6 right-6 z-50">
-        <div class="flex items-center gap-2 bg-white dark:bg-zinc-700 text-zinc-700 dark:text-zinc-200 text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg border border-zinc-100 dark:border-zinc-600">
-            <i class="fas fa-spinner fa-spin text-blue-500"></i>{{ __('Updating...') }}
-        </div>
-    </div>
+    @include('livewire.partials.loading-overlay', [
+        'wireTarget' => 'categoryFilter,stockFilter,search,sortByField',
+        'title' => __('Updating...'),
+        'message' => __('Please wait while we process your request'),
+    ])
 
-    {{-- ═══════════════════════════════════════════════
-         PRODUCT LIST
-    ════════════════════════════════════════════════ --}}
+    {{-- PRODUCT LIST --}}
 
     {{-- ── Mobile Cards (< lg) ── --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden"
@@ -488,7 +484,7 @@
                                         <span class="tbl-action-btn text-zinc-400 opacity-50 cursor-not-allowed"
                                               title="{{ __('This product is out of stock. Edit to add more stocks.') }}">
                                             <i class="fas fa-ban text-sm"></i>
-                                            <span class="text-xs leading-tight">{{ __('Out of') }}<br>{{ __('Stock') }}</span>
+                                            <span class="text-xs leading-tight">{{ __('Out of Stock') }}</span>
                                         </span>
                                     @else
                                         <button wire:click="makeAvailable({{ $product->id }})"

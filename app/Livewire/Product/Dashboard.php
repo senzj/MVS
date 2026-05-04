@@ -155,7 +155,7 @@ class Dashboard extends Component
             'is_in_stock' => $this->is_in_stock,
         ]);
 
-        $this->dispatch('show-success', ['message' => 'Product created successfully!']);
+        $this->dispatch('show-success', ['message' => __('Product created successfully!')]);
         $this->dispatch('close-create-modal');
         $this->resetForm();
     }
@@ -167,7 +167,7 @@ class Dashboard extends Component
         $product = Product::find($this->selectedProductId);
 
         if (!$product) {
-            $this->dispatch('show-error', ['message' => 'Product not found!']);
+            $this->dispatch('show-error', ['message' => __('Product not found!')]);
             return;
         }
 
@@ -181,7 +181,7 @@ class Dashboard extends Component
             'is_in_stock' => $this->is_in_stock,
         ]);
 
-        $this->dispatch('show-success', ['message' => "Product \"{$this->name}\" updated successfully!"]);
+        $this->dispatch('show-success', ['message' => __('Product :name updated successfully!', ['name' => $this->name])]);
         $this->dispatch('close-edit-modal');
         $this->resetForm();
     }
@@ -191,9 +191,9 @@ class Dashboard extends Component
         $product = Product::find($productId);
         if ($product) {
             $product->update(['is_in_stock' => true]);
-            $this->dispatch('show-success', ['message' => "\"{$product->name}\" is now available for sale!"]);
+            $this->dispatch('show-success', ['message' => __(':name is now available for sale!', ['name' => $product->name])]);
         } else {
-            $this->dispatch('show-error', ['message' => 'Product not found!']);
+            $this->dispatch('show-error', ['message' => __('Product not found!')]);
         }
     }
 
@@ -202,11 +202,11 @@ class Dashboard extends Component
         $product = Product::find($this->selectedProductId);
         if ($product) {
             $product->update(['is_in_stock' => false]);
-            $this->dispatch('show-success', ['message' => "\"{$product->name}\" has been marked as unavailable!"]);
+            $this->dispatch('show-success', ['message' => __(':name has been marked as unavailable!', ['name' => $product->name])]);
             $this->dispatch('close-archive-modal');
             $this->selectedProductId = null;
         } else {
-            $this->dispatch('show-error', ['message' => 'Product not found!']);
+            $this->dispatch('show-error', ['message' => __('Product not found!')]);
         }
     }
 
@@ -215,21 +215,21 @@ class Dashboard extends Component
         $product = Product::find($this->selectedProductId);
 
         if (!$product) {
-            $this->dispatch('show-error', ['message' => 'Product not found!']);
+            $this->dispatch('show-error', ['message' => __('Product not found!')]);
             return;
         }
 
         $hasOrderHistory = $product->orderItems()->count() > 0;
 
         if ($hasOrderHistory) {
-            $this->dispatch('show-error', ['message' => 'Cannot permanently delete product with order history!']);
+            $this->dispatch('show-error', ['message' => __('Cannot permanently delete product with order history!')]);
             return;
         }
 
         $productName = $product->name;
         $product->delete();
 
-        $this->dispatch('show-success', ['message' => "Product '{$productName}' permanently deleted!"]);
+        $this->dispatch('show-success', ['message' => __('Product :name permanently deleted!', ['name' => $productName])]);
         $this->dispatch('close-delete-modal');
         $this->selectedProductId = null;
     }
@@ -336,6 +336,6 @@ class Dashboard extends Component
             $categoryData[$cat]++;
         }
 
-        $this->dispatch('show-success', ['message' => 'Check logs for category debug info']);
+        $this->dispatch('show-success', ['message' => __('Check logs for category debug info')]);
     }
 }

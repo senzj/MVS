@@ -107,7 +107,7 @@ class Dashboard extends Component
         // close modal
         $this->dispatch('close-create-modal');
 
-        $this->dispatch('show-success', ['message' => 'Customer created successfully!']);
+        $this->dispatch('show-success', ['message' => __('Customer created successfully!')]);
         $this->resetForm();
     }
 
@@ -128,10 +128,10 @@ class Dashboard extends Component
             // close modal
             $this->dispatch('close-edit-modal');
 
-            $this->dispatch('show-success', ['message' => 'Customer updated successfully!']);
+            $this->dispatch('show-success', ['message' => __('Customer updated successfully!')]);
             $this->resetForm();
         } else {
-            $this->dispatch('show-error', ['message' => 'Customer not found!']);
+            $this->dispatch('show-error', ['message' => __('Customer not found!')]);
         }
     }
 
@@ -139,13 +139,13 @@ class Dashboard extends Component
     {
         $customer = Customer::find($this->selectedCustomerId);
         if (!$customer) {
-            $this->dispatch('show-error', ['message' => 'Customer not found!']);
+            $this->dispatch('show-error', ['message' => __('Customer not found!')]);
             return;
         }
 
         // Check if customer has orders
         if ($customer->orders()->count() > 0) {
-            $this->dispatch('show-error', ['message' => 'Cannot delete customer with existing orders!']);
+            $this->dispatch('show-error', ['message' => __('Cannot delete customer with existing orders!')]);
             return;
         }
 
@@ -155,7 +155,7 @@ class Dashboard extends Component
         $customerName = $customer->name;
         $customer->delete();
 
-        $this->dispatch('show-success', ['message' => "Customer '{$customerName}' deleted successfully!"]);
+        $this->dispatch('show-success', ['message' => __('Customer :name deleted successfully!', ['name' => $customerName])]);
         $this->selectedCustomerId = null;
     }
 

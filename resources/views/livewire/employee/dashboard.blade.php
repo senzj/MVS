@@ -582,4 +582,7 @@
         min-width: 3rem; text-align: center;
     }
 </style>
+
+    {{-- Full-screen loading overlay for employee actions --}}
+    @include('livewire.partials.loading-overlay', ['wireTarget' => 'search,statusFilter,sortByField,createEmployee,updateEmployee,deleteEmployee,restoreEmployee'])
 </div>

@@ -2,6 +2,12 @@
 <div @if($wireTarget ?? null) wire:loading.class="flex" wire:loading.class.remove="hidden" wire:target="{{ $wireTarget }}" @else wire:loading.class="flex" wire:loading.class.remove="hidden" @endif
      class="hidden fixed inset-0 z-100 items-center justify-center bg-black/40">
 
+    @php
+        $overlayTitle = $title ?? __('Processing');
+        $overlayMessage = $message ?? __('Please wait while we process your request');
+        $overlayTip = $tip ?? null;
+    @endphp
+
     <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
         {{-- Spinner --}}
         <div class="relative w-12 h-12 flex items-center justify-center">
@@ -12,16 +18,18 @@
         {{-- Message --}}
         <div class="text-center space-y-1">
             <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                {{ __('Processing') }}
+                {{ $overlayTitle }}
             </p>
             <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                {{ __('Please wait while we process your request') }}...
+                {{ $overlayMessage }}...
             </p>
         </div>
 
         {{-- Subtle tip --}}
-        {{-- <div class="text-xs text-zinc-400 dark:text-zinc-500 italic">
-            {{ __('Please Do not Close This Window') }}
-        </div> --}}
+        @if($overlayTip)
+            <div class="text-xs text-zinc-400 dark:text-zinc-500 italic">
+                {{ $overlayTip }}
+            </div>
+        @endif
     </div>
 </div>
