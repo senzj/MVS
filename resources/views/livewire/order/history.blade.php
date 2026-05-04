@@ -1,8 +1,8 @@
-@section('title', 'Order Records')
+@section('title', __('Orders Records'))
 
 <div id="order-history-content"
     class="container mx-auto max-w-7xl relative"
-    x-data="{ 
+    x-data="{
         showOrderModal: false,
         viewMode: 'list',
         showFilters: false,
@@ -43,15 +43,15 @@
                     let month = entry.target.getAttribute('data-month');
                     if (year) currentYear = year;
                     if (month) currentMonth = month;
-                    
+
                     // Show date indicator when year/month changes
                     showDateIndicator = true;
-                    
+
                     // Clear existing timeout
                     if (dateIndicatorTimeout) {
                         clearTimeout(dateIndicatorTimeout);
                     }
-                    
+
                     // Set new timeout to hide after 10 seconds
                     dateIndicatorTimeout = setTimeout(() => {
                         showDateIndicator = false;
@@ -78,8 +78,8 @@
             if (currentYear || currentMonth) {
                 showDateIndicator = true;
                 if (dateIndicatorTimeout) clearTimeout(dateIndicatorTimeout);
-                dateIndicatorTimeout = setTimeout(() => { 
-                    showDateIndicator = false; 
+                dateIndicatorTimeout = setTimeout(() => {
+                    showDateIndicator = false;
                 }, 3000); // Reduced to 3 seconds for better UX
             }
         };
@@ -89,7 +89,7 @@
             $el._toggleScrollTop();
             $el._handleDateIndicatorOnScroll();
             checkScroll();
-            
+
             // Load more when near bottom and has more pages
             if (isNearBottom && $wire.hasMorePages && !$wire.isLoading) {
                 $wire.loadMore();
@@ -98,7 +98,7 @@
 
         // Use passive scroll listener for better performance
         window.addEventListener('scroll', $el._handleScroll, { passive: true });
-        
+
         // Fire once on load to set initial state
         $el._toggleScrollTop();
 
@@ -113,13 +113,13 @@
     {{-- css --}}
     <style>
         [x-cloak] { display: none !important; }
-        
+
         /* Date indicator styling */
         .date-indicator {
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
         }
-        
+
         /* Quick actions panel styling */
         .quick-actions-panel {
             backdrop-filter: blur(12px);
@@ -153,7 +153,7 @@
                             @endif
                         </p>
                     </div>
-                    
+
                     {{-- View Toggle and Controls --}}
                     <div class="flex items-center gap-3">
                         {{-- View Toggle --}}
@@ -170,7 +170,7 @@
                                         <path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 16a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/>
                                     </svg>
                                 </button>
-                                
+
                                 <button
                                     @click="viewMode = 'grid'"
                                     :class="viewMode === 'grid' ? 'bg-white dark:bg-zinc-600 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'"
@@ -213,7 +213,7 @@
                                 </button>
                             @endif
                         </div>
-                        
+
                         {{-- Filter Toggle Button --}}
                         <button
                             @click="showFilters = !showFilters"
@@ -228,13 +228,13 @@
 
                     {{-- Filters Panel --}}
                     <div x-cloak
-                        x-show="showFilters" 
-                        x-transition:enter="transition-all duration-300 ease-out" 
-                        x-transition:enter-start="opacity-0 max-h-0" 
-                        x-transition:enter-end="opacity-100 max-h-96" 
-                        x-transition:leave="transition-all duration-300 ease-in" 
-                        x-transition:leave-start="opacity-100 max-h-96" 
-                        x-transition:leave-end="opacity-0 max-h-0" 
+                        x-show="showFilters"
+                        x-transition:enter="transition-all duration-300 ease-out"
+                        x-transition:enter-start="opacity-0 max-h-0"
+                        x-transition:enter-end="opacity-100 max-h-96"
+                        x-transition:leave="transition-all duration-300 ease-in"
+                        x-transition:leave-start="opacity-100 max-h-96"
+                        x-transition:leave-end="opacity-0 max-h-0"
                         class="absolute top-full left-0 right-0 z-[60] bg-white/95 dark:bg-zinc-800/95 rounded-lg shadow-xl border border-zinc-200/50 dark:border-zinc-700/50 mt-2 backdrop-blur-md overflow-hidden">
                         <div class="p-4">
                             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
@@ -321,7 +321,7 @@
                                         <span>{{ $sortDirection === 'asc' ? 'Ascending' : 'Descending' }}</span>
                                     </button>
                                 </div>
-                                
+
                                 <button
                                     wire:click="clearFilters"
                                     class="px-4 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-all duration-200 flex items-center gap-2"
@@ -358,9 +358,9 @@
     </div>
 
     {{-- Date indicator --}}
-    <div 
+    <div
         x-cloak
-        x-show="showDateIndicator && (currentYear || currentMonth)" 
+        x-show="showDateIndicator && (currentYear || currentMonth)"
         x-transition:enter="transition ease-out duration-200"
         x-transition:enter-start="opacity-0 scale-95"
         x-transition:enter-end="opacity-100 scale-100"
@@ -368,33 +368,33 @@
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
         class="fixed md:top-66 lg:top-68 right-10 z-30 date-indicator">
-        
+
         <div class="relative">
             {{-- Main indicator box --}}
             <div class="bg-white/40 dark:bg-zinc-800/40 border border-zinc-200/50 dark:border-zinc-700/50 rounded-xl shadow-lg p-3 min-w-[140px]">
                 <div class="text-center">
 
                     {{-- year --}}
-                    <div class="text-sm font-bold text-zinc-900 dark:text-zinc-100 mt-0.5" 
+                    <div class="text-sm font-bold text-zinc-900 dark:text-zinc-100 mt-0.5"
                          x-text="currentYear || i18n.allYears"></div>
 
                     {{-- month --}}
-                    <div class="text-xs font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wide" 
+                    <div class="text-xs font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wide"
                          x-text="currentMonth || i18n.allMonths"></div>
 
                 </div>
             </div>
-            
+
             {{-- Left pointing triangle arrow --}}
             <div class="absolute top-1/2 -left-2 transform -translate-y-1/2">
-                <div class="w-0 h-0 border-r-[8px] border-r-white/90 dark:border-r-zinc-800/90 
-                           border-t-[8px] border-t-transparent 
+                <div class="w-0 h-0 border-r-[8px] border-r-white/90 dark:border-r-zinc-800/90
+                           border-t-[8px] border-t-transparent
                            border-b-[8px] border-b-transparent
                            drop-shadow-sm"></div>
                 {{-- Border for the arrow --}}
                 <div class="absolute top-1/2 -left-[1px] transform -translate-y-1/2">
                     <div class="w-0 h-0 border-r-[9px] border-r-zinc-200/50 dark:border-r-zinc-700/50
-                               border-t-[9px] border-t-transparent 
+                               border-t-[9px] border-t-transparent
                                border-b-[9px] border-b-transparent">
                     </div>
                 </div>
@@ -537,7 +537,7 @@
                                     <button wire:click="openOrder({{ $o->id }})"
                                         class="cursor-pointer w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg transition-all duration-200"
                                         title="View Order {{ $o->receipt_number }}">
-                                        
+
                                         <div class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-sm hover:shadow-md transition-all duration-200">
                                             <div class="p-4">
                                                 {{-- Header Row: Receipt # and Time --}}

@@ -13,10 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Livewire\Component;
 
 class Dashboard extends Component
-{
-    public $editingOrderId = null;
-    public $editStatus = null;
-    public $editDeliveredBy = null; // NEW
+{ // NEW
 
     // Search and filters
     public string $search = '';
@@ -181,56 +178,8 @@ class Dashboard extends Component
             $order->is_paid = !$order->is_paid;
             $order->save();
 
-            $this->dispatch('show-success', ['message' => "\"{$order->receipt_number}\" has been marked as paid!"]);
+            $this->dispatch('show-success', ['message' => __('Order ":receipt" has been marked as paid!', ['receipt' => $order->receipt_number])]);
         }
-    }
-
-    public function editOrder($orderId)
-    {
-        $this->editingOrderId = $orderId;
-        $order = Order::find($orderId);
-        $this->editStatus = optional($order)->status;
-        $this->editDeliveredBy = optional($order)->delivered_by ?: ''; // Convert null to empty string for form
-    }
-
-    public function saveEdit($orderId)
-    {
-        $order = Order::with(['orderItems'])->find($orderId);
-        if (!$order) return;
-
-        $oldStatus = $order->status;
-        $newStatus = $this->editStatus;
-
-        if (!in_array($newStatus, ['pending', 'preparing', 'in_transit', 'delivered', 'completed', 'cancelled'], true)) {
-            return;
-        }
-
-        DB::transaction(function () use ($order, $oldStatus, $newStatus) {
-            // Moving into cancelled: rollback inventory
-            if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
-                $this->rollbackInventory($order);
-            }
-
-            // Moving out of cancelled: re-apply inventory
-            if ($oldStatus === 'cancelled' && $newStatus !== 'cancelled') {
-                $this->applyInventory($order);
-            }
-
-            // Handle batch delivery changes
-            if ($oldStatus === 'preparing' && $newStatus !== 'preparing') {
-                // Order is being removed from preparing status, remove from batch
-                $this->removeOrderFromBatch($order->delivered_by, $order->id);
-            }
-
-            // Update delivered_by if provided (allow null = unassigned)
-            // Convert empty string to null for proper database handling
-            $order->delivered_by = $this->editDeliveredBy ?: null;
-
-            $order->status = $newStatus;
-            $order->save();
-        });
-
-        $this->editingOrderId = null;
     }
 
     // Transition: Pending -> In Transit (with batch delivery support)
@@ -556,7 +505,7 @@ class Dashboard extends Component
         if (!$order) return;
 
         // session flash message
-        $this->dispatch('show-info', ['message' => "\"{$order->receipt_number}\" has been marked as delivered!"]);
+        $this->dispatch('show-info', ['message' => __('Order ":receipt" has been marked as delivered!', ['receipt' => $order->receipt_number])]);
 
         // mark order as delivered
         if ($order->status === 'in_transit') {
@@ -571,10 +520,9 @@ class Dashboard extends Component
         if (!$order) return;
 
         // set editing to false
-        $this->editingOrderId = null;
 
         // session flash message
-        $this->dispatch('show-success', ['message' => "\"{$order->receipt_number}\" has been marked as finished!"]);
+        $this->dispatch('show-success', ['message' => __('Order ":receipt" has been marked as finished!', ['receipt' => $order->receipt_number])]);
 
         // mark order status complete
         if ($order->is_paid && $order->status === 'delivered') {
@@ -670,7 +618,7 @@ class Dashboard extends Component
     public function deleteOrderConfirmed(): void
     {
         if (!$this->deleteOrderId) {
-            session()->flash('error', 'Order not found.');
+            session()->flash('error', __('Order not found.'));
             return;
         }
 
@@ -692,7 +640,7 @@ class Dashboard extends Component
             $order->delete();
 
             // flash message
-            session()->flash('success', 'Order "' . $receiptNumber . '" deleted successfully and inventory restored.');
+            session()->flash('success', __('Order ":receipt" deleted successfully and inventory restored.', ['receipt' => $receiptNumber]));
         });
 
         $this->closeDeleteModal();
@@ -819,7 +767,6 @@ class Dashboard extends Component
         $completed = $orders->whereIn('status', ['completed', 'cancelled']);
 
         $customers = Customer::query()->orderBy('name')->get(['id', 'name']);
-        $employees = Employee::query()->orderBy('name')->get(['id', 'name']);
 
         return view('livewire.order.dashboard', [
             'today' => now()->toFormattedDateString(),
@@ -828,7 +775,6 @@ class Dashboard extends Component
             'ongoingCount' => $ongoing->count(),
             'completedCount' => $completed->count(),
             'customers' => $customers,
-            'employees' => $employees,
         ]);
     }
 }

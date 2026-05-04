@@ -445,6 +445,30 @@
     "Fetching Orders...": "正在获取订单...",
     "You've reached the end of the results": "您已到达结果的末尾",
     "orders total": "订单总数",
+    "No Charge": "无费用",
+    "Save Changes": "保存更改",
+    "Saving": "正在保存",
+    "Edit Orders": "编辑订单",
+    "Orders Records": "订单记录",
+    "All Payments": "所有支付",
+    "All Status": "所有状态",
+
+    "Processing": "处理中",
+    "Please wait while we process your request": "请稍候，我们正在处理您的请求",
+    "Please Do not Close This Window": "请不要关闭此窗口",
+
+    "Order created successfully!": "订单创建成功！",
+    "Order not found.": "未找到订单。",
+    "Order \":receipt\" has been marked as paid!": "订单“:receipt”已标记为已付款！",
+    "Order \":receipt\" has been marked as delivered!": "订单“:receipt”已标记为已送达！",
+    "Order \":receipt\" has been marked as finished!": "订单“:receipt”已标记为已完成！",
+    "Order \":receipt\" deleted successfully and inventory restored.": "订单“:receipt”已成功删除，库存已恢复。",
+    "Order #:receipt cannot be edited once it is :status.": "订单#:receipt 在状态为 :status 时无法编辑。",
+    "This order cannot be edited.": "此订单无法编辑。",
+    "Order #:receipt updated.": "订单#:receipt 已更新。",
+
+    "Order number, customer, delivered by": "订单号、客户、配送员",
+    "Search Orders": "搜索订单",
 
     "Logs": "日志"
 }

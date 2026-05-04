@@ -68,6 +68,8 @@ class Create extends Component
         'orderItems' => 'required|array|min:1',
         'orderItems.*.product_id' => 'required|exists:products,id',
         'orderItems.*.quantity' => 'required|integer|min:1',
+        'orderItems.*.price' => 'nullable|numeric|min:0',
+        'orderItems.*.is_free' => 'nullable|boolean',
     ];
 
     public function mount()
@@ -133,7 +135,7 @@ class Create extends Component
             $nextNumber = 1;
         }
 
-        return $prefix . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+        return $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
     }
 
     // New customer state management
@@ -243,9 +245,10 @@ class Create extends Component
             ->first();
 
         if ($product && isset($this->orderItems[$itemIndex])) {
+            $isFree = (bool) ($this->orderItems[$itemIndex]['is_free'] ?? false);
             $this->orderItems[$itemIndex]['product_id'] = $product->id;
             $this->orderItems[$itemIndex]['product_name'] = $product->name;
-            $this->orderItems[$itemIndex]['price'] = $product->price;
+            $this->orderItems[$itemIndex]['price'] = $isFree ? 0 : (float) $product->price;
 
             // Ensure quantity never exceeds available stock
             $currentQty = (int) ($this->orderItems[$itemIndex]['quantity'] ?? 1);
@@ -316,6 +319,28 @@ class Create extends Component
 
             $this->calculateItemTotal($index);
         }
+
+        // Keep price/total in sync when free flag changes
+        if ($field === 'is_free') {
+            $productId = $this->orderItems[$index]['product_id'] ?? null;
+            $isFree = (bool) ($this->orderItems[$index]['is_free'] ?? false);
+
+            if ($isFree) {
+                $this->orderItems[$index]['price'] = 0;
+            } elseif ($productId) {
+                $product = Product::find($productId);
+                $this->orderItems[$index]['price'] = $product ? (float) $product->price : 0;
+            }
+
+            $this->calculateItemTotal($index);
+        }
+
+        // Keep total in sync if unit price is manually edited
+        if ($field === 'price') {
+            $price = (float) ($this->orderItems[$index]['price'] ?? 0);
+            $this->orderItems[$index]['price'] = max($price, 0);
+            $this->calculateItemTotal($index);
+        }
     }
 
     public function calculateItemTotal(int $index)
@@ -334,6 +359,7 @@ class Create extends Component
             'quantity' => 1,
             'price' => 0,
             'total' => 0,
+            'is_free' => false,
         ];
     }
 
@@ -634,12 +660,16 @@ class Create extends Component
                 }
 
                 // Create line item
+                $isFree = (bool) ($item['is_free'] ?? false);
+                $unitPrice = $isFree ? 0 : max((float) ($item['price'] ?? 0), 0);
+                $lineTotal = $qty * $unitPrice;
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $item['product_id'],
                     'quantity' => $qty,
-                    'unit_price' => $item['price'],
-                    'total_price' => $item['total'],
+                    'unit_price' => $unitPrice,
+                    'total_price' => $lineTotal,
                 ]);
 
                 // 3) Deduct stocks, increment sold, and update flag
@@ -650,7 +680,7 @@ class Create extends Component
             }
         });
 
-        session()->flash('success', 'Order created successfully!');
+        session()->flash('success', __('Order created successfully!'));
         return redirect()->route('orders');
     }
 

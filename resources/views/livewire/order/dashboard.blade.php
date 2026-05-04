@@ -1,8 +1,7 @@
 @section('title', __('Orders Dashboard'))
 
 <div class="w-full max-w-full overflow-x-hidden px-2 sm:px-4 pb-8"
-    x-data="{ activeTab: 'ongoing' }"
-    wire:poll.5s>
+    x-data="{ activeTab: 'ongoing' }">
 
     {{-- HEADER --}}
     <div class="flex flex-col gap-3 mb-5 pt-2 sm:pt-0">
@@ -69,7 +68,7 @@
                     <div class="relative">
                         <input type="text"
                                wire:model.live.debounce.300ms="search"
-                               placeholder="{{ __('Order number, customer, or delivered by') }}"
+                               placeholder="{{ __('Order number, customer, delivered by') }}"
                                class="w-full pl-3 pr-9 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
                                       bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
                                       focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
@@ -103,7 +102,7 @@
                         <i class="fas fa-filter mr-1"></i>{{ __('Status') }}</label>
                     <select wire:model.live="statusFilter"
                         class="w-full py-2.5 px-3 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                        <option value="all">{{ __('All Statuses') }}</option>
+                        <option value="all">{{ __('All Status') }}</option>
                         <option value="pending">{{ __('Pending') }}</option>
                         <option value="preparing">{{ __('Preparing') }}</option>
                         <option value="in_transit">{{ __('In transit') }}</option>
@@ -290,33 +289,6 @@
                                 </div>
                             </div>
 
-                            {{-- Edit mode fields --}}
-                            @if($editingOrderId === $order->id)
-                                <div class="space-y-2 pt-1 border-t border-zinc-100 dark:border-zinc-700">
-                                    <select wire:model="editStatus"
-                                        class="w-full border rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
-                                        <option value="pending">{{ __('Pending') }}</option>
-                                        <option value="in_transit">{{ __('In transit') }}</option>
-                                        <option value="delivered">{{ __('Delivered') }}</option>
-                                        <option value="completed">{{ __('Completed') }}</option>
-                                        <option value="cancelled">{{ __('Cancelled') }}</option>
-                                    </select>
-                                    <select wire:model="editDeliveredBy"
-                                        class="w-full border rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
-                                        <option value="">{{ __('Unassign') }}</option>
-                                        @foreach($employees as $emp)
-                                            <option value="{{ $emp->id }}">{{ $emp->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    <label class="inline-flex items-center gap-2 cursor-pointer text-xs">
-                                        <input type="checkbox" {{ $order->is_paid ? 'checked' : '' }}
-                                               class="rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
-                                               wire:click="togglePaid({{ $order->id }})" />
-                                        {{ $order->is_paid ? __('Mark Unpaid') : __('Mark Paid') }}
-                                    </label>
-                                </div>
-                            @endif
-
                             {{-- Action bar --}}
                             <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-100 dark:border-zinc-700 flex-wrap">
 
@@ -327,16 +299,20 @@
                                 </button>
 
                                 {{-- Edit / Save --}}
-                                @if($editingOrderId === $order->id)
-                                    <button wire:click="saveEdit({{ $order->id }})"
-                                        class="card-action-btn text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
-                                        <i class="fas fa-save"></i> {{ __('Save') }}
-                                    </button>
-                                @else
-                                    <button wire:click="editOrder({{ $order->id }})"
+                                @php
+                                    $editLocked = in_array($order->status, ['in_transit','delivered','completed','cancelled']);
+                                @endphp
+
+                                @if(!$editLocked)
+                                    <a href="{{ route('orders.edit', $order) }}" wire:navigate
                                         class="card-action-btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700">
                                         <i class="fas fa-edit"></i> {{ __('Edit') }}
-                                    </button>
+                                    </a>
+                                @else
+                                    <span class="card-action-btn text-zinc-300 dark:text-zinc-600 cursor-not-allowed opacity-50"
+                                        title="{{ __('Cannot edit') }} — {{ $order->status }}">
+                                        <i class="fas fa-lock"></i> {{ __('Edit') }}
+                                    </span>
                                 @endif
 
                                 {{-- State-driven action --}}
@@ -348,12 +324,12 @@
                                             <i class="fas fa-user-slash"></i> {{ __('No Staff') }}
                                         </span>
                                     @elseif($deliveryStatus === 'available')
-                                        <button wire:click="startDelivery({{ $order->id }})" @disabled($editingOrderId)
+                                        <button wire:click="startDelivery({{ $order->id }})"
                                             class="card-action-btn text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20">
                                             <i class="fas fa-truck"></i> {{ __('Deliver') }}
                                         </button>
                                     @elseif($deliveryStatus === 'batch_preparing' || $deliveryStatus === 'busy')
-                                        <button wire:click="startDelivery({{ $order->id }})" @disabled($editingOrderId)
+                                        <button wire:click="startDelivery({{ $order->id }})"
                                             class="card-action-btn text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20">
                                             <i class="fas fa-plus-circle"></i> {{ __('Add Delivery') }}
                                         </button>
@@ -404,19 +380,19 @@
                                     @endif
 
                                 @elseif($order->status === 'in_transit')
-                                    <button wire:click="markDelivered({{ $order->id }})" @disabled($editingOrderId)
+                                    <button wire:click="markDelivered({{ $order->id }})"
                                         class="card-action-btn text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20">
                                         <i class="fas fa-box-open"></i> {{ __('Delivered') }}
                                     </button>
 
                                 @elseif($order->status === 'delivered' && !$order->is_paid)
-                                    <button wire:click="togglePaid({{ $order->id }})" @disabled($editingOrderId)
+                                    <button wire:click="togglePaid({{ $order->id }})"
                                         class="card-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
                                         <i class="fas fa-money-bill-transfer"></i> {{ __('Paid') }}
                                     </button>
 
                                 @elseif($order->status === 'delivered' && $order->is_paid)
-                                    <button wire:click="markFinished({{ $order->id }})" @disabled($editingOrderId)
+                                    <button wire:click="markFinished({{ $order->id }})"
                                         class="card-action-btn text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
                                         <i class="fas fa-check-double"></i> {{ __('Complete') }}
                                     </button>
@@ -479,94 +455,57 @@
 
                                     {{-- Status --}}
                                     <td class="px-4 py-3 whitespace-nowrap text-center">
-                                        @if($editingOrderId === $order->id)
-                                            <select wire:model="editStatus"
-                                                class="border rounded-lg px-2 py-1 text-xs bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
-                                                <option value="pending">{{ __('Pending') }}</option>
-                                                <option value="in_transit">{{ __('In transit') }}</option>
-                                                <option value="delivered">{{ __('Delivered') }}</option>
-                                                <option value="completed">{{ __('Completed') }}</option>
-                                                <option value="cancelled">{{ __('Cancelled') }}</option>
-                                            </select>
-                                        @else
-                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full
-                                                         bg-{{ $order->status_color }}-100 text-{{ $order->status_color }}-800
-                                                         dark:bg-{{ $order->status_color }}-900/30 dark:text-{{ $order->status_color }}-300">
-                                                @if($order->status === 'preparing')   <i class="fas fa-hourglass-start"></i>
-                                                @elseif($order->status === 'pending')  <i class="fas fa-clock"></i>
-                                                @elseif($order->status === 'in_transit') <i class="fas fa-truck-fast"></i>
-                                                @elseif($order->status === 'delivered')  <i class="fas fa-box-open"></i>
-                                                @elseif($order->status === 'completed')  <i class="fas fa-check-circle"></i>
-                                                @elseif($order->status === 'cancelled')  <i class="fas fa-times-circle"></i>
-                                                @endif
-                                                {{ __([
-                                                    'preparing'  => 'Preparing',
-                                                    'pending'    => 'Pending',
-                                                    'in_transit' => 'In transit',
-                                                    'delivered'  => 'Delivered',
-                                                    'completed'  => 'Completed',
-                                                    'cancelled'  => 'Cancelled',
-                                                ][$order->status] ?? ucfirst(str_replace('_',' ', $order->status))) }}
-                                            </span>
-                                            @if(!$order->created_at->isToday())
-                                                @php $days = max(1, (int)$order->created_at->diffInDays(now())); @endphp
-                                                <span class="block mt-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-                                                    <i class="fas fa-calendar-alt mr-1"></i>
-                                                    @if($days <= 7) {{ trans_choice('days_ago', $days, ['count' => $days]) }}
-                                                    @else {{ __('Old Order') }}
-                                                    @endif
-                                                </span>
+                                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full
+                                                        bg-{{ $order->status_color }}-100 text-{{ $order->status_color }}-800
+                                                        dark:bg-{{ $order->status_color }}-900/30 dark:text-{{ $order->status_color }}-300">
+                                            @if($order->status === 'preparing')   <i class="fas fa-hourglass-start"></i>
+                                            @elseif($order->status === 'pending')  <i class="fas fa-clock"></i>
+                                            @elseif($order->status === 'in_transit') <i class="fas fa-truck-fast"></i>
+                                            @elseif($order->status === 'delivered')  <i class="fas fa-box-open"></i>
+                                            @elseif($order->status === 'completed')  <i class="fas fa-check-circle"></i>
+                                            @elseif($order->status === 'cancelled')  <i class="fas fa-times-circle"></i>
                                             @endif
+                                            {{ __([
+                                                'preparing'  => 'Preparing',
+                                                'pending'    => 'Pending',
+                                                'in_transit' => 'In transit',
+                                                'delivered'  => 'Delivered',
+                                                'completed'  => 'Completed',
+                                                'cancelled'  => 'Cancelled',
+                                            ][$order->status] ?? ucfirst(str_replace('_',' ', $order->status))) }}
+                                        </span>
+                                        @if(!$order->created_at->isToday())
+                                            @php $days = max(1, (int)$order->created_at->diffInDays(now())); @endphp
+                                            <span class="block mt-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+                                                <i class="fas fa-calendar-alt mr-1"></i>
+                                                @if($days <= 7) {{ trans_choice('days_ago', $days, ['count' => $days]) }}
+                                                @else {{ __('Old Order') }}
+                                                @endif
+                                            </span>
                                         @endif
                                     </td>
 
                                     {{-- Payment --}}
                                     <td class="px-4 py-3 whitespace-nowrap text-center">
-                                        @if($editingOrderId === $order->id)
-                                            <div class="flex flex-col items-center gap-1.5">
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full
-                                                    {{ $order->is_paid ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' }}">
-                                                    <i class="fas fa-{{ $order->is_paid ? 'check-circle' : 'exclamation-triangle' }}"></i>
-                                                    {{ $order->is_paid ? __('Paid') : __('Unpaid') }}
-                                                </span>
-                                                <label class="inline-flex items-center gap-1 cursor-pointer text-xs text-zinc-600 dark:text-zinc-400">
-                                                    <input type="checkbox" {{ $order->is_paid ? 'checked' : '' }}
-                                                           class="rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
-                                                           wire:click="togglePaid({{ $order->id }})" />
-                                                    {{ $order->is_paid ? __('Mark Unpaid') : __('Mark Paid') }}
-                                                </label>
-                                            </div>
+                                        @if($order->is_paid)
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                                <i class="fas fa-check-circle"></i> {{ __('Paid') }}
+                                            </span>
                                         @else
-                                            @if($order->is_paid)
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                                    <i class="fas fa-check-circle"></i> {{ __('Paid') }}
-                                                </span>
-                                            @else
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                                    <i class="fas fa-exclamation-triangle"></i> {{ __('Unpaid') }}
-                                                </span>
-                                            @endif
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                                <i class="fas fa-exclamation-triangle"></i> {{ __('Unpaid') }}
+                                            </span>
                                         @endif
                                     </td>
 
                                     {{-- Delivered by --}}
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-800 dark:text-zinc-200">
-                                        @if($editingOrderId === $order->id)
-                                            <select wire:model="editDeliveredBy"
-                                                class="w-full border rounded-lg px-2 py-1 text-xs bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
-                                                <option value="">{{ __('Unassign') }}</option>
-                                                @foreach($employees as $emp)
-                                                    <option value="{{ $emp->id }}">{{ $emp->name }}</option>
-                                                @endforeach
-                                            </select>
+                                        @if($order->order_type === 'walk_in')
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                                <i class="fas fa-walking"></i> Walk-In
+                                            </span>
                                         @else
-                                            @if($order->order_type === 'walk_in')
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                                    <i class="fas fa-walking"></i> Walk-In
-                                                </span>
-                                            @else
-                                                <i class="fas fa-user-tie mr-1 text-zinc-400"></i>{{ $order->employee->name ?? __('N/A') }}
-                                            @endif
+                                            <i class="fas fa-user-tie mr-1 text-zinc-400"></i>{{ $order->employee->name ?? __('N/A') }}
                                         @endif
                                     </td>
 
@@ -592,20 +531,24 @@
                                             </button>
 
                                             {{-- Edit / Save --}}
-                                            @if($editingOrderId === $order->id)
-                                                <button wire:click="saveEdit({{ $order->id }})"
-                                                    class="tbl-action-btn text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
-                                                    title="{{ __('Save') }}">
-                                                    <i class="fas fa-save text-base"></i>
-                                                    <span class="text-xs">{{ __('Save') }}</span>
-                                                </button>
+                                            @php
+                                                $editLocked = in_array($order->status, ['in_transit','delivered','completed','cancelled']);
+                                            @endphp
+
+                                            @if(!$editLocked)
+                                                <a href="{{ route('orders.edit', $order) }}" wire:navigate>
+                                                    <button class="tbl-action-btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                                                            title="{{ __('Edit') }}">
+                                                        <i class="fas fa-edit text-base"></i>
+                                                        <span class="text-xs">{{ __('Edit') }}</span>
+                                                    </button>
+                                                </a>
                                             @else
-                                                <button wire:click="editOrder({{ $order->id }})"
-                                                    class="tbl-action-btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                                                    title="{{ __('Edit') }}">
-                                                    <i class="fas fa-edit text-base"></i>
+                                                <span class="tbl-action-btn text-zinc-300 dark:text-zinc-600 cursor-not-allowed opacity-50"
+                                                    title="{{ __('Cannot edit') }} — {{ $order->status }}">
+                                                    <i class="fas fa-lock text-base"></i>
                                                     <span class="text-xs">{{ __('Edit') }}</span>
-                                                </button>
+                                                </span>
                                             @endif
 
                                             {{-- State-driven action --}}
@@ -618,13 +561,13 @@
                                                         <span class="text-xs">{{ __('No Staff') }}</span>
                                                     </span>
                                                 @elseif($deliveryStatus === 'available')
-                                                    <button wire:click="startDelivery({{ $order->id }})" @disabled($editingOrderId)
+                                                    <button wire:click="startDelivery({{ $order->id }})"
                                                         class="tbl-action-btn text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20">
                                                         <i class="fas fa-truck text-base"></i>
                                                         <span class="text-xs">{{ __('Deliver') }}</span>
                                                     </button>
                                                 @elseif($deliveryStatus === 'batch_preparing' || $deliveryStatus === 'busy')
-                                                    <button wire:click="startDelivery({{ $order->id }})" @disabled($editingOrderId)
+                                                    <button wire:click="startDelivery({{ $order->id }})"
                                                         class="tbl-action-btn text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20">
                                                         <i class="fas fa-plus-circle text-base"></i>
                                                         <span class="text-xs">{{ __('Add Delivery') }}</span>
@@ -680,21 +623,21 @@
                                                 @endif
 
                                             @elseif($order->status === 'in_transit')
-                                                <button wire:click="markDelivered({{ $order->id }})" @disabled($editingOrderId)
+                                                <button wire:click="markDelivered({{ $order->id }})"
                                                     class="tbl-action-btn text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20">
                                                     <i class="fas fa-box-open text-base"></i>
                                                     <span class="text-xs">{{ __('Delivered') }}</span>
                                                 </button>
 
                                             @elseif($order->status === 'delivered' && !$order->is_paid)
-                                                <button wire:click="togglePaid({{ $order->id }})" @disabled($editingOrderId)
+                                                <button wire:click="togglePaid({{ $order->id }})"
                                                     class="tbl-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
                                                     <i class="fas fa-money-bill-transfer text-base"></i>
                                                     <span class="text-xs">{{ __('Paid') }}</span>
                                                 </button>
 
                                             @elseif($order->status === 'delivered' && $order->is_paid)
-                                                <button wire:click="markFinished({{ $order->id }})" @disabled($editingOrderId)
+                                                <button wire:click="markFinished({{ $order->id }})"
                                                     class="tbl-action-btn text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
                                                     <i class="fas fa-check-double text-base"></i>
                                                     <span class="text-xs">{{ __('Complete') }}</span>
@@ -833,47 +776,26 @@
                                 </div>
                             </div>
 
-                            @if($editingOrderId === $order->id)
-                                <div class="space-y-2 pt-1 border-t border-zinc-100 dark:border-zinc-700">
-                                    <select wire:model="editStatus"
-                                        class="w-full border rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
-                                        <option value="pending">{{ __('Pending') }}</option>
-                                        <option value="in_transit">{{ __('In transit') }}</option>
-                                        <option value="delivered">{{ __('Delivered') }}</option>
-                                        <option value="completed">{{ __('Completed') }}</option>
-                                        <option value="cancelled">{{ __('Cancelled') }}</option>
-                                    </select>
-                                    <select wire:model="editDeliveredBy"
-                                        class="w-full border rounded-lg px-2 py-1.5 text-xs bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
-                                        <option value="">{{ __('Unassign') }}</option>
-                                        @foreach($employees as $emp)
-                                            <option value="{{ $emp->id }}">{{ $emp->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    <label class="inline-flex items-center gap-2 cursor-pointer text-xs">
-                                        <input type="checkbox" {{ $order->is_paid ? 'checked' : '' }}
-                                               class="rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
-                                               wire:click="togglePaid({{ $order->id }})" />
-                                        {{ $order->is_paid ? __('Mark Unpaid') : __('Mark Paid') }}
-                                    </label>
-                                </div>
-                            @endif
 
                             <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-100 dark:border-zinc-700">
                                 <button wire:click="viewOrderDetails({{ $order->id }})"
                                     class="card-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
                                     <i class="fas fa-eye"></i> {{ __('View') }}
                                 </button>
-                                @if($editingOrderId === $order->id)
-                                    <button wire:click="saveEdit({{ $order->id }})"
-                                        class="card-action-btn text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
-                                        <i class="fas fa-save"></i> {{ __('Save') }}
-                                    </button>
-                                @else
-                                    <button wire:click="editOrder({{ $order->id }})"
+                                @php
+                                    $editLocked = in_array($order->status, ['in_transit','delivered','completed','cancelled']);
+                                @endphp
+
+                                @if(!$editLocked)
+                                    <a href="{{ route('orders.edit', $order) }}" wire:navigate
                                         class="card-action-btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700">
                                         <i class="fas fa-edit"></i> {{ __('Edit') }}
-                                    </button>
+                                    </a>
+                                @else
+                                    <span class="card-action-btn text-zinc-300 dark:text-zinc-600 cursor-not-allowed opacity-50"
+                                        title="{{ __('Cannot edit') }} — {{ $order->status }}">
+                                        <i class="fas fa-lock"></i> {{ __('Edit') }}
+                                    </span>
                                 @endif
                                 <button wire:click="confirmDelete({{ $order->id }})"
                                     class="card-action-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 ml-auto">
@@ -921,83 +843,46 @@
                                     </td>
 
                                     <td class="px-4 py-3 whitespace-nowrap text-center">
-                                        @if($editingOrderId === $order->id)
-                                            <select wire:model="editStatus"
-                                                class="border rounded-lg px-2 py-1 text-xs bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
-                                                <option value="pending">{{ __('Pending') }}</option>
-                                                <option value="in_transit">{{ __('In transit') }}</option>
-                                                <option value="delivered">{{ __('Delivered') }}</option>
-                                                <option value="completed">{{ __('Completed') }}</option>
-                                                <option value="cancelled">{{ __('Cancelled') }}</option>
-                                            </select>
-                                        @else
-                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full
-                                                         bg-{{ $order->status_color }}-100 text-{{ $order->status_color }}-800
-                                                         dark:bg-{{ $order->status_color }}-900/30 dark:text-{{ $order->status_color }}-300">
-                                                @if($order->status === 'completed') <i class="fas fa-check-circle"></i>
-                                                @elseif($order->status === 'cancelled') <i class="fas fa-times-circle"></i>
-                                                @endif
-                                                {{ __([
-                                                    'preparing'  => 'Preparing',
-                                                    'pending'    => 'Pending',
-                                                    'in_transit' => 'In transit',
-                                                    'delivered'  => 'Delivered',
-                                                    'completed'  => 'Completed',
-                                                    'cancelled'  => 'Cancelled',
-                                                ][$order->status] ?? ucfirst(str_replace('_',' ', $order->status))) }}
-                                            </span>
-                                            @if(!$order->created_at->isToday())
-                                                @php $days = max(1, (int)$order->created_at->diffInDays(now())); @endphp
-                                                <span class="block mt-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-                                                    <i class="fas fa-calendar-alt mr-1"></i>
-                                                    @if($days <= 7) {{ trans_choice('days_ago', $days, ['count' => $days]) }}
-                                                    @else {{ __('Old Order') }}
-                                                    @endif
-                                                </span>
+                                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full
+                                                        bg-{{ $order->status_color }}-100 text-{{ $order->status_color }}-800
+                                                        dark:bg-{{ $order->status_color }}-900/30 dark:text-{{ $order->status_color }}-300">
+                                            @if($order->status === 'completed') <i class="fas fa-check-circle"></i>
+                                            @elseif($order->status === 'cancelled') <i class="fas fa-times-circle"></i>
                                             @endif
+                                            {{ __([
+                                                'preparing'  => 'Preparing',
+                                                'pending'    => 'Pending',
+                                                'in_transit' => 'In transit',
+                                                'delivered'  => 'Delivered',
+                                                'completed'  => 'Completed',
+                                                'cancelled'  => 'Cancelled',
+                                            ][$order->status] ?? ucfirst(str_replace('_',' ', $order->status))) }}
+                                        </span>
+                                        @if(!$order->created_at->isToday())
+                                            @php $days = max(1, (int)$order->created_at->diffInDays(now())); @endphp
+                                            <span class="block mt-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
+                                                <i class="fas fa-calendar-alt mr-1"></i>
+                                                @if($days <= 7) {{ trans_choice('days_ago', $days, ['count' => $days]) }}
+                                                @else {{ __('Old Order') }}
+                                                @endif
+                                            </span>
                                         @endif
                                     </td>
 
                                     <td class="px-4 py-3 whitespace-nowrap text-center">
-                                        @if($editingOrderId === $order->id)
-                                            <div class="flex flex-col items-center gap-1.5">
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full
-                                                    {{ $order->is_paid ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' }}">
-                                                    <i class="fas fa-{{ $order->is_paid ? 'check-circle' : 'exclamation-triangle' }}"></i>
-                                                    {{ $order->is_paid ? __('Paid') : __('Unpaid') }}
-                                                </span>
-                                                <label class="inline-flex items-center gap-1 cursor-pointer text-xs text-zinc-600 dark:text-zinc-400">
-                                                    <input type="checkbox" {{ $order->is_paid ? 'checked' : '' }}
-                                                           class="rounded border-zinc-300 dark:border-zinc-600 text-blue-600"
-                                                           wire:click="togglePaid({{ $order->id }})" />
-                                                    {{ $order->is_paid ? __('Mark Unpaid') : __('Mark Paid') }}
-                                                </label>
-                                            </div>
+                                        @if($order->is_paid)
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                                <i class="fas fa-check-circle"></i> {{ __('Paid') }}
+                                            </span>
                                         @else
-                                            @if($order->is_paid)
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                                    <i class="fas fa-check-circle"></i> {{ __('Paid') }}
-                                                </span>
-                                            @else
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                                    <i class="fas fa-exclamation-triangle"></i> {{ __('Unpaid') }}
-                                                </span>
-                                            @endif
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                                <i class="fas fa-exclamation-triangle"></i> {{ __('Unpaid') }}
+                                            </span>
                                         @endif
                                     </td>
 
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-700 dark:text-zinc-300">
-                                        @if($editingOrderId === $order->id)
-                                            <select wire:model="editDeliveredBy"
-                                                class="w-full border rounded-lg px-2 py-1 text-xs bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700">
-                                                <option value="">{{ __('Unassign') }}</option>
-                                                @foreach($employees as $emp)
-                                                    <option value="{{ $emp->id }}">{{ $emp->name }}</option>
-                                                @endforeach
-                                            </select>
-                                        @else
                                             <i class="fas fa-user-tie mr-1 text-zinc-400"></i>{{ $order->employee->name ?? __('N/A') }}
-                                        @endif
                                     </td>
 
                                     <td class="px-4 py-3 whitespace-nowrap text-center">
@@ -1016,18 +901,24 @@
                                                 <span class="text-xs">{{ __('View') }}</span>
                                             </button>
 
-                                            @if($editingOrderId === $order->id)
-                                                <button wire:click="saveEdit({{ $order->id }})"
-                                                    class="tbl-action-btn text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
-                                                    <i class="fas fa-save text-base"></i>
-                                                    <span class="text-xs">{{ __('Save') }}</span>
-                                                </button>
+                                            @php
+                                                $editLocked = in_array($order->status, ['in_transit','delivered','completed','cancelled']);
+                                            @endphp
+
+                                            @if(!$editLocked)
+                                                <a href="{{ route('orders.edit', $order) }}" wire:navigate>
+                                                    <button class="tbl-action-btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                                                            title="{{ __('Edit') }}">
+                                                        <i class="fas fa-edit text-base"></i>
+                                                        <span class="text-xs">{{ __('Edit') }}</span>
+                                                    </button>
+                                                </a>
                                             @else
-                                                <button wire:click="editOrder({{ $order->id }})"
-                                                    class="tbl-action-btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700">
-                                                    <i class="fas fa-edit text-base"></i>
+                                                <span class="tbl-action-btn text-zinc-300 dark:text-zinc-600 cursor-not-allowed opacity-50"
+                                                    title="{{ __('Cannot edit') }} — {{ $order->status }}">
+                                                    <i class="fas fa-lock text-base"></i>
                                                     <span class="text-xs">{{ __('Edit') }}</span>
-                                                </button>
+                                                </span>
                                             @endif
 
                                             <button wire:click="confirmDelete({{ $order->id }})"
@@ -1281,4 +1172,8 @@
         min-width: 3.25rem;
     }
 </style>
+
+    {{-- Full-screen loading overlay for all dashboard actions --}}
+    @include('livewire.partials.loading-overlay', ['wireTarget' => 'search,paymentFilter,statusFilter,clearFilters,viewOrderDetails,confirmDelete,deleteOrderConfirmed,markPreparing,markInTransit,markDelivered,markCompleted,markCancelled'])
+
 </div>

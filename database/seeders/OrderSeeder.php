@@ -27,7 +27,7 @@ class OrderSeeder extends Seeder
 
         $statuses = ['pending', 'in_transit', 'delivered', 'completed', 'cancelled'];
 
-        $random = fake()->numberBetween(1, 168);
+        $random = fake()->numberBetween(1, 5);
 
         // Create random orders with items
         for ($i = 1; $i <= $random; $i++) {
@@ -62,7 +62,7 @@ class OrderSeeder extends Seeder
                 'payment_type' => fake()->randomElement(['cash', 'gcash']),
                 'status' => $status,
                 'is_paid' => $isPaid,
-                'receipt_number' => $prefix . str_pad($nextNumber, 5, '0', STR_PAD_LEFT),
+                'receipt_number' => $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT),
             ]);
 
             $products = Product::query()
