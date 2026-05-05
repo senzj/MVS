@@ -40,7 +40,7 @@
     <div class="grid grid-cols-1 gap-3 mb-8 md:grid-cols-2 xl:grid-cols-4">
 
         {{-- Today's Revenue --}}
-        <div class="p-6 mt-2 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Today\'s Revenue') }}</p>

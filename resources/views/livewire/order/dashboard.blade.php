@@ -36,7 +36,7 @@
 
             <div class="flex items-center gap-2">
                 {{-- Create Existing Record Order --}}
-                <a href="#" wire:navigate>
+                <a href="{{ route('orders.add') }}" wire:navigate>
                     <button type="button"
                         class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-green-600 text-white text-sm font-semibold
                             hover:bg-green-700 active:scale-95 transition-all shadow-md shadow-green-500/20">

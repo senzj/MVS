@@ -18,7 +18,16 @@ new class extends Component {
 
     public function updatedLanguage(): void
     {
+        // Save to session for immediate use
         session()->put('locale', $this->language);
+
+        // Save to database if user is authenticated
+        if (Auth::check()) {
+            Auth::user()->update(['lang' => $this->language]);
+        }
+
+        // Set app locale
+        app()->setLocale($this->language);
 
         // Redirect back to the page URL (not the Livewire update endpoint)
         $referer = request()->headers->get('referer');
