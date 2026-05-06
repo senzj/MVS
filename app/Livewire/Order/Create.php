@@ -11,6 +11,7 @@ use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
 class Create extends Component
@@ -51,10 +52,21 @@ class Create extends Component
     public $employeeSearch = '';
     public $productSearch = '';
 
+    // Product creation state
+    public $showProductForm = false;
+    public $productTargetIndex = null;
+    public $productName = '';
+    public $productDescription = '';
+    public $productCategory = 'other';
+    public $productStocks = 1;
+    public $productPrice = 0;
+
     // Collections for dropdowns
     public $customers = [];
     public $employees = [];
     public $products = [];
+    public $errorFields = [];
+    public bool $showConfirmModal = false;
 
     protected $rules = [
         'orderType' => 'required|in:deliver,walk_in',
@@ -105,6 +117,62 @@ class Create extends Component
             ->where('stocks', '>', 0)
             ->orderBy('id', 'desc')
             ->get();
+    }
+
+    public function openSaveConfirmation(): void
+    {
+        if (!$this->validateSubmissionRequirements()) {
+            $this->showConfirmModal = false;
+            return;
+        }
+
+        $this->showConfirmModal = true;
+    }
+
+    public function closeSaveConfirmation(): void
+    {
+        $this->showConfirmModal = false;
+    }
+
+    public function saveSalesRecord(): void
+    {
+        $this->showConfirmModal = false;
+        $this->createOrder();
+    }
+
+    protected function getSubmissionRules(): array
+    {
+        $rules = $this->rules;
+
+        if ($this->orderType === 'deliver') {
+            $rules['selectedEmployeeId'] = 'required|exists:employees,id';
+
+            if ($this->isCreatingNewCustomer) {
+                $rules['customerName'] = 'required|string|max:255';
+                $rules['customerContact'] = 'required|string|max:20';
+                $rules['customerAddress'] = 'required|string|max:255';
+                $rules['selectedCustomerId'] = 'nullable';
+            } else {
+                $rules['selectedCustomerId'] = 'required|exists:customers,id';
+            }
+        }
+
+        return $rules;
+    }
+
+    protected function validateSubmissionRequirements(): bool
+    {
+        $rules = $this->getSubmissionRules();
+
+        try {
+            $this->validate($rules);
+        } catch (ValidationException $e) {
+            $this->errorFields = array_keys($e->errors());
+            $this->dispatch('form-validation-failed', errorFields: $this->errorFields);
+            return false;
+        }
+
+        return true;
     }
 
     // Check if employee is currently in transit
@@ -245,10 +313,10 @@ class Create extends Component
             ->first();
 
         if ($product && isset($this->orderItems[$itemIndex])) {
-            $isFree = (bool) ($this->orderItems[$itemIndex]['is_free'] ?? false);
             $this->orderItems[$itemIndex]['product_id'] = $product->id;
             $this->orderItems[$itemIndex]['product_name'] = $product->name;
-            $this->orderItems[$itemIndex]['price'] = $isFree ? 0 : (float) $product->price;
+            $this->orderItems[$itemIndex]['stocks'] = (int) $product->stocks;
+            $this->orderItems[$itemIndex]['price'] = (float) $product->price;
 
             // Ensure quantity never exceeds available stock
             $currentQty = (int) ($this->orderItems[$itemIndex]['quantity'] ?? 1);
@@ -275,9 +343,11 @@ class Create extends Component
 
             if ($productId) {
                 $product = Product::find($productId);
+                $this->orderItems[$index]['stocks'] = (int) $product->stocks;
                 if ($product && $product->is_in_stock && $product->stocks > 0) {
                     $this->orderItems[$index]['product_name'] = $product->name;
                     $this->orderItems[$index]['price'] = $product->price;
+                $this->orderItems[$index]['stocks'] = 0;
 
                     $qty = (int) ($this->orderItems[$index]['quantity'] ?? 1);
                     $this->orderItems[$index]['quantity'] = min(max($qty, 1), (int) $product->stocks);
@@ -320,18 +390,8 @@ class Create extends Component
             $this->calculateItemTotal($index);
         }
 
-        // Keep price/total in sync when free flag changes
+        // Keep total in sync when free flag changes (price stays the same)
         if ($field === 'is_free') {
-            $productId = $this->orderItems[$index]['product_id'] ?? null;
-            $isFree = (bool) ($this->orderItems[$index]['is_free'] ?? false);
-
-            if ($isFree) {
-                $this->orderItems[$index]['price'] = 0;
-            } elseif ($productId) {
-                $product = Product::find($productId);
-                $this->orderItems[$index]['price'] = $product ? (float) $product->price : 0;
-            }
-
             $this->calculateItemTotal($index);
         }
 
@@ -345,9 +405,17 @@ class Create extends Component
 
     public function calculateItemTotal(int $index)
     {
-        $quantity = (int) ($this->orderItems[$index]['quantity'] ?? 0);
-        $price = (float) ($this->orderItems[$index]['price'] ?? 0);
-        $this->orderItems[$index]['total'] = $quantity * $price;
+        $isFree = (bool) ($this->orderItems[$index]['is_free'] ?? false);
+
+        if ($isFree) {
+            // If marked as no charge, set total to 0 (won't be added to order total)
+            $this->orderItems[$index]['total'] = 0;
+        } else {
+            // Otherwise calculate normally
+            $quantity = (int) ($this->orderItems[$index]['quantity'] ?? 0);
+            $price = (float) ($this->orderItems[$index]['price'] ?? 0);
+            $this->orderItems[$index]['total'] = $quantity * $price;
+        }
     }
 
     // Order Items Management
@@ -356,6 +424,7 @@ class Create extends Component
         $this->orderItems[] = [
             'product_id' => null,
             'product_name' => '',
+            'stocks' => 0,
             'quantity' => 1,
             'price' => 0,
             'total' => 0,
@@ -447,8 +516,66 @@ class Create extends Component
     public function getTotalAmountProperty()
     {
         return collect($this->orderItems)->sum(function ($item) {
+            // Skip items marked as no charge
+            if ($item['is_free'] ?? false) {
+                return 0;
+            }
             return ((int) ($item['quantity'] ?? 0)) * ((float) ($item['price'] ?? 0));
         });
+    }
+
+    public function openProductForm(?int $itemIndex = null)
+    {
+        $this->showProductForm = true;
+        $this->productTargetIndex = $itemIndex;
+        $this->resetProductForm();
+    }
+
+    public function closeProductForm()
+    {
+        $this->showProductForm = false;
+        $this->productTargetIndex = null;
+        $this->resetProductForm();
+        $this->resetErrorBag(['productName', 'productDescription', 'productCategory', 'productStocks', 'productPrice']);
+    }
+
+    public function resetProductForm()
+    {
+        $this->productName = '';
+        $this->productDescription = '';
+        $this->productCategory = 'other';
+        $this->productStocks = 1;
+        $this->productPrice = 0;
+    }
+
+    public function createProduct()
+    {
+        $this->validate([
+            'productName' => 'required|string|max:255',
+            'productDescription' => 'nullable|string',
+            'productCategory' => 'required|string|max:255',
+            'productStocks' => 'required|integer|min:0',
+            'productPrice' => 'required|numeric|min:0',
+        ]);
+
+        $product = Product::create([
+            'name' => ucwords(trim($this->productName)),
+            'description' => trim((string) $this->productDescription),
+            'stocks' => (int) $this->productStocks,
+            'sold' => 0,
+            'is_in_stock' => (int) $this->productStocks > 0,
+            'category' => $this->productCategory,
+            'price' => $this->productPrice,
+        ]);
+
+        $this->loadData();
+
+        if ($this->productTargetIndex !== null && isset($this->orderItems[$this->productTargetIndex])) {
+            $this->selectProduct($product->id, $this->productTargetIndex);
+        }
+
+        $this->closeProductForm();
+        $this->dispatch('show-success', ['message' => 'Product created successfully!']);
     }
 
     public function getSelectedCustomerProperty()
@@ -523,10 +650,43 @@ class Create extends Component
         try {
             $this->createOrder();
             $this->closePaymentModal();
-        } catch (\Exception $e) {
-            $this->processingPayment = false;
-            throw $e;
+        } catch (ValidationException $e) {
+            $this->errorFields = array_keys($e->errors());
+            $this->dispatch('form-validation-failed', errorFields: $this->errorFields);
+            return;
         }
+    }
+
+    // Validation method for submit button state
+    public function canSubmit()
+    {
+        // Check if at least one product is selected
+        $hasProducts = collect($this->orderItems)->some(fn($item) => !empty($item['product_id']));
+        if (!$hasProducts) {
+            return false;
+        }
+
+        // For delivery orders, check additional requirements
+        if ($this->orderType === 'deliver') {
+            // Must have delivery person selected
+            if (!$this->selectedEmployeeId) {
+                return false;
+            }
+
+            // Must have customer - either selected or being created
+            if (!$this->isCreatingNewCustomer && !$this->selectedCustomerId) {
+                return false;
+            }
+
+            // If creating new customer, must have all required fields
+            if ($this->isCreatingNewCustomer) {
+                if (empty($this->customerName) || empty($this->customerAddress) || empty($this->customerContact)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     // Modified Form Submission
@@ -535,24 +695,11 @@ class Create extends Component
         // Debug: Log the current orderType value
         // Log::info('Creating order with orderType: ' . $this->orderType);
 
-        // Dynamic validation based on order type
-        $rules = $this->rules;
-
-        if ($this->orderType === 'deliver') {
-            if ($this->isCreatingNewCustomer) {
-                $rules['customerName'] = 'required|string|max:255';
-                $rules['customerContact'] = 'required|string|max:20';
-                $rules['customerAddress'] = 'required|string|max:255';
-                $rules['selectedCustomerId'] = 'nullable';
-            } else {
-                $rules['selectedEmployeeId'] = 'required|exists:employees,id';
-                $rules['selectedCustomerId'] = 'required|exists:customers,id';
-            }
+        if (!$this->validateSubmissionRequirements()) {
+            return;
         }
 
-        // For walk-in orders, show payment modal instead of creating order directly
-        $this->validate($rules);
-
+        // For walk-in orders, open payment modal first before creating the order
         if ($this->orderType === 'walk_in' && !$this->processingPayment) {
             $this->openPaymentModal();
             return;
@@ -561,21 +708,26 @@ class Create extends Component
         // Pre-check stocks before starting the transaction
         foreach ($this->orderItems as $i => $item) {
             if (!($item['product_id'] ?? null)) {
-                $this->addError("orderItems.$i.product_id", 'Please select a product.');
+                $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$i}.product_id"]);
                 return;
             }
+
             $product = Product::find($item['product_id']);
+
             if (!$product || !$product->is_in_stock || $product->stocks <= 0) {
-                $this->addError("orderItems.$i.product_id", 'Product is out of stock.');
+                $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$i}.product_id"]);
                 return;
             }
+
             $qty = (int) ($item['quantity'] ?? 0);
+
             if ($qty < 1) {
-                $this->addError("orderItems.$i.quantity", 'Quantity must be at least 1.');
+                $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$i}.quantity"]);
                 return;
             }
+
             if ($qty > (int) $product->stocks) {
-                $this->addError("orderItems.$i.quantity", "Only {$product->stocks} in stock.");
+                $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$i}.quantity"]);
                 return;
             }
         }

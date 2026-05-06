@@ -177,7 +177,7 @@
 
     {{-- Loading overlay --}}
     @include('livewire.partials.loading-overlay', [
-        'wireTarget' => 'categoryFilter,stockFilter,search,sortByField',
+        'wireTarget' => 'categoryFilter,stockFilter,search,sortByField,createProduct,updateProduct,archiveProduct,deleteProduct,makeAvailable',
         'title' => __('Updating...'),
         'message' => __('Please wait while we process your request'),
     ])

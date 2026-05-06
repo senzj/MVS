@@ -17,7 +17,7 @@
             {{-- main nav group --}}
             <flux:navlist variant="outline">
                 <flux:navlist.group :heading="__('Shop')" class="grid">
-                    
+
                     {{-- dashboard --}}
                     <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
 
@@ -161,5 +161,3 @@
         @fluxScripts
     </body>
 </html>
-
-{{-- uses hero icons --}}

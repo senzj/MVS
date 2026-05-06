@@ -16,6 +16,17 @@ window.Chart = Chart; // Add this line to make Chart.js globally available
 
 import initDashboardCharts, { destroyDashboardCharts } from './dashboard-charts';
 
+function setNavigationOverlayVisible(isVisible) {
+  const overlay = document.getElementById('app-navigation-overlay');
+
+  if (!overlay) {
+    return;
+  }
+
+  overlay.classList.toggle('hidden', !isVisible);
+  overlay.classList.toggle('flex', isVisible);
+}
+
 function registerDashboardChartsListener() {
   if (window.__dashboardChartsListenerRegistered) return;
   window.__dashboardChartsListenerRegistered = true;
@@ -40,10 +51,32 @@ function registerDashboardChartsListener() {
   });
 }
 
+function registerNavigationOverlayListener() {
+  if (window.__navigationOverlayListenerRegistered) return;
+  window.__navigationOverlayListenerRegistered = true;
+
+  window.addEventListener('livewire:navigating', () => {
+    setNavigationOverlayVisible(true);
+  });
+
+  window.addEventListener('livewire:navigated', () => {
+    setNavigationOverlayVisible(false);
+  });
+
+  window.addEventListener('pageshow', () => {
+    setNavigationOverlayVisible(false);
+  });
+}
+
 // Ensure listener is registered when Livewire and DOM are ready
-window.addEventListener('livewire:init', registerDashboardChartsListener);
+window.addEventListener('livewire:init', () => {
+  registerDashboardChartsListener();
+  registerNavigationOverlayListener();
+});
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   registerDashboardChartsListener();
+  registerNavigationOverlayListener();
 } else {
   document.addEventListener('DOMContentLoaded', registerDashboardChartsListener);
+  document.addEventListener('DOMContentLoaded', registerNavigationOverlayListener);
 }

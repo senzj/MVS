@@ -10,6 +10,7 @@ use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
 class Add extends Component
@@ -33,6 +34,7 @@ class Add extends Component
     public array $employees = [];
     public array $products = [];
     public array $orderItems = [];
+    public array $errorFields = [];
 
     public string $customerSearch = '';
     public string $employeeSearch = '';
@@ -72,6 +74,9 @@ class Add extends Component
         $this->saleDate = now()->format('Y-m-d\TH:i');
         $this->addOrderItem();
         $this->loadData();
+
+        // Set default order type from store config (env)
+        $this->orderType = config('storeconfig.default_order_type', 'walk_in');
     }
 
     public function loadData(): void
@@ -147,12 +152,58 @@ class Add extends Component
 
     public function openSaveConfirmation(): void
     {
+        if (!$this->validateSubmissionRequirements()) {
+            $this->showConfirmModal = false;
+            return;
+        }
+
         $this->showConfirmModal = true;
     }
 
     public function closeSaveConfirmation(): void
     {
         $this->showConfirmModal = false;
+    }
+
+    public function saveSalesRecord(): void
+    {
+        $this->showConfirmModal = false;
+        $this->createOrder();
+    }
+
+    protected function getSubmissionRules(): array
+    {
+        $rules = $this->rules;
+
+        if ($this->orderType === 'deliver') {
+            $rules['selectedEmployeeId'] = 'required|exists:employees,id';
+
+            if ($this->isCreatingNewCustomer) {
+                $rules['customerName'] = 'required|string|max:255';
+                $rules['customerContact'] = 'required|string|max:20';
+                $rules['customerAddress'] = 'required|string|max:255';
+                $rules['selectedCustomerId'] = 'nullable';
+            } else {
+                $rules['selectedCustomerId'] = 'required|exists:customers,id';
+            }
+        }
+
+        return $rules;
+    }
+
+    protected function validateSubmissionRequirements(): bool
+    {
+        $rules = $this->getSubmissionRules();
+
+        try {
+            $this->validate($rules);
+        } catch (ValidationException $e) {
+            $this->errorFields = array_keys($e->errors());
+            $this->dispatch('form-validation-failed', errorFields: $this->errorFields);
+            return false;
+        }
+
+        return true;
     }
 
     public function generateReceiptNumber(): string
@@ -237,6 +288,11 @@ class Add extends Component
         return $query->orderBy('name', 'asc')->take(30)->get();
     }
 
+    public function getSelectedCustomerProperty()
+    {
+        return $this->selectedCustomerId ? Customer::query()->whereKey($this->selectedCustomerId)->first() : null;
+    }
+
     public function getFilteredProductsProperty()
     {
         $query = Product::query();
@@ -258,9 +314,11 @@ class Add extends Component
         $this->orderItems[] = [
             'product_id' => null,
             'product_name' => '',
+            'stocks' => 0,
             'quantity' => 1,
             'price' => 0,
             'total' => 0,
+            'is_free' => false,
         ];
     }
 
@@ -288,6 +346,7 @@ class Add extends Component
 
         $this->orderItems[$itemIndex]['product_id'] = $product->id;
         $this->orderItems[$itemIndex]['product_name'] = $product->name;
+        $this->orderItems[$itemIndex]['stocks'] = (int) $product->stocks;
         $this->orderItems[$itemIndex]['price'] = (float) $product->price;
 
         $this->calculateItemTotal($itemIndex);
@@ -308,9 +367,11 @@ class Add extends Component
 
             if ($product) {
                 $this->orderItems[$index]['product_name'] = $product->name;
+                $this->orderItems[$index]['stocks'] = (int) $product->stocks;
                 $this->orderItems[$index]['price'] = (float) $product->price;
             } else {
                 $this->orderItems[$index]['product_name'] = '';
+                $this->orderItems[$index]['stocks'] = 0;
                 $this->orderItems[$index]['price'] = 0;
             }
         }
@@ -323,6 +384,11 @@ class Add extends Component
             $this->orderItems[$index]['price'] = max(0, (float) ($this->orderItems[$index]['price'] ?? 0));
         }
 
+        // Keep total in sync when free flag changes (price stays the same)
+        if ($field === 'is_free') {
+            $this->calculateItemTotal($index);
+        }
+
         $this->calculateItemTotal($index);
     }
 
@@ -332,19 +398,62 @@ class Add extends Component
             return;
         }
 
-        $quantity = max(1, (int) ($this->orderItems[$index]['quantity'] ?? 1));
-        $price = max(0, (float) ($this->orderItems[$index]['price'] ?? 0));
+        $isFree = (bool) ($this->orderItems[$index]['is_free'] ?? false);
 
-        $this->orderItems[$index]['quantity'] = $quantity;
-        $this->orderItems[$index]['price'] = $price;
-        $this->orderItems[$index]['total'] = $quantity * $price;
+        if ($isFree) {
+            // If marked as no charge, set total to 0 (won't be added to order total)
+            $this->orderItems[$index]['total'] = 0;
+        } else {
+            // Otherwise calculate normally
+            $quantity = max(1, (int) ($this->orderItems[$index]['quantity'] ?? 1));
+            $price = max(0, (float) ($this->orderItems[$index]['price'] ?? 0));
+            $this->orderItems[$index]['total'] = $quantity * $price;
+        }
     }
 
     public function getTotalAmountProperty(): float
     {
         return (float) collect($this->orderItems)->sum(function ($item) {
+            // Skip items marked as no charge
+            if ($item['is_free'] ?? false) {
+                return 0;
+            }
             return max(1, (int) ($item['quantity'] ?? 1)) * max(0, (float) ($item['price'] ?? 0));
         });
+    }
+
+    public function canSubmit(): bool
+    {
+        // Check if at least one product is selected
+        $hasValidItems = collect($this->orderItems)->some(function ($item) {
+            return !empty($item['product_id']);
+        });
+
+        if (!$hasValidItems) {
+            return false;
+        }
+
+        // If delivery order, check for required fields
+        if ($this->orderType === 'deliver') {
+            // Must have delivery person
+            if (!$this->selectedEmployeeId) {
+                return false;
+            }
+
+            // Must have customer (either selected or creating new)
+            if (!$this->isCreatingNewCustomer && !$this->selectedCustomerId) {
+                return false;
+            }
+
+            // If creating new customer, must have name, address, and contact
+            if ($this->isCreatingNewCustomer) {
+                if (empty(trim($this->customerName)) || empty(trim($this->customerAddress)) || empty(trim($this->customerContact))) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     public function openProductForm(?int $itemIndex = null): void
@@ -401,26 +510,9 @@ class Add extends Component
         $this->dispatch('show-success', ['message' => 'Product created successfully!']);
     }
 
-    public function saveSalesRecord()
+    public function createOrder()
     {
-        $rules = $this->rules;
-
-        if ($this->orderType === 'deliver') {
-            $rules['selectedEmployeeId'] = 'required|exists:employees,id';
-            if ($this->isCreatingNewCustomer) {
-                $rules['customerName'] = 'required|string|max:255';
-                $rules['customerContact'] = 'required|string|max:20';
-                $rules['customerAddress'] = 'required|string|max:255';
-                $rules['selectedCustomerId'] = 'nullable';
-            } else {
-                $rules['selectedCustomerId'] = 'required|exists:customers,id';
-            }
-        }
-
-        if ($this->isCreatingNewCustomer && $this->orderType !== 'deliver') {
-            $rules['customerName'] = 'required|string|max:255';
-            $rules['selectedCustomerId'] = 'nullable';
-        }
+        $rules = $this->getSubmissionRules();
 
         // Check that at least one item has a valid product selected
         $hasValidItems = collect($this->orderItems)->some(function ($item) {
@@ -429,15 +521,25 @@ class Add extends Component
 
         if (!$hasValidItems) {
             $this->showConfirmModal = false;
-            $this->dispatch('show-error', ['message' => 'Please select at least one product for an order item.']);
+            $fields = collect(array_keys($this->orderItems))
+                ->map(fn($i) => "orderItems.{$i}.product_id")
+                ->values()
+                ->all();
+            $this->dispatch('form-validation-failed', errorFields: $fields);
             return;
+        }
+
+        if ($this->isCreatingNewCustomer && $this->orderType !== 'deliver') {
+            $rules['customerName'] = 'required|string|max:255';
+            $rules['selectedCustomerId'] = 'nullable';
         }
 
         try {
             $this->validate($rules);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
+            $this->errorFields = array_keys($e->errors());
             $this->showConfirmModal = false;
-            $this->dispatch('show-error', ['message' => __('Validation failed. ' . $e->getMessage())]);
+            $this->dispatch('form-validation-failed', errorFields: $this->errorFields);
             return;
         }
 
@@ -541,7 +643,7 @@ class Add extends Component
 
         $this->receiptNumber = $this->generateReceiptNumber();
         $this->saleDate = now()->format('Y-m-d\\TH:i');
-        $this->orderType = 'walk_in';
+        $this->orderType = config('storeconfig.default_order_type', 'walk_in');
         $this->paymentType = 'cash';
         $this->isPaid = true;
         $this->status = 'completed';

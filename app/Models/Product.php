@@ -25,20 +25,20 @@ class Product extends Model
     public static function getCategories()
     {
         return [
-            'meat' => 'Meat & Poultry',
-            'vegetables' => 'Vegetables',
-            'fruits' => 'Fruits',
-            'dairy' => 'Dairy',
-            'eggs' => 'Eggs',
-            'seafood' => 'Seafood',
-            'beverages' => 'Beverages',
-            'snacks' => 'Snacks',
-            'condiments' => 'Condiments & Spices',
-            'grains' => 'Grains & Cereals',
-            'frozen' => 'Frozen Goods',
-            'bakery' => 'Bakery Goods',
-            'gas' => 'Gas',
-            'other' => 'Other',
+            'meat' => __('Meat & Poultry'),
+            'vegetables' => __('Vegetables'),
+            'fruits' => __('Fruits'),
+            'dairy' => __('Dairy'),
+            'eggs' => __('Eggs'),
+            'seafood' => __('Seafood'),
+            'beverages' => __('Beverages'),
+            'snacks' => __('Snacks'),
+            'condiments' => __('Condiments & Spices'),
+            'grains' => __('Grains & Cereals'),
+            'frozen' => __('Frozen Goods'),
+            'bakery' => __('Bakery Goods'),
+            'gas' => __('Gas'),
+            'other' => __('Other'),
         ];
     }
 

@@ -16,10 +16,10 @@ toastr.options = {
   // Shows a timer/progress bar at the bottom of the toast
   "progressBar": true,
 
-  // Sets the position on screen. Options include: 
+  // Sets the position on screen. Options include:
   // "toast-top-right", "toast-bottom-right", "toast-bottom-left", "toast-top-left",
   // "toast-top-full-width", "toast-bottom-full-width", "toast-top-center", "toast-bottom-center"
-  "positionClass": "toast-top-left",
+  "positionClass": "toast-bottom-left",
 
   // Prevents showing duplicate toasts (same message)
   "preventDuplicates": false,

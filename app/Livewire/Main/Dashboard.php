@@ -84,6 +84,25 @@ class Dashboard extends Component
         })->values();
     }
 
+    private function isNoChargeItem(OrderItem $orderItem): bool
+    {
+        return (float) $orderItem->unit_price <= 0
+            && (float) $orderItem->total_price <= 0
+            && (int) $orderItem->quantity > 0;
+    }
+
+    private function summarizeNoChargeItems(Collection $orderItems, Carbon $start, ?Carbon $end = null): array
+    {
+        $freeItems = $this->filterOrderItems($orderItems, $start, $end)
+            ->filter(fn (OrderItem $orderItem) => $this->isNoChargeItem($orderItem));
+
+        return [
+            'items' => $freeItems->count(),
+            'units' => (int) $freeItems->sum('quantity'),
+            'orders' => $freeItems->pluck('order_id')->filter()->unique()->count(),
+        ];
+    }
+
     private function formatCategoryName(?string $category): string
     {
         if (! $category) {
@@ -159,6 +178,7 @@ class Dashboard extends Component
 
         $todayOrders = $this->filterOrders($orders, $today, $todayEnd);
         $todayItems = $this->filterOrderItems($orderItems, $today, $todayEnd);
+        $todayNoCharge = $this->summarizeNoChargeItems($orderItems, $today, $todayEnd);
         $yesterdayOrders = $this->filterOrders($orders, $yesterday, $yesterdayEnd);
 
         $todaySales = round((float) $todayOrders->sum('order_total'), 2);
@@ -178,6 +198,9 @@ class Dashboard extends Component
             'paid' => $todayOrders->where('is_paid', true)->count(),
             'unpaid' => $orders->filter(fn (Order $order) => ! $order->is_paid && ! in_array($order->status, ['completed', 'cancelled'], true))->count(),
             'units_sold' => (int) $todayItems->sum('quantity'),
+            'free_items' => $todayNoCharge['items'],
+            'free_units' => $todayNoCharge['units'],
+            'free_orders' => $todayNoCharge['orders'],
             'sales_growth' => round($salesGrowth, 1),
             'profit_margin' => self::ESTIMATED_PROFIT_MARGIN * 100,
             'raw_sales' => $todaySales,
@@ -365,6 +388,7 @@ class Dashboard extends Component
         $last30Days = Carbon::now()->subDays(29)->startOfDay();
         $monthOrders = $this->filterOrders($orders, $last30Days);
         $monthItems = $this->filterOrderItems($orderItems, $last30Days);
+        $monthNoCharge = $this->summarizeNoChargeItems($orderItems, $last30Days);
         $monthSales = round((float) $monthOrders->sum('order_total'), 2);
         $monthProfit = round($monthSales * self::ESTIMATED_PROFIT_MARGIN, 2);
         $monthOrdersCount = $monthOrders->count();
@@ -396,6 +420,10 @@ class Dashboard extends Component
             'month_profit' => $monthProfit,
             'month_orders' => $monthOrdersCount,
             'month_units_sold' => $unitsSold,
+            'free_items' => $monthNoCharge['items'],
+            'free_units' => $monthNoCharge['units'],
+            'free_orders' => $monthNoCharge['orders'],
+            'free_order_rate' => $monthOrdersCount > 0 ? round(($monthNoCharge['orders'] / $monthOrdersCount) * 100, 1) : 0,
             'average_daily_sales' => round($monthSales / 30, 2),
             'average_order_value' => $monthOrdersCount > 0 ? round($monthSales / $monthOrdersCount, 2) : 0,
             'completion_rate' => $monthOrdersCount > 0 ? round(($completedOrders / $monthOrdersCount) * 100, 1) : 0,

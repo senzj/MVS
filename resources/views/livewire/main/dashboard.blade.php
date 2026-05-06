@@ -1,4 +1,4 @@
-@section('title', 'Dashboard')
+@section('title', __('Dashboard'))
 <div class="container p-1 mx-auto">
 
     {{-- Header --}}
@@ -149,6 +149,53 @@
                     <p class="text-sm text-rose-600 dark:text-rose-400">{{ __('Open balance') }}</p>
                 </div>
                 <i class="fas fa-receipt text-rose-500 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    {{-- No Charge Activity --}}
+    <div class="grid grid-cols-1 gap-3 mb-8 md:grid-cols-2 xl:grid-cols-4">
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Free Items Today') }}</p>
+            <div class="flex items-end justify-between mt-2">
+                <div>
+                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['free_items'] ?? 0 }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Line items given away') }}</p>
+                </div>
+                <i class="fas fa-gift text-emerald-500 text-xl"></i>
+            </div>
+        </div>
+
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Free Units Today') }}</p>
+            <div class="flex items-end justify-between mt-2">
+                <div>
+                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['free_units'] ?? 0 }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Units moved with zero charge') }}</p>
+                </div>
+                <i class="fas fa-box-open text-blue-500 text-xl"></i>
+            </div>
+        </div>
+
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Orders with Free Items Today') }}</p>
+            <div class="flex items-end justify-between mt-2">
+                <div>
+                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['free_orders'] ?? 0 }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Orders containing no-charge items') }}</p>
+                </div>
+                <i class="fas fa-bag-shopping text-purple-500 text-xl"></i>
+            </div>
+        </div>
+
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Free Order Share') }}</p>
+            <div class="flex items-end justify-between mt-2">
+                <div>
+                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['free_order_rate'] ?? 0, 1) }}%</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Last 30 days') }}</p>
+                </div>
+                <i class="fas fa-percentage text-amber-500 text-xl"></i>
             </div>
         </div>
     </div>

@@ -27,6 +27,7 @@ class Edit extends Component
     public array $originalItemTotals = [];
     public $products = [];
     public string $productSearch = '';
+    public bool $showConfirmModal = false;
 
     // Customer search / selection helpers
     public string $customerSearch  = '';
@@ -88,27 +89,44 @@ class Edit extends Component
         }
     }
 
-    public function selectProduct(int $index, $productId): void
+    public function openSaveConfirmation(): void
+    {
+        $this->showConfirmModal = true;
+    }
+
+    public function closeSaveConfirmation(): void
+    {
+        $this->showConfirmModal = false;
+    }
+
+    public function saveSalesRecord(): void
+    {
+        $this->showConfirmModal = false;
+        $this->save();
+    }
+
+    public function selectProduct(int $productId, int $itemIndex): void
     {
         $product = Product::query()->where('id', $productId)->first();
-        if (!$product || !isset($this->orderItems[$index])) return;
+        if (!$product || !isset($this->orderItems[$itemIndex])) return;
 
-        $isFree = (bool) ($this->orderItems[$index]['is_free'] ?? false);
+        $this->orderItems[$itemIndex]['product_id'] = $product->id;
+        $this->orderItems[$itemIndex]['product_name'] = $product->name;
+        $this->orderItems[$itemIndex]['stocks'] = $product->stocks;
 
-        $this->orderItems[$index]['product_id'] = $product->id;
-        $this->orderItems[$index]['product_name'] = $product->name;
-        $this->orderItems[$index]['price'] = $isFree ? 0 : (float) $product->price;
+        $this->orderItems[$itemIndex]['price'] = (float) $product->price;
+        $this->orderItems[$itemIndex]['original_price'] = (float) $product->price;
 
-        $currentQty = (int) ($this->orderItems[$index]['quantity'] ?? 1);
-        $this->orderItems[$index]['quantity'] = min(max($currentQty,1), (int) $product->stocks);
+        $currentQty = (int) ($this->orderItems[$itemIndex]['quantity'] ?? 1);
+        $this->orderItems[$itemIndex]['quantity'] = min(max($currentQty,1), (int) $product->stocks);
 
-        $this->calculateItemTotal($index);
+        $this->calculateItemTotal($itemIndex);
     }
 
     // Wrapper so the dropdown can call selectProduct(productId, index) like Create
     public function selectProductFromDropdown(int $productId, int $itemIndex): void
     {
-        $this->selectProduct((int) $itemIndex, $productId);
+        $this->selectProduct($productId, $itemIndex);
     }
 
     public function getFilteredProductsProperty()
@@ -168,8 +186,9 @@ class Edit extends Component
                     'product_name' => $item->product?->name ?? 'Product #' . $item->product_id,
                     'quantity' => (int) $item->quantity,
                     'price' => (float) $item->unit_price,
+                    'stocks' => $item->product?->stocks ?? 0,
                     'original_price' => (float) $item->unit_price,
-                    'is_free' => (float) $item->unit_price <= 0,
+                    'is_free' => (float) $item->total_price <= 0,
                     'total' => (float) $item->total_price,
                 ];
             })
@@ -200,15 +219,17 @@ class Edit extends Component
 
     public function calculateItemTotal(int $index): void
     {
-        if (!isset($this->orderItems[$index])) {
+        if (!isset($this->orderItems[$index])) return;
+
+        $isFree = !empty($this->orderItems[$index]['is_free']);
+
+        $quantity = max(1, (int) ($this->orderItems[$index]['quantity'] ?? 1));
+
+        if ($isFree) {
+            $this->orderItems[$index]['total'] = 0;
             return;
         }
 
-        if (!empty($this->orderItems[$index]['is_free'])) {
-            $this->orderItems[$index]['price'] = 0;
-        }
-
-        $quantity = max(1, (int) ($this->orderItems[$index]['quantity'] ?? 1));
         $price = max(0, (float) ($this->orderItems[$index]['price'] ?? 0));
 
         $this->orderItems[$index]['quantity'] = $quantity;
@@ -227,15 +248,16 @@ class Edit extends Component
 
         if ($field === 'is_free') {
             if (!empty($this->orderItems[$index]['is_free'])) {
-                $this->orderItems[$index]['price'] = 0;
+                $this->orderItems[$index]['total'] = 0;
             } else {
                 $this->orderItems[$index]['price'] = (float) ($this->orderItems[$index]['original_price'] ?? 0);
+                $this->orderItems[$index]['total'] = (int) ($this->orderItems[$index]['quantity'] ?? 1) * (float) ($this->orderItems[$index]['price'] ?? 0);
             }
         }
 
         if ($field === 'price') {
             $this->orderItems[$index]['price'] = max(0, (float) ($this->orderItems[$index]['price'] ?? 0));
-            $this->orderItems[$index]['is_free'] = ((float) $this->orderItems[$index]['price']) === 0.0;
+            $this->orderItems[$index]['original_price'] = $this->orderItems[$index]['price'];
         }
 
         $this->calculateItemTotal($index);
@@ -345,7 +367,7 @@ class Edit extends Component
                         'quantity' => max(1, (int) $item['quantity']),
                         'price' => max(0, (float) $item['price']),
                         'is_free' => (bool) ($item['is_free'] ?? false),
-                        'total' => max(1, (int) $item['quantity']) * max(0, (float) $item['price']),
+                        'total' => max(0, (float) ($item['total'] ?? 0)),
                     ];
                 })
                 ->values()
@@ -364,8 +386,8 @@ class Edit extends Component
                     'order_id' => $this->order->id,
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
-                    'unit_price' => $item['is_free'] ? 0 : $item['price'],
-                    'total_price' => $item['is_free'] ? 0 : $item['total'],
+                    'unit_price' => $item['price'],
+                    'total_price' => $item['total'],
                 ]);
             }
 
