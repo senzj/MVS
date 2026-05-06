@@ -180,7 +180,7 @@ class Add extends Component
 
             if ($this->isCreatingNewCustomer) {
                 $rules['customerName'] = 'required|string|max:255';
-                $rules['customerContact'] = 'required|string|max:20';
+                $rules['customerContact'] = 'nullable|string|max:20';
                 $rules['customerAddress'] = 'required|string|max:255';
                 $rules['selectedCustomerId'] = 'nullable';
             } else {
@@ -260,7 +260,7 @@ class Add extends Component
         $this->customerName = $customer->name ?? '';
         $this->customerUnit = $customer->unit ?? '';
         $this->customerAddress = $customer->address ?? '';
-        $this->customerContact = $customer->contact_number ?? '';
+        $this->customerContact = $customer->contact_number ?? null;
         $this->isCreatingNewCustomer = false;
     }
 
@@ -445,9 +445,12 @@ class Add extends Component
                 return false;
             }
 
-            // If creating new customer, must have name, address, and contact
+            // If creating new customer, must have name, address, and contact (contact can be nullable but not empty if provided)
             if ($this->isCreatingNewCustomer) {
-                if (empty(trim($this->customerName)) || empty(trim($this->customerAddress)) || empty(trim($this->customerContact))) {
+                if (empty(trim($this->customerName)) || empty(trim($this->customerAddress))) {
+                    return false;
+                }
+                if (!empty(trim($this->customerContact)) && strlen(trim($this->customerContact)) < 11) {
                     return false;
                 }
             }
@@ -551,7 +554,7 @@ class Add extends Component
                     'name' => ucwords(trim($this->customerName)),
                     'unit' => ucwords(trim($this->customerUnit)),
                     'address' => ucwords(trim($this->customerAddress)),
-                    'contact_number' => trim($this->customerContact),
+                    'contact_number' => trim($this->customerContact) !== '' ? trim($this->customerContact) : null,
                 ]);
 
                 $customerId = $customer->id;
@@ -563,7 +566,7 @@ class Add extends Component
                         'name' => ucwords(trim($this->customerName)),
                         'unit' => ucwords(trim($this->customerUnit)),
                         'address' => ucwords(trim($this->customerAddress)),
-                        'contact_number' => trim($this->customerContact),
+                        'contact_number' => trim($this->customerContact) !== '' ? trim($this->customerContact) : null,
                     ]);
                 }
             }

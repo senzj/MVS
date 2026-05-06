@@ -56,7 +56,8 @@
                 {{-- Order Number --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-hashtag mr-1"></i>{{ __('Order Number') }}
+                        <i class="fas fa-hashtag mr-1"></i>
+                        {{ __('Order Number') }}
                     </label>
                     <div class="w-full px-3 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 font-mono">{{ $receiptNumber }}</div>
                 </div>
@@ -64,7 +65,9 @@
                 {{-- Date & Time --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-calendar mr-1"></i>{{ __('Date & Time') }}
+                        <i class="fas fa-calendar mr-1"></i>
+                        {{ __('Date & Time') }}
+                        <span class="text-gray-500 normal-case font-normal">*</span>
                     </label>
                     <input type="datetime-local" wire:model="saleDate"
                         data-field="saleDate"
@@ -74,7 +77,9 @@
                 {{-- Order Type --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-shopping-bag mr-1"></i>{{ __('Order Type') }}
+                        <i class="fas fa-shopping-bag mr-1"></i>
+                        {{ __('Order Type') }}
+                        <span class="text-gray-500 normal-case font-normal">*</span>
                     </label>
                     <div class="flex items-center space-x-3 px-1 py-1">
                         <label class="relative inline-flex items-center cursor-pointer">
@@ -91,7 +96,9 @@
                 {{-- Payment Method --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-money-bill-wave mr-1"></i>{{ __('Payment Method') }}
+                        <i class="fas fa-money-bill-wave mr-1"></i>
+                        {{ __('Payment Method') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
                     </label>
                     <select wire:model="paymentType"
                         data-field="paymentType"
@@ -104,7 +111,9 @@
                 {{-- Payment Status --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-check-circle mr-1"></i>{{ __('Payment Status') }}
+                        <i class="fas fa-check-circle mr-1"></i>
+                        {{ __('Payment Status') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
                     </label>
                     <select wire:model="isPaid"
                         data-field="isPaid"
@@ -117,7 +126,9 @@
                 {{-- Order Status --}}
                 <div class="md:col-span-1">
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        <i class="fas fa-info-circle mr-1"></i>{{ __('Order Status') }}
+                        <i class="fas fa-info-circle mr-1"></i>
+                        {{ __('Order Status') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
                     </label>
                     <select wire:model="status"
                         data-field="status"
@@ -135,7 +146,9 @@
                 @if($orderType === 'deliver')
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            <i class="fas fa-user-tie mr-1"></i>{{ __('Delivery Person') }}
+                            <i class="fas fa-user-tie mr-1"></i>
+                            {{ __('Delivery Person') }}
+                            <span class="text-red-500 normal-case font-normal">*</span>
                         </label>
                         <div x-data="{
                                 open: false,
@@ -253,13 +266,24 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {{-- Product Name --}}
                         <div>
-                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Product Name') }}</label>
+                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                                {{ __('Product Name') }}
+                                <span class="text-red-500 normal-case font-normal">*</span>
+                            </label>
+
                             <input type="text" wire:model="productName"
                                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
                         </div>
+
+                        {{-- Category --}}
                         <div>
-                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Category') }}</label>
+                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                                {{ __('Category') }}
+                                <span class="text-red-500 normal-case font-normal">*</span>
+                            </label>
+
                             <select wire:model="productCategory"
                                 class="w-full px-3 py-2.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
                                 @foreach(\App\Models\Product::getCategories() as $key => $category)
@@ -268,23 +292,33 @@
                             </select>
                         </div>
 
-                        {{-- Price --}}
+                        {{-- Unit Price --}}
                         <div>
-                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Price') }}</label>
+                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                                {{ __('Unit Price') }}
+                                <span class="text-red-500 normal-case font-normal">*</span>
+                            </label>
                             <input type="number" step="0.01" min="0" wire:model="productPrice"
                                 class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
                         </div>
 
-                        {{-- Quantity --}}
+                        {{-- Stock Quantity --}}
                         <div>
-                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Quantity / per kilo') }}</label>
+                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                                {{ __('Stock Quantity') }}
+                                <span class="text-red-500 normal-case font-normal">*</span>
+                            </label>
+
                             <input type="number" min="0" wire:model="productStocks"
                                 class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
                         </div>
 
                         {{-- Description --}}
                         <div class="md:col-span-2">
-                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Description') }}</label>
+                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                                {{ __('Description') }}
+                                <span class="text-gray-500 normal-case font-normal">*</span>
+                            </label>
                             <textarea wire:model="productDescription" rows="3"
                                 class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition"></textarea>
                         </div>
@@ -328,13 +362,19 @@
                         <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-start">
                             {{-- Product --}}
                             <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Product') }}</label>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    {{ __('Product') }}
+                                    <span class="text-red-500 normal-case font-normal">*</span>
+                                </label>
                                 @include('livewire.partials.orders.form.products', ['index' => $index, 'item' => $item])
                             </div>
 
-                            {{-- Quantity --}}
+                            {{-- Stock Quantity --}}
                             <div class="md:col-span-1">
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Quantity / per kilo') }}</label>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    {{ __('Stock Quantity') }}
+                                    <span class="text-red-500 normal-case font-normal">*</span>
+                                </label>
                                 <input type="number"
                                     wire:model.live="orderItems.{{ $index }}.quantity"
                                     data-field="orderItems.{{ $index }}.quantity"
@@ -344,7 +384,10 @@
 
                             {{-- Unit Price --}}
                             <div class="md:col-span-1">
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Unit Price') }}</label>
+                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    {{ __('Unit Price') }}
+                                    <span class="text-gray-500 normal-case font-normal">*</span>
+                                </label>
                                 <input type="number"
                                     wire:model.live="orderItems.{{ $index }}.price"
                                     data-field="orderItems.{{ $index }}.price"

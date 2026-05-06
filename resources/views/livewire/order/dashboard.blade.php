@@ -39,7 +39,7 @@
                 {{-- Create Existing Record Order --}}
                 <a href="{{ route('orders.add') }}" wire:navigate>
                     <button type="button"
-                        class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-green-600 text-white text-sm font-semibold
+                        class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold
                             hover:bg-green-700 active:scale-95 transition-all shadow-md shadow-green-500/20">
                         <i class="fas fa-file-invoice"></i>
                         <span class="inline">{{ __('Record Sales') }}</span>
@@ -49,7 +49,7 @@
                 {{-- Create New Order button --}}
                 <a href="{{ route('orders.create') }}" wire:navigate>
                     <button type="button"
-                        class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold
+                        class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold
                             hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/20">
                         <i class="fas fa-plus"></i>
                         <span class="inline">{{ __('Create Order') }}</span>

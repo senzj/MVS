@@ -425,8 +425,11 @@
                 {{-- Name --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-user mr-1"></i>{{ __('Customer Name') }} <span class="text-red-500 normal-case font-normal">*</span>
+                        <i class="fas fa-user mr-1"></i>
+                        {{ __('Customer Name') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
                     </label>
+
                     <input type="text" wire:model="name"
                            placeholder="{{ __('Enter customer name') }}"
                            class="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
@@ -438,8 +441,11 @@
                 {{-- Unit & Address --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-map-marker-alt mr-1"></i>{{ __('Unit & Address') }} <span class="text-red-500 normal-case font-normal">*</span>
+                        <i class="fas fa-map-marker-alt mr-1"></i>
+                        {{ __('Unit & Address') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
                     </label>
+
                     <div class="flex gap-2">
                         <input type="text" wire:model="unit"
                                placeholder="Unit 123"
@@ -459,7 +465,9 @@
                 {{-- Contact Number --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-phone mr-1"></i>{{ __('Contact Number') }} <span class="text-red-500 normal-case font-normal">*</span>
+                        <i class="fas fa-phone mr-1"></i>
+                        {{ __('Contact Number') }}
+                        <span class="text-gray-500 normal-case font-normal">*</span>
                     </label>
                     <input maxlength="11" type="tel" inputmode="numeric" pattern="[0-9]*"
                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
@@ -507,8 +515,11 @@
                 {{-- Name --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-user mr-1"></i>{{ __('Customer Name') }} <span class="text-red-500 normal-case font-normal">*</span>
+                        <i class="fas fa-user mr-1"></i>
+                        {{ __('Customer Name') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
                     </label>
+
                     <input type="text" wire:model="name"
                            placeholder="{{ __('Enter customer name') }}"
                            class="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
@@ -520,7 +531,9 @@
                 {{-- Unit & Address --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-map-marker-alt mr-1"></i>{{ __('Unit & Address') }} <span class="text-red-500 normal-case font-normal">*</span>
+                        <i class="fas fa-map-marker-alt mr-1"></i>
+                        {{ __('Unit & Address') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
                     </label>
                     <div class="flex gap-2">
                         <input type="text" wire:model="unit"
@@ -541,8 +554,11 @@
                 {{-- Contact Number --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-phone mr-1"></i>{{ __('Contact Number') }} <span class="text-red-500 normal-case font-normal">*</span>
+                        <i class="fas fa-phone mr-1"></i>
+                        {{ __('Contact Number') }}
+                        <span class="text-gray-500 normal-case font-normal">*</span>
                     </label>
+
                     <input maxlength="11" type="tel" inputmode="numeric" pattern="[0-9]*"
                            oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                            wire:model="contact_number"

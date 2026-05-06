@@ -32,6 +32,12 @@ class Edit extends Component
     // Customer search / selection helpers
     public string $customerSearch  = '';
     public string $employeeSearch  = '';
+    public ?int $selectedCustomerId = null;
+    public bool $isCreatingNewCustomer = false;
+    public string $customerName = '';
+    public string $customerUnit = '';
+    public string $customerAddress = '';
+    public ?string $customerContact = null;
 
     // Statuses that lock editing
     const LOCKED_STATUSES = ['in_transit', 'delivered', 'completed', 'cancelled'];
@@ -52,6 +58,18 @@ class Edit extends Component
         $this->order_type   = $order->order_type;
         $this->delivered_by = $order->delivered_by;
         $this->customer_id  = $order->customer_id;
+        $this->selectedCustomerId = $order->customer_id;
+
+        // Populate customer fields if customer exists
+        if ($this->customer_id) {
+            $customer = Customer::query()->whereKey($this->customer_id)->first();
+            if ($customer) {
+                $this->customerName = $customer->name ?? '';
+                $this->customerUnit = $customer->unit ?? '';
+                $this->customerAddress = $customer->address ?? '';
+                $this->customerContact = $customer->contact_number ?? null;
+            }
+        }
 
         $this->loadOrderItems();
         $this->products = Product::query()
@@ -169,6 +187,14 @@ class Edit extends Component
             $q->where('name', 'like', "%{$term}%");
         }
         return $q->orderBy('name', 'asc')->take(30)->get();
+    }
+
+    public function isEmployeeInTransit(int $employeeId): bool
+    {
+        return Order::query()
+            ->where('delivered_by', $employeeId)
+            ->where('status', 'in_transit')
+            ->exists();
     }
 
     public function getIsLockedProperty(): bool
@@ -311,13 +337,62 @@ class Edit extends Component
 
     public function selectCustomer(int $id): void
     {
-        $this->customer_id    = $id;
+        $customer = Customer::query()->whereKey($id)->first();
+
+        if (!$customer) return;
+
+        $this->customer_id = $customer->id;
+        $this->selectedCustomerId = $customer->id;
+        $this->customerName = $customer->name ?? '';
+        $this->customerUnit = $customer->unit ?? '';
+        $this->customerAddress = $customer->address ?? '';
+        $this->customerContact = $customer->contact_number ?? null;
+        $this->isCreatingNewCustomer = false;
         $this->customerSearch = '';
     }
 
     public function clearCustomer(): void
     {
         $this->customer_id = null;
+        $this->selectedCustomerId = null;
+        $this->customerName = '';
+        $this->customerUnit = '';
+        $this->customerAddress = '';
+        $this->customerContact = null;
+        $this->isCreatingNewCustomer = false;
+    }
+
+    public function createNewCustomer(): void
+    {
+        $this->isCreatingNewCustomer = true;
+        $this->selectedCustomerId = null;
+        $this->customerName = '';
+        $this->customerUnit = '';
+        $this->customerAddress = '';
+        $this->customerContact = null;
+        $this->resetErrorBag(['selectedCustomerId', 'customerName', 'customerUnit', 'customerAddress', 'customerContact']);
+    }
+
+    public function cancelNewCustomer(): void
+    {
+        $this->isCreatingNewCustomer = false;
+        $this->customerName = '';
+        $this->customerUnit = '';
+        $this->customerAddress = '';
+        $this->customerContact = null;
+        $this->resetErrorBag(['customerName', 'customerUnit', 'customerAddress', 'customerContact']);
+    }
+
+    public function updatedSelectedCustomerId($value): void
+    {
+        if (!empty($value)) {
+            $this->selectCustomer((int) $value);
+        }
+    }
+
+    public function getSelectedCustomerProperty()
+    {
+        return $this->selectedCustomerId ? Customer::query()->whereKey($this->selectedCustomerId)->first() : null;
     }
 
     public function selectEmployee(int $id): void

@@ -28,12 +28,11 @@ class Dashboard extends Component
         'name' => 'required|string|max:255',
         'unit' => 'required|string|max:255',
         'address' => 'required|string|max:255',
-        'contact_number' => 'required|string|max:11|regex:/^[0-9]{11}$/',
+        'contact_number' => 'nullable|string|max:11|regex:/^[0-9]{11}$/',
     ];
 
     // error messages
     protected $messages = [
-        'contact_number.required' => 'Contact number is required.',
         'contact_number.max' => 'Contact number must not exceed 11 digits.',
         'contact_number.regex' => 'Contact number must be exactly 11 digits.',
     ];
@@ -101,7 +100,7 @@ class Dashboard extends Component
             'name' => ucwords(trim($this->name)),
             'unit' => ucwords($this->unit),
             'address' => ucwords($this->address),
-            'contact_number' => $this->contact_number,
+            'contact_number' => trim($this->contact_number) !== '' ? trim($this->contact_number) : null,
         ]);
 
         // close modal
@@ -122,7 +121,7 @@ class Dashboard extends Component
                 'name' => ucwords(trim($this->name)),
                 'unit' => ucwords($this->unit),
                 'address' => ucwords($this->address),
-                'contact_number' => $this->contact_number,
+                'contact_number' => trim($this->contact_number) !== '' ? trim($this->contact_number) : null,
             ]);
 
             // close modal

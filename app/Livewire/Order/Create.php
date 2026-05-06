@@ -744,7 +744,7 @@ class Create extends Component
                         'name' => $this->customerName,
                         'unit' => ucwords($this->customerUnit),
                         'address' => ucwords($this->customerAddress),
-                        'contact_number' => $this->customerContact,
+                        'contact_number' => trim($this->customerContact) !== '' ? trim($this->customerContact) : null,
                         'created_by' => Auth::id(),
                     ]);
                     $customerIdForOrder = $newCustomer->id;
@@ -757,7 +757,7 @@ class Create extends Component
                             'name' => $this->customerName,
                             'unit' => ucwords($this->customerUnit),
                             'address' => ucwords($this->customerAddress),
-                            'contact_number' => $this->customerContact,
+                            'contact_number' => trim($this->customerContact) !== '' ? trim($this->customerContact) : null,
                         ]);
                     }
                 }
@@ -787,7 +787,7 @@ class Create extends Component
                     'name' => $this->customerName,
                     'unit' => ucwords($this->customerUnit),
                     'address' => ucwords($this->customerAddress),
-                    'contact_number' => $this->customerContact,
+                    'contact_number' => trim($this->customerContact) !== '' ? trim($this->customerContact) : null,
                 ]);
             }
 

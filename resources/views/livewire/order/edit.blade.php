@@ -78,7 +78,9 @@
                 {{-- Status --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-circle-dot mr-1"></i>{{ __('Status') }}
+                        <i class="fas fa-circle-dot mr-1"></i>
+                        {{ __('Status') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
                     </label>
                     <select wire:model="status"
                         class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
@@ -92,7 +94,9 @@
                 {{-- Order Type --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-route mr-1"></i>{{ __('Order Type') }}
+                        <i class="fas fa-route mr-1"></i>
+                        {{ __('Order Type') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
                     </label>
                     <select wire:model.live="order_type"
                         class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
@@ -106,7 +110,9 @@
                 {{-- Payment Method --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-credit-card mr-1"></i>{{ __('Payment Method') }}
+                        <i class="fas fa-credit-card mr-1"></i>
+                        {{ __('Payment Method') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
                     </label>
                     <select wire:model="payment_type"
                         class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
@@ -119,94 +125,108 @@
 
                 {{-- Payment Status --}}
                 <div class="flex items-end pb-1">
-                    <label class="inline-flex items-center gap-3 cursor-pointer select-none group">
-                        <div class="relative">
-                            <input type="checkbox" wire:model="is_paid" class="sr-only peer">
-                            <div class="w-12 h-6 rounded-full bg-zinc-300 dark:bg-zinc-600 peer-checked:bg-green-500 transition-colors"></div>
-                            <div class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-6"></div>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-0.5">{{ __('Payment Status') }}</p>
-                            <p class="text-sm font-semibold"
+                    <div>
+                        <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">
+                            {{ __('Payment Status') }}
+                            <span class="text-red-500 normal-case font-normal">*</span>
+                        </p>
+
+                        <div class="flex flex-col items-center">
+                            <p class="text-sm font-semibold mb-2"
                                 :class="$wire.is_paid ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'">
                                 {{ $is_paid ? __('Paid') : __('Unpaid') }}
                             </p>
+
+                            <label class="inline-flex items-center gap-3 cursor-pointer select-none group">
+                                <div class="relative">
+                                    <input type="checkbox" wire:model="is_paid" class="sr-only peer">
+                                    <div class="w-12 h-6 rounded-full bg-zinc-300 dark:bg-zinc-600 peer-checked:bg-green-500 transition-colors"></div>
+                                    <div class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-6"></div>
+                                </div>
+                            </label>
                         </div>
-                    </label>
-                </div>
-            </div>
-        </div>
-
-        {{-- DELIVERY PERSON --}}
-        @if($order_type === 'deliver')
-        <div class="bg-white dark:bg-zinc-800 rounded-lg shadow-sm p-5 space-y-3">
-            <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-                <i class="fas fa-user-tie text-blue-500 mr-2"></i>{{ __('Delivery Person') }}
-            </h3>
-
-            {{-- Search and Employee List --}}
-            <div class="mb-2">
-                {{-- Search --}}
-                <div class="relative">
-                    <input type="text"
-                            wire:model.live.debounce.200ms="employeeSearch"
-                            placeholder="{{ __('Search delivery person...') }}"
-                            class="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
-                                    bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
-                                    focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm pointer-events-none"></i>
+                    </div>
                 </div>
 
-                {{-- Employee list --}}
-                @if(trim($employeeSearch) !== '')
-                    <div class="max-h-52 overflow-y-auto rounded-xl border border-zinc-100 dark:border-zinc-700 divide-y divide-zinc-100 dark:divide-zinc-700">
-                        @forelse($employees as $emp)
-                            <button type="button" wire:click="selectEmployee({{ $emp->id }})"
-                                class="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors text-left cursor-pointer
-                                        {{ $delivered_by == $emp->id ? 'bg-blue-50 dark:bg-blue-900/20' : '' }}">
-                                <div class="w-8 h-8 rounded-full bg-indigo-400 flex items-center justify-center shrink-0">
-                                    <span class="text-white text-xs font-bold">{{ strtoupper(substr($emp->name, 0, 1)) }}</span>
-                                </div>
-                                <div class="min-w-0">
-                                    <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{{ $emp->name }}</p>
-                                    <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ $emp->contact_number ?: 'No contact' }}</p>
-                                </div>
-                                @if($delivered_by == $emp->id)
-                                    <i class="fas fa-check text-blue-500 ml-auto shrink-0"></i>
-                                @endif
+                {{-- Delivery Person --}}
+                @if ($order_type === 'deliver')
+                    <div class="mt-4 col-span-1 sm:col-span-4">
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                            <i class="fas fa-user-tie mr-1"></i>
+                            {{ __('Delivery Person') }}
+                            <span class="text-red-500 normal-case font-normal">*</span>
+                        </label>
+
+                        <div x-data="{
+                                open: false,
+                                dropUp: false,
+                                toggle() { this.open = !this.open; if (this.open) this.$nextTick(() => this.reposition()); },
+                                reposition() {
+                                    const t = this.$refs.trigger, p = this.$refs.panel;
+                                    if (!t || !p) return;
+                                    const rect = t.getBoundingClientRect();
+                                    const panelHeight = Math.min((p.scrollHeight || 0), 320);
+                                    const spaceBelow = window.innerHeight - rect.bottom;
+                                    const spaceAbove = rect.top;
+                                    this.dropUp = spaceBelow < panelHeight && spaceAbove > spaceBelow;
+                                }
+                            }"
+                            x-init="window.addEventListener('resize', () => open && reposition()); window.addEventListener('scroll', () => open && reposition(), true);"
+                            class="relative">
+
+                            <button type="button"
+                                    x-ref="trigger"
+                                    @click="toggle()"
+                                    data-field="selectedEmployeeId"
+                                    class="cursor-pointer w-full px-3 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 flex items-center justify-between transition">
+                                <span class="truncate">{{ optional($selectedEmployee)->name ?? __('Select delivery person') }}</span>
+                                <i class="fas fa-chevron-down ml-2 text-sm"></i>
                             </button>
-                        @empty
-                            <div class="px-4 py-6 text-center text-zinc-400 dark:text-zinc-500 text-sm">
-                                <i class="fas fa-user-slash mb-2 block text-2xl opacity-40"></i>
-                                {{ __('No employees found.') }}
+
+                            <div x-show="open" x-ref="panel" @click.outside="open = false" @keydown.escape.window="open = false" x-cloak
+                                :class="dropUp ? 'bottom-full mb-1' : 'top-full mt-1'"
+                                class="absolute z-20 w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg shadow-lg">
+                                <div class="sticky top-0 z-10 p-2 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-600">
+                                    <input type="text" wire:model.live.debounce.300ms="employeeSearch"
+                                        placeholder="{{ __('Search delivery person...') }}"
+                                        class="w-full pl-3 pr-9 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
+                                </div>
+                                <ul class="max-h-80 overflow-y-auto p-2">
+                                    @forelse($this->filteredEmployees as $employee)
+                                        @php $isInTransit = $this->isEmployeeInTransit($employee->id); @endphp
+                                        <li class="mb-1 last:mb-0">
+                                            <button type="button" @click="$wire.selectEmployee({{ $employee->id }}); open = false;"
+                                                class="w-full text-left px-3 py-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition flex items-center gap-2">
+                                                <span class="truncate">{{ $employee->name }}</span>
+                                                @if($isInTransit)
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">{{ __('In Transit') }}</span>
+                                                @endif
+                                                <span class="ml-auto text-xs text-zinc-400">#{{ $employee->id }}</span>
+                                            </button>
+                                        </li>
+                                    @empty
+                                        <li class="text-xs text-zinc-500 p-3">{{ __('No delivery personnel found.') }}</li>
+                                    @endforelse
+                                </ul>
                             </div>
-                        @endforelse
+                        </div>
+
+                        @if($selectedEmployee)
+                            @php $selectedIsInTransit = $this->isEmployeeInTransit($selectedEmployee->id); @endphp
+                            <p class="text-sm mt-2 flex items-center">
+                                <i class="fas fa-check mr-1 text-green-600 dark:text-green-400"></i>
+                                <span class="text-green-600 dark:text-green-400">{{ __('Selected') }}: {{ $selectedEmployee->name }}</span>
+                                @if($selectedIsInTransit)
+                                    <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                        <i class="fas fa-shipping-fast mr-1"></i>{{ __('In Transit') }}
+                                    </span>
+                                @endif
+                            </p>
+                        @endif
                     </div>
                 @endif
             </div>
-
-            {{-- Currently selected --}}
-            @if($selectedEmployee)
-                <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
-                    <div class="w-9 h-9 rounded-full bg-indigo-500 flex items-center justify-center shrink-0 shadow-sm">
-                        <span class="text-white text-sm font-bold">{{ strtoupper(substr($selectedEmployee->name, 0, 1)) }}</span>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-indigo-900 dark:text-indigo-100 truncate">{{ $selectedEmployee->name }}</p>
-                        @if($selectedEmployee->contact_number)
-                            <p class="text-xs text-indigo-600 dark:text-indigo-400">{{ $selectedEmployee->contact_number }}</p>
-                        @endif
-                    </div>
-                    <button type="button" wire:click="clearEmployee"
-                        class="shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-indigo-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer">
-                        <i class="fas fa-times text-sm"></i>
-                    </button>
-                </div>
-            @else
-                <p class="text-sm text-zinc-400 dark:text-zinc-500 italic">{{ __('No delivery person assigned') }}</p>
-            @endif
         </div>
-        @endif
 
         {{-- CUSTOMER --}}
         @if($order_type === 'deliver')
@@ -215,81 +235,8 @@
                 <i class="fas fa-user text-blue-500 mr-2"></i>{{ __('Customer Information') }}
             </h3>
 
-            {{-- Search and Customer List --}}
-            <div class="mb-2">
-                {{-- Search --}}
-                <div class="relative">
-                    <input type="text"
-                            wire:model.live.debounce.200ms="customerSearch"
-                            placeholder="{{ __('Search customers...') }}"
-                            class="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
-                                    bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
-                                    focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm pointer-events-none"></i>
-                </div>
-
-                {{-- Customer list --}}
-                @if(trim($customerSearch) !== '')
-                    <div class="max-h-52 overflow-y-auto rounded-xl border border-zinc-100 dark:border-zinc-700 divide-y divide-zinc-100 dark:divide-zinc-700">
-                        @forelse($customers as $cust)
-                            <button type="button" wire:click="selectCustomer({{ $cust->id }})"
-                                class="w-full flex items-start gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors text-left cursor-pointer
-                                        {{ $customer_id == $cust->id ? 'bg-blue-50 dark:bg-blue-900/20' : '' }}">
-                                <div class="w-8 h-8 rounded-full bg-blue-400 flex items-center justify-center shrink-0 mt-0.5">
-                                    <span class="text-white text-xs font-bold">{{ strtoupper(substr($cust->name, 0, 1)) }}</span>
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{{ $cust->name }}</p>
-                                    @if($cust->unit || $cust->address)
-                                        <p class="text-xs text-zinc-400 dark:text-zinc-500 truncate">
-                                            {{ implode(', ', array_filter([$cust->unit, $cust->address])) }}
-                                        </p>
-                                    @endif
-                                    @if($cust->contact_number)
-                                        <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ $cust->contact_number }}</p>
-                                    @endif
-                                </div>
-                                @if($customer_id == $cust->id)
-                                    <i class="fas fa-check text-blue-500 ml-auto shrink-0 mt-1"></i>
-                                @endif
-                            </button>
-                        @empty
-                            <div class="px-4 py-6 text-center text-zinc-400 dark:text-zinc-500 text-sm">
-                                <i class="fas fa-user-slash mb-2 block text-2xl opacity-40"></i>
-                                {{ __('No customers found.') }}
-                            </div>
-                        @endforelse
-                    </div>
-                @endif
-            </div>
-            {{-- Currently selected --}}
-            @if($selectedCustomer)
-                <div class="flex items-start gap-3 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                    <div class="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center shrink-0 shadow-sm mt-0.5">
-                        <span class="text-white text-sm font-bold">{{ strtoupper(substr($selectedCustomer->name, 0, 1)) }}</span>
-                    </div>
-                    <div class="flex-1 min-w-0 space-y-0.5">
-                        <p class="text-sm font-semibold text-blue-900 dark:text-blue-100">{{ $selectedCustomer->name }}</p>
-                        @if($selectedCustomer->unit || $selectedCustomer->address)
-                            <p class="text-xs text-blue-600 dark:text-blue-400 truncate">
-                                <i class="fas fa-map-marker-alt mr-1"></i>
-                                {{ implode(', ', array_filter([$selectedCustomer->unit, $selectedCustomer->address])) }}
-                            </p>
-                        @endif
-                        @if($selectedCustomer->contact_number)
-                            <p class="text-xs text-blue-600 dark:text-blue-400">
-                                <i class="fas fa-phone mr-1"></i>{{ $selectedCustomer->contact_number }}
-                            </p>
-                        @endif
-                    </div>
-                    <button type="button" wire:click="clearCustomer"
-                        class="shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-blue-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer mt-0.5">
-                        <i class="fas fa-times text-sm"></i>
-                    </button>
-                </div>
-            @else
-                <p class="text-sm text-zinc-400 dark:text-zinc-500 italic">{{ __('No customer assigned') }}</p>
-            @endif
+            {{-- customer dropdown and search --}}
+            @include('livewire.partials.orders.form.customer')
         </div>
         @endif
 
@@ -334,13 +281,19 @@
 
                             <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
                                 <div class="col-span-2">
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Product') }}</label>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                        {{ __('Product') }}
+                                        <span class="text-red-500 normal-case font-normal">*</span>
+                                    </label>
                                     @include('livewire.partials.orders.form.products', ['index' => $index, 'item' => $item])
                                 </div>
 
                                 {{-- Quantity --}}
                                 <div class="md:col-span-1">
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Quantity / per kilo') }}</label>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                        {{ __('Quantity / per kilo') }}
+                                        <span class="text-red-500 normal-case font-normal">*</span>
+                                    </label>
                                     <input type="number"
                                         min="1"
                                         wire:model.live="orderItems.{{ $index }}.quantity"
@@ -349,7 +302,10 @@
 
                                 {{-- Unit Price --}}
                                 <div class="md:col-span-1">
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Unit Price') }}</label>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                        {{ __('Unit Price') }}
+                                        <span class="text-gray-500 normal-case font-normal">*</span>
+                                    </label>
                                     <input type="number"
                                         min="0"
                                         step="0.01"

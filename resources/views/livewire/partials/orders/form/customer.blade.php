@@ -1,7 +1,9 @@
 <div class="space-y-4">
     <div>
         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-            <i class="fas fa-users mr-1"></i>{{ __('Customer') }}
+            <i class="fas fa-users mr-1"></i>
+            {{ __('Customer') }}
+            <span class="text-red-500 normal-case font-normal">*</span>
         </label>
 
         <div x-data="{
@@ -89,7 +91,9 @@
         @if($selectedCustomerId || $isCreatingNewCustomer)
             @if($isCreatingNewCustomer)
                 <div class="flex items-center justify-between gap-3 mb-3">
-                    <h4 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Create Customer') }}</h4>
+                    <h4 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                        {{ __('Create Customer') }}
+                    </h4>
                     <button type="button" wire:click="cancelNewCustomer"
                         class="text-xs font-semibold text-red-500 hover:text-red-600 transition">
                         {{ __('Cancel') }}
@@ -99,28 +103,40 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Name') }}</label>
+                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                        {{ __('Name') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
+                    </label>
                     <input type="text" wire:model="customerName"
                         data-field="customerName"
                         class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Contact Number') }}</label>
+                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                        {{ __('Contact Number') }}
+                        <span class="text-gray-500 normal-case font-normal">*</span>
+                    </label>
                     <input type="tel" wire:model="customerContact" maxlength="11"
                         data-field="customerContact"
                         class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Unit') }}</label>
+                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                        {{ __('Unit') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
+                    </label>
                     <input type="text" wire:model="customerUnit"
                         data-field="customerUnit"
                         class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Address') }}</label>
+                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                        {{ __('Address') }}
+                        <span class="text-red-500 normal-case font-normal">*</span>
+                    </label>
                     <input type="text" wire:model="customerAddress"
                         data-field="customerAddress"
                         class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
