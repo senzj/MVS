@@ -334,7 +334,7 @@
                             {{ $saveLabel }}
                         </span>
                         <span wire:loading wire:target="{{ $wireSave }}" class="inline-flex items-center gap-2">
-                            <i class="fas fa-spinner fa-spin mr-1"></i>{{ __('Processing') }}...
+                            <i class="fas fa-spinner fa-spin mr-1"></i>{{ __('Processing...') }}
                         </span>
                     </button>
                 @endif
