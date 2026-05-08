@@ -6,8 +6,18 @@
     </head>
     <body class="min-h-screen bg-gray-50 dark:bg-gray-900">
 
+        @php
+            $dashboardCurrent = request()->routeIs('dashboard');
+            $ordersCurrent = request()->routeIs('orders', 'orders.*');
+            $ordersHistoryCurrent = request()->routeIs('orders.history');
+            $productsCurrent = request()->routeIs('products', 'products.*');
+            $customersCurrent = request()->routeIs('customers', 'customers.*');
+            $employeesCurrent = request()->routeIs('employees', 'employees.*');
+            $logsCurrent = request()->routeIs('logs', 'logs.*');
+        @endphp
+
         {{-- Nav Bar (sidebar, header) --}}
-        <flux:sidebar sticky stashable class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+        <flux:sidebar sticky stashable class="hidden border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 lg:flex">
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
             <a href="{{ route('dashboard') }}" class="me-5 flex items-center space-x-2 rtl:space-x-reverse" wire:navigate>
@@ -19,23 +29,23 @@
                 <flux:navlist.group :heading="__('Shop')" class="grid">
 
                     {{-- dashboard --}}
-                    <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
+                    <flux:navlist.item icon="home" :href="route('dashboard')" :current="$dashboardCurrent" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
 
                     {{-- orders --}}
-                    <flux:navlist.item icon="shopping-cart" :href="route('orders')" :current="request()->routeIs('orders')" wire:navigate>{{ __('Orders') }}</flux:navlist.item>
+                    <flux:navlist.item icon="shopping-cart" :href="route('orders')" :current="$ordersCurrent" wire:navigate>{{ __('Orders') }}</flux:navlist.item>
 
                 </flux:navlist.group>
 
                 {{-- management nav group --}}
                 <flux:navlist.group :heading="__('Management')" class="grid mt-2.5">
                     {{-- products --}}
-                    <flux:navlist.item icon="shopping-bag" :href="route('products')" :current="request()->routeIs('products')" wire:navigate>{{ __('Products') }}</flux:navlist.item>
+                    <flux:navlist.item icon="shopping-bag" :href="route('products')" :current="$productsCurrent" wire:navigate>{{ __('Products') }}</flux:navlist.item>
 
                     {{-- customers --}}
-                    <flux:navlist.item icon="identification" :href="route('customers')" :current="request()->routeIs('customers')" wire:navigate>{{ __('Customers') }}</flux:navlist.item>
+                    <flux:navlist.item icon="identification" :href="route('customers')" :current="$customersCurrent" wire:navigate>{{ __('Customers') }}</flux:navlist.item>
 
                     {{-- employees --}}
-                    <flux:navlist.item icon="users" :href="route('employees')" :current="request()->routeIs('employees')" wire:navigate>{{ __('Employees') }}</flux:navlist.item>
+                    <flux:navlist.item icon="users" :href="route('employees')" :current="$employeesCurrent" wire:navigate>{{ __('Employees') }}</flux:navlist.item>
                 </flux:navlist.group>
 
                 {{-- records nav group --}}
@@ -44,10 +54,10 @@
                     {{-- <flux:navlist.item icon="chart-bar" :href="route('sales')" :current="request()->routeIs('sales')" wire:navigate>{{ __('Sales') }}</flux:navlist.item> --}}
 
                     {{-- orders history --}}
-                    <flux:navlist.item icon="clock" :href="route('orders.history')" :current="request()->routeIs('orders.history')" wire:navigate>{{ __('Orders History') }}</flux:navlist.item>
+                    <flux:navlist.item icon="clock" :href="route('orders.history')" :current="$ordersHistoryCurrent" wire:navigate>{{ __('Orders History') }}</flux:navlist.item>
 
                     {{-- logs --}}
-                    <flux:navlist.item icon="server" :href="route('logs')" :current="request()->routeIs('logs')" wire:navigate>{{ __('Logs') }}</flux:navlist.item>
+                    <flux:navlist.item icon="server" :href="route('logs')" :current="$logsCurrent" wire:navigate>{{ __('Logs') }}</flux:navlist.item>
 
                 </flux:navlist.group>
 
