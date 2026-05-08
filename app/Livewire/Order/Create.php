@@ -181,7 +181,7 @@ class Create extends Component
     {
         $this->processingPayment = true;
 
-        if ($this->paymentType === 'cash') {
+        if ($this->paymentType === 'cash' && (float) $this->totalAmount > 0) {
             $this->validate([
                 'amountReceived' => [
                     'required',
@@ -193,6 +193,9 @@ class Create extends Component
                 'amountReceived.numeric'  => __('Amount must be a valid number.'),
                 'amountReceived.min'      => __('Amount received must be at least ₱') . number_format($this->totalAmount, 2),
             ]);
+        } elseif ($this->paymentType === 'cash') {
+            $this->amountReceived = 0;
+            $this->changeAmount = 0;
         }
 
         $this->showConfirmModal = false;
@@ -269,7 +272,7 @@ class Create extends Component
                 $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$i}.product_id"]);
                 return;
             }
-            $product = Product::find($item['product_id']);
+            $product = Product::query()->whereKey($item['product_id'])->first();
             if (! $product || ! $product->is_in_stock || $product->stocks <= 0) {
                 $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$i}.product_id"]);
                 return;

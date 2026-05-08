@@ -239,9 +239,10 @@
         'wireTarget' => implode(',', [
             'search','paymentFilter','statusFilter','clearFilters',
             'viewOrderDetails','confirmDelete','deleteOrderConfirmed',
-            'markPreparing','markInTransit','markDelivered',
-            'markCompleted','markCancelled','editOrder',
+            'startDelivery','cancelPrepare','togglePaid',
+            'markDelivered','markFinished','processBatchDelivery',
             'closeOrderDetailsModal','closeDeleteModal',
+            ''
         ])
     ])
 

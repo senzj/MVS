@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Volt\Volt;
 
 Route::get('/', function () {
@@ -47,6 +48,12 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('employees/archived', 'employee.archive')->name('employees.archived');
 
     Volt::route('logs', 'logs.log')->name('logs');
+
+    Route::get('payment-qr/{path}', function (string $path) {
+        abort_unless(Storage::disk('public')->exists($path), 404);
+
+        return response()->file(Storage::disk('public')->path($path));
+    })->where('path', '.*')->name('payment.qr');
 });
 
 require __DIR__.'/auth.php';

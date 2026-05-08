@@ -9,35 +9,11 @@
             </h2>
             <p class="text-sm text-zinc-600 dark:text-zinc-400">{{ __("Welcome back! Here's what's happening today.") }}</p>
         </div>
-        <div class="text-sm text-zinc-500 dark:text-zinc-400"
-             x-data="{
-                locale: '{{ app()->getLocale() }}',
-                serverTs: {{ now()->timestamp }} * 1000,
-                clientStart: Date.now(),
-                nowMs: {{ now()->timestamp }} * 1000,
-                get intlLocale() { return this.locale === 'zh' ? 'zh-CN' : this.locale; },
-                tick() { const elapsed = Date.now() - this.clientStart; this.nowMs = this.serverTs + elapsed; },
-                start() { this.tick(); setInterval(() => this.tick(), 1000); },
-                get formattedDate() {
-                  return new Intl.DateTimeFormat(this.intlLocale, {
-                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                  }).format(this.nowMs);
-                },
-                get formattedTime() {
-                  return new Intl.DateTimeFormat(this.intlLocale, {
-                    hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
-                  }).format(this.nowMs);
-                }
-             }"
-             x-init="start()">
-            <span x-text="formattedDate"></span>
-            <span class="mx-1">•</span>
-            <span x-text="formattedTime"></span>
-        </div>
+        @include('livewire.partials.clock')
     </div>
 
     {{-- Quick Stats Cards --}}
-    <div class="grid grid-cols-1 gap-3 mb-8 md:grid-cols-2 xl:grid-cols-4">
+    <div class="grid grid-cols-1 gap-3 mb-3 md:grid-cols-2 xl:grid-cols-4">
 
         {{-- Today's Revenue --}}
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
@@ -106,7 +82,7 @@
     </div>
 
     {{-- Operational Snapshot --}}
-    <div class="grid grid-cols-1 gap-3 mb-8 md:grid-cols-2 xl:grid-cols-4">
+    <div class="grid grid-cols-1 gap-3 mb-3 md:grid-cols-2 xl:grid-cols-4">
 
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
             <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Pending Orders') }}</p>
@@ -154,7 +130,7 @@
     </div>
 
     {{-- No Charge Activity --}}
-    <div class="grid grid-cols-1 gap-3 mb-8 md:grid-cols-2 xl:grid-cols-4">
+    <div class="grid grid-cols-1 gap-3 mb-6 md:grid-cols-2 xl:grid-cols-4">
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
             <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Product Losses Today') }}</p>
             <div class="flex items-end justify-between mt-2">
@@ -201,7 +177,7 @@
     </div>
 
     {{-- Top Selling Products Section --}}
-    <div class="grid grid-cols-1 gap-3 mb-8 xl:grid-cols-3">
+    <div class="grid grid-cols-1 gap-3 mb-6 xl:grid-cols-3">
 
         {{-- Today's Best Sellers --}}
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
@@ -299,7 +275,7 @@
     </div>
 
     {{-- Business Insights --}}
-    <div class="grid grid-cols-1 gap-3 mb-8 xl:grid-cols-2">
+    <div class="grid grid-cols-1 gap-3 mb-6 xl:grid-cols-2">
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
                 <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-emerald-500 fas fa-coins"></i>{{ __('Money & Growth Snapshot') }}
@@ -357,7 +333,8 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-3 mb-8 xl:grid-cols-3">
+    {{-- Insights --}}
+    <div class="grid grid-cols-1 gap-3 mb-6 xl:grid-cols-3">
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 xl:col-span-2">
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-indigo-500 fas fa-lightbulb"></i>{{ __('Insights') }}

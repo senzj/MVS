@@ -8,8 +8,12 @@ class PaymentImageHelper
     /**
      * Get the current payment image path
      */
-    public static function getPaymentImage(): ?string
+    public static function getPaymentImage(?string $path = null): ?string
     {
+        if ($path) {
+            return Storage::disk('public')->exists($path) ? $path : null;
+        }
+
         $files = Storage::disk('public')->files('image/payment');
         return collect($files)->first();
     }
@@ -17,10 +21,11 @@ class PaymentImageHelper
     /**
      * Get the full URL for the payment image
      */
-    public static function getPaymentImageUrl(): ?string
+    public static function getPaymentImageUrl(?string $path = null): ?string
     {
-        $imagePath = self::getPaymentImage();
-        return $imagePath ? asset('storage/' . $imagePath) : null;
+        $imagePath = self::getPaymentImage($path);
+
+        return $imagePath ? route('payment.qr', ['path' => $imagePath]) : null;
     }
 
     /**

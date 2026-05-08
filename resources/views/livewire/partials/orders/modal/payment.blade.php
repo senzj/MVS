@@ -71,28 +71,34 @@
 
                 @if($paymentType === 'cash')
                     <div class="space-y-4">
-                        <div>
-                            <label for="amountReceived" class="block text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-1">
-                                {{ __('Amount Received') }}
-                            </label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">₱</span>
-                                <input type="number"
-                                    id="amountReceived"
-                                    wire:model.live.debounce.300ms="amountReceived"
-                                    data-field="amountReceived"
-                                    step="0.01"
-                                    min="0"
-                                    class="w-full pl-8 pr-3 py-2 rounded-lg focus:ring border border-gray-500 transition"
-                                    placeholder="0.00">
+                        @if(($this->totalAmount ?? 0) > 0)
+                            <div>
+                                <label for="amountReceived" class="block text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-1">
+                                    {{ __('Amount Received') }}
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">₱</span>
+                                    <input type="number"
+                                        id="amountReceived"
+                                        wire:model.live.debounce.300ms="amountReceived"
+                                        data-field="amountReceived"
+                                        step="0.01"
+                                        min="0"
+                                        class="w-full pl-8 pr-3 py-2 rounded-lg focus:ring border border-gray-500 transition"
+                                        placeholder="0.00">
+                                </div>
                             </div>
-                        </div>
-                        <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-medium text-green-800">{{ __('Change') }}:</span>
-                                <span class="text-lg font-bold text-green-900">₱{{ number_format($changeAmount, 2) }}</span>
+                            <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm font-medium text-green-800">{{ __('Change') }}:</span>
+                                    <span class="text-lg font-bold text-green-900">₱{{ number_format($changeAmount, 2) }}</span>
+                                </div>
                             </div>
-                        </div>
+                        @else
+                            <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
+                                {{ __('No cash input is required because the total amount is zero.') }}
+                            </div>
+                        @endif
                     </div>
                 @elseif ($paymentType === 'gcash')
                     <div class="text-center space-y-2">
@@ -117,7 +123,7 @@
                     <button wire:click="processPayment"
                             wire:loading.attr="disabled"
                             wire:target="processPayment"
-                            @if($paymentType === 'cash' && $changeAmount < 0) disabled @endif
+                            @if($paymentType === 'cash' && ($this->totalAmount ?? 0) > 0 && $changeAmount < 0) disabled @endif
                             class="cursor-pointer flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
                         <span wire:loading.remove wire:target="processPayment">{{ __('Complete Order') }}</span>
                         <span wire:loading wire:target="processPayment" class="flex items-center justify-center">

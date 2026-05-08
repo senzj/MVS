@@ -255,29 +255,37 @@
                             <div class="p-4 bg-white dark:bg-zinc-800">
                                 @if($walkinPaymentType === 'cash')
                                     <div class="space-y-3">
-                                        <div>
-                                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                                {{ __('Amount Received') }}
-                                            </label>
-                                            <div class="relative">
-                                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-semibold">₱</span>
-                                                <input type="number"
-                                                    wire:model.live.debounce.250ms="amountReceived"
-                                                    data-field="amountReceived"
-                                                    step="0.01" min="0"
-                                                    class="w-full pl-8 pr-3 py-2.5 text-sm rounded-xl border border-zinc-300 dark:border-zinc-600
-                                                           bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
-                                                           focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition"
-                                                    placeholder="0.00">
+                                        @if($reviewTotal > 0)
+                                            <div>
+                                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                                    {{ __('Amount Received') }}
+                                                </label>
+                                                <div class="relative">
+                                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-semibold">₱</span>
+                                                    <input type="number"
+                                                        wire:model.live.debounce.250ms="amountReceived"
+                                                        data-field="amountReceived"
+                                                        step="0.01" min="0"
+                                                        class="w-full pl-8 pr-3 py-2.5 text-sm rounded-xl border border-zinc-300 dark:border-zinc-600
+                                                               bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
+                                                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition"
+                                                        placeholder="0.00">
+                                                </div>
+                                                @error('amountReceived')
+                                                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                                @enderror
                                             </div>
-                                            @error('amountReceived')
-                                                <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
-                                            @enderror
-                                        </div>
-                                        <div class="flex items-center justify-between px-3 py-2.5 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                                            <span class="text-sm font-medium text-green-800 dark:text-green-300">{{ __('Change') }}</span>
-                                            <span class="text-lg font-black font-mono text-green-900 dark:text-green-200">₱{{ number_format((float)$walkinChange, 2) }}</span>
-                                        </div>
+                                            <div class="flex items-center justify-between px-3 py-2.5 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                                                <span class="text-sm font-medium text-green-800 dark:text-green-300">{{ __('Change') }}</span>
+                                                <span class="text-lg font-black font-mono text-green-900 dark:text-green-200">₱{{ number_format((float)$walkinChange, 2) }}</span>
+                                            </div>
+                                        @else
+                                            <div class="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3">
+                                                <p class="text-sm font-medium text-emerald-800 dark:text-emerald-300">
+                                                    {{ __('No cash input is required because the total amount is zero.') }}
+                                                </p>
+                                            </div>
+                                        @endif
                                     </div>
                                 @else
                                     {{-- GCash QR --}}
@@ -324,7 +332,7 @@
                         wire:click="{{ $wireSave }}"
                         wire:loading.attr="disabled"
                         wire:target="{{ $wireSave }}"
-                        @if($modalMode === 'walkin' && $walkinPaymentType === 'cash' && (float)$walkinChange < 0) disabled @endif
+                        @if($modalMode === 'walkin' && $walkinPaymentType === 'cash' && $reviewTotal > 0 && (float)$walkinChange < 0) disabled @endif
                         class="cursor-pointer px-5 py-2.5 text-sm font-semibold rounded-xl
                                bg-blue-600 text-white hover:bg-blue-700 active:scale-95
                                disabled:opacity-50 disabled:cursor-not-allowed

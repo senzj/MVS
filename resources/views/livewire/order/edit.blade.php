@@ -65,6 +65,10 @@
                                focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
                         <option value="pending">{{ __('Pending') }}</option>
                         <option value="preparing">{{ __('Preparing') }}</option>
+                        <option value="in_transit">{{ __('In Transit') }}</option>
+                        <option value="delivered">{{ __('Delivered') }}</option>
+                        <option value="completed">{{ __('Completed') }}</option>
+                        <option value="cancelled">{{ __('Cancelled') }}</option>
                     </select>
                 </div>
 

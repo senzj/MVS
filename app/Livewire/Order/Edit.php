@@ -63,11 +63,19 @@ class Edit extends Component
 
     private array $originalItemTotals = [];
 
-    const LOCKED_STATUSES = ['in_transit', 'delivered', 'completed', 'cancelled'];
+    private function lockedStatuses(): array
+    {
+        return array_values(array_filter(
+            (array) config('storeconfig.order_edit_lock_status'),
+            fn ($status) => $status !== 'in_transit'
+        ));
+    }
 
     public function mount(Order $order): void
     {
-        if (in_array($order->status, self::LOCKED_STATUSES, true)) {
+        $lockedStatuses = $this->lockedStatuses();
+
+        if (in_array($order->status, $lockedStatuses, true)) {
             session()->flash('error', __('Order #:receipt cannot be edited once it is :status.', [
                 'receipt' => $order->receipt_number,
                 'status'  => $order->status,
@@ -174,7 +182,9 @@ class Edit extends Component
 
     public function getIsLockedProperty(): bool
     {
-        return in_array($this->order->status, self::LOCKED_STATUSES, true);
+        $lockedStatuses = $this->lockedStatuses();
+
+        return in_array($this->order->status, $lockedStatuses, true);
     }
 
     public function getEditedTotalProperty(): float

@@ -1,5 +1,6 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="view-transition" content="same-origin" />
 
 <title>@yield('title', config('app.name'))</title>
 
@@ -13,3 +14,10 @@
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 
 @fluxAppearance
+
+<style>
+    /* Suppress unused preload warnings in console */
+    link[rel="preload"][as="script"] {
+        font-display: swap;
+    }
+</style>
