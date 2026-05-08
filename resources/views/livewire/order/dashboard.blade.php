@@ -6,7 +6,7 @@
     {{-- HEADER --}}
     <div class="flex flex-col gap-3 mb-5 pt-2 sm:pt-0">
 
-        {{-- Title + Clock --}}
+        {{-- Title + Live Clock --}}
         <div class="flex items-start justify-between gap-2">
             <div>
                 <h2 class="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
@@ -22,7 +22,7 @@
                         tick() { this.nowMs = Date.now(); },
                         start() { this.tick(); setInterval(() => this.tick(), 1000); },
                         get formattedDate() {
-                            return new Intl.DateTimeFormat(this.intlLocale, { weekday: 'long', year:'numeric', month:'long', day:'numeric' }).format(this.nowMs);
+                            return new Intl.DateTimeFormat(this.intlLocale, { weekday:'long', year:'numeric', month:'long', day:'numeric' }).format(this.nowMs);
                         },
                         get formattedTime() {
                             return new Intl.DateTimeFormat(this.intlLocale, { hour:'numeric', minute:'2-digit', second:'2-digit', hour12: true }).format(this.nowMs);
@@ -36,21 +36,19 @@
             </div>
 
             <div class="flex items-center gap-2">
-                {{-- Create Existing Record Order --}}
                 <a href="{{ route('orders.add') }}" wire:navigate>
                     <button type="button"
                         class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold
-                            hover:bg-green-700 active:scale-95 transition-all shadow-md shadow-green-500/20">
+                               hover:bg-green-700 active:scale-95 transition-all shadow-md shadow-green-500/20">
                         <i class="fas fa-file-invoice"></i>
                         <span class="inline">{{ __('Record Sales') }}</span>
                     </button>
                 </a>
 
-                {{-- Create New Order button --}}
                 <a href="{{ route('orders.create') }}" wire:navigate>
                     <button type="button"
                         class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold
-                            hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/20">
+                               hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/20">
                         <i class="fas fa-plus"></i>
                         <span class="inline">{{ __('Create Order') }}</span>
                     </button>
@@ -60,8 +58,10 @@
 
         {{-- Search + Filters --}}
         <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm p-4">
-            <div wire:loading.class="opacity-50 pointer-events-none" wire:target="search,paymentFilter,statusFilter,clearFilters"
-                class="grid grid-cols-1 lg:grid-cols-4 gap-3 items-end">
+            <div wire:loading.class="opacity-50 pointer-events-none"
+                 wire:target="search,paymentFilter,statusFilter,clearFilters"
+                 class="grid grid-cols-1 lg:grid-cols-4 gap-3 items-end">
+
                 <div class="lg:col-span-2">
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
                         <i class="fas fa-search mr-1"></i>{{ __('Search Orders') }}
@@ -100,7 +100,8 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-filter mr-1"></i>{{ __('Status') }}</label>
+                        <i class="fas fa-filter mr-1"></i>{{ __('Status') }}
+                    </label>
                     <select wire:model.live="statusFilter"
                         class="w-full py-2.5 px-3 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
                         <option value="all">{{ __('All Status') }}</option>
@@ -114,13 +115,11 @@
                 </div>
             </div>
 
-            {{-- Clear filters quick action (appears above results) --}}
             @if($search || $paymentFilter !== 'all' || $statusFilter !== 'all')
-                <div class="flex items-center w-full mt-4 justify-end" wire:loading.remove wire:target="search,paymentFilter,statusFilter,clearFilters">
+                <div class="flex items-center w-full mt-4 justify-end"
+                     wire:loading.remove wire:target="search,paymentFilter,statusFilter,clearFilters">
                     <button type="button"
                         wire:click="clearFilters"
-                        wire:target="clearFilters"
-                        wire:loading.attr="disabled"
                         class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-700 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition">
                         <i class="fas fa-times-circle text-sm"></i>
                         {{ __('Clear filters') }}
@@ -129,1042 +128,121 @@
             @endif
         </div>
 
-        {{-- Tab Bar + Counters --}}
+        {{-- Tab Bar --}}
         <div class="grid w-full grid-cols-2 gap-0 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-1 shadow-sm overflow-hidden">
-            {{-- Ongoing Tab --}}
-            <button
-                type="button"
+            <button type="button"
                 x-on:click="activeTab = 'ongoing'"
-                class="relative flex w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-all
-                       focus:outline-none rounded-xl"
+                class="relative flex w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-all focus:outline-none rounded-xl"
                 :class="activeTab === 'ongoing'
                     ? 'bg-blue-600 text-white shadow-sm dark:bg-blue-500'
                     : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/40'">
                 <i class="fas fa-hourglass-half text-xs"></i>
                 {{ __('Ongoing') }}
-                <span class="inline-flex items-center justify-center min-w-[1.4rem] h-5 px-1.5 text-xs rounded-full font-bold
-                                                         bg-white/20 text-inherit">
+                <span class="inline-flex items-center justify-center min-w-[1.4rem] h-5 px-1.5 text-xs rounded-full font-bold bg-white/20 text-inherit">
                     {{ $ongoingCount }}
                 </span>
             </button>
 
-            {{-- Completed Tab --}}
-            <button
-                type="button"
+            <button type="button"
                 x-on:click="activeTab = 'completed'"
-                class="relative flex w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-all
-                       focus:outline-none rounded-xl"
+                class="relative flex w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-all focus:outline-none rounded-xl"
                 :class="activeTab === 'completed'
                     ? 'bg-blue-600 text-white shadow-sm dark:bg-blue-500'
                     : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700/40'">
                 <i class="fas fa-clipboard-check text-xs"></i>
                 {{ __('Completed') }}
-                <span class="inline-flex items-center justify-center min-w-[1.4rem] h-5 px-1.5 text-xs rounded-full font-bold
-                                                         bg-white/20 text-inherit">
+                <span class="inline-flex items-center justify-center min-w-[1.4rem] h-5 px-1.5 text-xs rounded-full font-bold bg-white/20 text-inherit">
                     {{ $completedCount }}
                 </span>
             </button>
         </div>
     </div>
 
-    {{-- ONGOING ORDERS PANEL --}}
-    <div x-show="activeTab === 'ongoing'" x-transition:enter="transition ease-out duration-150"
-         x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
-
-        <div wire:loading.flex wire:target="search,paymentFilter,statusFilter,clearFilters"
-            class="justify-center py-10">
-            <div class="flex items-center gap-2 rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm dark:border-blue-900/40 dark:bg-zinc-800 dark:text-blue-300">
-                <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V2z"></path>
-                </svg>
-                <span>{{ __('Loading orders...') }}</span>
-            </div>
-        </div>
-
-        <div wire:loading.remove wire:target="search,paymentFilter,statusFilter,clearFilters">
-
-            @if($ongoing->isNotEmpty())
-                {{-- ── Mobile Cards (< lg) ── --}}
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
-                    @foreach($ongoing as $order)
-                        <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden">
-
-                            {{-- Card top strip (status color) --}}
-                            @php
-                                $stripColors = [
-                                    'pending'    => 'bg-yellow-400',
-                                    'preparing'  => 'bg-orange-400',
-                                    'in_transit' => 'bg-indigo-500',
-                                    'delivered'  => 'bg-purple-500',
-                                    'completed'  => 'bg-green-500',
-                                    'cancelled'  => 'bg-red-500',
-                                ];
-                                $strip = $stripColors[$order->status] ?? 'bg-zinc-400';
-                            @endphp
-                            <div class="h-1 w-full {{ $strip }}"></div>
-
-                            <div class="p-4 space-y-3">
-                                {{-- Receipt + Status row --}}
-                                <div class="flex items-start justify-between gap-2">
-                                    <div>
-                                        <p class="font-mono text-xs text-zinc-400 dark:text-zinc-500">
-                                            <i class="fas fa-receipt mr-1"></i>{{ $order->receipt_number }}
-                                        </p>
-                                        @php
-                                            $customerBadgeClass = $order->order_type === 'walk_in'
-                                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                                : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300';
-                                        @endphp
-                                        <span class="mt-1 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold {{ $customerBadgeClass }}">
-                                            @if($order->order_type === 'walk_in')
-                                                <i class="fas fa-walking text-[10px]"></i>{{ __('Walk-In') }}
-                                            @else
-                                                <i class="fas fa-user-circle text-[10px]"></i>{{ $order->customer->name ?? __('N/A') }}
-                                            @endif
-                                        </span>
-                                    </div>
-
-                                    {{-- Status badge --}}
-                                    <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full shrink-0
-                                                bg-{{ $order->status_color }}-100 text-{{ $order->status_color }}-800
-                                                dark:bg-{{ $order->status_color }}-900/30 dark:text-{{ $order->status_color }}-300">
-                                        @if($order->status === 'preparing')   <i class="fas fa-hourglass-start mr-1"></i>
-                                        @elseif($order->status === 'pending')  <i class="fas fa-clock mr-1"></i>
-                                        @elseif($order->status === 'in_transit') <i class="fas fa-truck-fast mr-1"></i>
-                                        @elseif($order->status === 'delivered')  <i class="fas fa-box-open mr-1"></i>
-                                        @elseif($order->status === 'completed')  <i class="fas fa-check-circle mr-1"></i>
-                                        @elseif($order->status === 'cancelled')  <i class="fas fa-times-circle mr-1"></i>
-                                        @endif
-                                        {{ __([
-                                            'preparing'  => 'Preparing',
-                                            'pending'    => 'Pending',
-                                            'in_transit' => 'In transit',
-                                            'delivered'  => 'Delivered',
-                                            'completed'  => 'Completed',
-                                            'cancelled'  => 'Cancelled',
-                                        ][$order->status] ?? ucfirst(str_replace('_',' ', $order->status))) }}
-                                    </span>
-                                </div>
-
-                                {{-- Old order badge --}}
-                                @if(!$order->created_at->isToday())
-                                    @php $days = max(1, (int)$order->created_at->diffInDays(now())); @endphp
-                                    <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-                                        <i class="fas fa-calendar-alt"></i>
-                                        @if($days <= 7)
-                                            {{ trans_choice('days_ago', $days, ['count' => $days]) }}
-                                        @else
-                                            {{ __('Old Order') }}
-                                        @endif
-                                    </span>
-                                @endif
-
-                                {{-- Info grid --}}
-                                <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
-                                    <div class="text-zinc-500 dark:text-zinc-400">
-                                        <i class="fas fa-{{ $order->is_paid ? 'check-circle text-green-500' : 'exclamation-triangle text-red-500' }} mr-1"></i>
-                                        {{ $order->is_paid ? __('Paid') : __('Unpaid') }}
-                                    </div>
-                                    <div class="text-zinc-500 dark:text-zinc-400 truncate">
-                                        @if($order->order_type === 'walk_in')
-                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                                <i class="fas fa-walking text-[10px]"></i>{{ __('Walk-In') }}
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300">
-                                                <i class="fas fa-user-tie text-[10px]"></i>{{ $order->employee->name ?? __('N/A') }}
-                                            </span>
-                                        @endif
-                                    </div>
-                                    <div class="text-zinc-400 dark:text-zinc-500 col-span-2">
-                                        @php $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale(); @endphp
-                                        <i class="fas fa-clock mr-1"></i>
-                                        {{ $order->updated_at->locale($loc)->isoFormat('MMM D · hh:mm A') }}
-                                    </div>
-                                </div>
-
-                                {{-- Action bar --}}
-                                <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-100 dark:border-zinc-700 flex-wrap">
-
-                                    {{-- View --}}
-                                    <button wire:click="viewOrderDetails({{ $order->id }})"
-                                        class="card-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
-                                        <i class="fas fa-eye"></i> {{ __('View') }}
-                                    </button>
-
-                                    {{-- Edit / Save --}}
-                                    @php
-                                        $editLocked = in_array($order->status, ['in_transit','delivered','completed','cancelled']);
-                                    @endphp
-
-                                    @if(!$editLocked)
-                                        <a href="{{ route('orders.edit', $order) }}" wire:navigate
-                                            class="card-action-btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700">
-                                            <i class="fas fa-edit"></i> {{ __('Edit') }}
-                                        </a>
-                                    @else
-                                        <span class="card-action-btn text-zinc-300 dark:text-zinc-600 cursor-not-allowed opacity-50"
-                                            title="{{ __('Cannot edit') }} — {{ $order->status }}">
-                                            <i class="fas fa-lock"></i> {{ __('Edit') }}
-                                        </span>
-                                    @endif
-
-                                    {{-- State-driven action --}}
-                                    @if($order->status === 'pending')
-                                        @php $deliveryStatus = $this->getDeliveryPersonStatus($order->id); @endphp
-
-                                        @if($deliveryStatus === 'no_person')
-                                            <span class="card-action-btn text-zinc-400 opacity-50 cursor-not-allowed">
-                                                <i class="fas fa-user-slash"></i> {{ __('No Staff') }}
-                                            </span>
-                                        @elseif($deliveryStatus === 'available')
-                                            <button wire:click="startDelivery({{ $order->id }})"
-                                                class="card-action-btn text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20">
-                                                <i class="fas fa-truck"></i> {{ __('Deliver') }}
-                                            </button>
-                                        @elseif($deliveryStatus === 'batch_preparing' || $deliveryStatus === 'busy')
-                                            <button wire:click="startDelivery({{ $order->id }})"
-                                                class="card-action-btn text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20">
-                                                <i class="fas fa-plus-circle"></i> {{ __('Add Delivery') }}
-                                            </button>
-                                        @elseif($deliveryStatus === 'preparing')
-                                            <span class="card-action-btn text-yellow-600 dark:text-yellow-400">
-                                                <i class="fas fa-hourglass-half"></i> {{ __('In Batch') }}
-                                            </span>
-                                        @elseif($deliveryStatus === 'waiting')
-                                            <span class="card-action-btn text-purple-600 dark:text-purple-400 opacity-75">
-                                                <i class="fas fa-clock-rotate-left"></i> {{ __('In Queue') }}
-                                            </span>
-                                        @else
-                                            <span class="card-action-btn text-orange-600 dark:text-orange-400 opacity-75">
-                                                <i class="fas fa-clock"></i> {{ __('Busy') }}
-                                            </span>
-                                        @endif
-
-                                    @elseif($order->status === 'preparing')
-                                        @php
-                                            $employeeId = $order->delivered_by;
-                                            $batchInfo  = $this->getBatchInfo($employeeId);
-                                            $remainingTime = $batchInfo['remaining_time'] ?? 0;
-                                        @endphp
-                                        @if($employeeId)
-                                            <div x-data="{
-                                                    r: {{ $remainingTime }},
-                                                    started: false,
-                                                    tick() {
-                                                        if (this.started) return;
-                                                        this.started = true;
-                                                        let iv = setInterval(() => {
-                                                            if (this.r > 0) { this.r--; }
-                                                            else { clearInterval(iv); $wire.processBatchDelivery({{ $employeeId }}); }
-                                                        }, 1000);
-                                                    }
-                                                }"
-                                                x-init="tick()"
-                                                class="card-action-btn text-yellow-600 dark:text-yellow-400">
-                                                <i class="fas fa-hourglass-half"></i>
-                                                {{ __('Preparing') }}
-                                                <span class="font-mono text-[10px] bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded ml-1"
-                                                    x-text="Math.floor(r/60)+':'+String(r%60).padStart(2,'0')"></span>
-                                            </div>
-                                        @else
-                                            <span class="card-action-btn text-orange-600 dark:text-orange-400">
-                                                <i class="fas fa-user-slash"></i> {{ __('No Staff') }}
-                                            </span>
-                                        @endif
-
-                                    @elseif($order->status === 'in_transit')
-                                        <button wire:click="markDelivered({{ $order->id }})"
-                                            class="card-action-btn text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20">
-                                            <i class="fas fa-box-open"></i> {{ __('Delivered') }}
-                                        </button>
-
-                                    @elseif($order->status === 'delivered' && !$order->is_paid)
-                                        <button wire:click="togglePaid({{ $order->id }})"
-                                            class="card-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
-                                            <i class="fas fa-money-bill-transfer"></i> {{ __('Paid') }}
-                                        </button>
-
-                                    @elseif($order->status === 'delivered' && $order->is_paid)
-                                        <button wire:click="markFinished({{ $order->id }})"
-                                            class="card-action-btn text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
-                                            <i class="fas fa-check-double"></i> {{ __('Complete') }}
-                                        </button>
-                                    @endif
-
-                                    {{-- Cancel / Delete --}}
-                                    @if($order->status === 'preparing')
-                                        <button wire:click="cancelPrepare({{ $order->id }})"
-                                            class="card-action-btn text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 ml-auto">
-                                            <i class="fas fa-ban"></i> {{ __('Cancel') }}
-                                        </button>
-                                    @else
-                                        <button wire:click="confirmDelete({{ $order->id }})"
-                                            class="card-action-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 ml-auto">
-                                            <i class="fas fa-trash"></i> {{ __('Delete') }}
-                                        </button>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-
-                {{-- ── Desktop Table (≥ lg) ── --}}
-                <div class="hidden lg:block bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
-                            <thead class="bg-zinc-50 dark:bg-zinc-900/60">
-                                <tr>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Order Number') }}</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Customer Name') }}</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Status') }}</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Payment') }}</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Delivered By') }}</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Date & Time') }}</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Actions') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
-                                @foreach($ongoing as $order)
-                                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/40 transition-colors">
-
-                                        {{-- Receipt --}}
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <span class="font-mono text-sm text-zinc-800 dark:text-zinc-200">
-                                                <i class="fas fa-receipt mr-1 text-zinc-400"></i>{{ $order->receipt_number }}
-                                            </span>
-                                        </td>
-
-                                        {{-- Customer --}}
-                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-800 dark:text-zinc-200">
-                                            @if ($order->order_type === 'walk_in')
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                                    <i class="fas fa-walking text-[10px]"></i>{{ __('Walk-In') }}
-                                                </span>
-                                            @else
-                                                <i class="fas fa-user-circle mr-1 text-zinc-400"></i>{{ $order->customer->name ?? __('N/A') }}
-                                            @endif
-                                        </td>
-
-                                        {{-- Status --}}
-                                        <td class="px-4 py-3 whitespace-nowrap text-center">
-                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full
-                                                            bg-{{ $order->status_color }}-100 text-{{ $order->status_color }}-800
-                                                            dark:bg-{{ $order->status_color }}-900/30 dark:text-{{ $order->status_color }}-300">
-                                                @if($order->status === 'preparing')   <i class="fas fa-hourglass-start"></i>
-                                                @elseif($order->status === 'pending')  <i class="fas fa-clock"></i>
-                                                @elseif($order->status === 'in_transit') <i class="fas fa-truck-fast"></i>
-                                                @elseif($order->status === 'delivered')  <i class="fas fa-box-open"></i>
-                                                @elseif($order->status === 'completed')  <i class="fas fa-check-circle"></i>
-                                                @elseif($order->status === 'cancelled')  <i class="fas fa-times-circle"></i>
-                                                @endif
-                                                {{ __([
-                                                    'preparing'  => 'Preparing',
-                                                    'pending'    => 'Pending',
-                                                    'in_transit' => 'In transit',
-                                                    'delivered'  => 'Delivered',
-                                                    'completed'  => 'Completed',
-                                                    'cancelled'  => 'Cancelled',
-                                                ][$order->status] ?? ucfirst(str_replace('_',' ', $order->status))) }}
-                                            </span>
-                                            @if(!$order->created_at->isToday())
-                                                @php $days = max(1, (int)$order->created_at->diffInDays(now())); @endphp
-                                                <span class="block mt-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-                                                    <i class="fas fa-calendar-alt mr-1"></i>
-                                                    @if($days <= 7) {{ trans_choice('days_ago', $days, ['count' => $days]) }}
-                                                    @else {{ __('Old Order') }}
-                                                    @endif
-                                                </span>
-                                            @endif
-                                        </td>
-
-                                        {{-- Payment --}}
-                                        <td class="px-4 py-3 whitespace-nowrap text-center">
-                                            @if($order->is_paid)
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                                    <i class="fas fa-check-circle"></i> {{ __('Paid') }}
-                                                </span>
-                                            @else
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                                    <i class="fas fa-exclamation-triangle"></i> {{ __('Unpaid') }}
-                                                </span>
-                                            @endif
-                                        </td>
-
-                                        {{-- Delivered by --}}
-                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-800 dark:text-zinc-200">
-                                            @if($order->order_type === 'walk_in')
-                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                                    <i class="fas fa-walking"></i> Walk-In
-                                                </span>
-                                            @else
-                                                <i class="fas fa-user-tie mr-1 text-zinc-400"></i>{{ $order->employee->name ?? __('N/A') }}
-                                            @endif
-                                        </td>
-
-                                        {{-- Date --}}
-                                        <td class="px-4 py-3 whitespace-nowrap text-center">
-                                            @php $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale(); @endphp
-                                            <time class="text-xs text-zinc-500 dark:text-zinc-400" datetime="{{ $order->updated_at->toIso8601String() }}">
-                                                <span class="block">{{ $order->updated_at->locale($loc)->isoFormat('LL') }}</span>
-                                                <span class="block">{{ $order->updated_at->locale($loc)->isoFormat('hh:mm A') }}</span>
-                                            </time>
-                                        </td>
-
-                                        {{-- Actions --}}
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <div class="flex items-center justify-center gap-1">
-
-                                                {{-- View --}}
-                                                <button wire:click="viewOrderDetails({{ $order->id }})"
-                                                    class="tbl-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
-                                                    title="{{ __('View') }}">
-                                                    <i class="fas fa-eye text-base"></i>
-                                                    <span class="text-xs">{{ __('View') }}</span>
-                                                </button>
-
-                                                {{-- Edit / Save --}}
-                                                @php
-                                                    $editLocked = in_array($order->status, ['in_transit','delivered','completed','cancelled']);
-                                                @endphp
-
-                                                @if(!$editLocked)
-                                                    <a href="{{ route('orders.edit', $order) }}" wire:navigate>
-                                                        <button class="tbl-action-btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                                                                title="{{ __('Edit') }}">
-                                                            <i class="fas fa-edit text-base"></i>
-                                                            <span class="text-xs">{{ __('Edit') }}</span>
-                                                        </button>
-                                                    </a>
-                                                @else
-                                                    <span class="tbl-action-btn text-zinc-300 dark:text-zinc-600 cursor-not-allowed opacity-50"
-                                                        title="{{ __('Cannot edit') }} — {{ $order->status }}">
-                                                        <i class="fas fa-lock text-base"></i>
-                                                        <span class="text-xs">{{ __('Edit') }}</span>
-                                                    </span>
-                                                @endif
-
-                                                {{-- State-driven action --}}
-                                                @if($order->status === 'pending')
-                                                    @php $deliveryStatus = $this->getDeliveryPersonStatus($order->id); @endphp
-
-                                                    @if($deliveryStatus === 'no_person')
-                                                        <span class="tbl-action-btn text-zinc-400 opacity-50 cursor-not-allowed">
-                                                            <i class="fas fa-user-slash text-base"></i>
-                                                            <span class="text-xs">{{ __('No Staff') }}</span>
-                                                        </span>
-                                                    @elseif($deliveryStatus === 'available')
-                                                        <button wire:click="startDelivery({{ $order->id }})"
-                                                            class="tbl-action-btn text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20">
-                                                            <i class="fas fa-truck text-base"></i>
-                                                            <span class="text-xs">{{ __('Deliver') }}</span>
-                                                        </button>
-                                                    @elseif($deliveryStatus === 'batch_preparing' || $deliveryStatus === 'busy')
-                                                        <button wire:click="startDelivery({{ $order->id }})"
-                                                            class="tbl-action-btn text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20">
-                                                            <i class="fas fa-plus-circle text-base"></i>
-                                                            <span class="text-xs">{{ __('Add Delivery') }}</span>
-                                                        </button>
-                                                    @elseif($deliveryStatus === 'preparing')
-                                                        <span class="tbl-action-btn text-yellow-600 dark:text-yellow-400">
-                                                            <i class="fas fa-hourglass-half text-base"></i>
-                                                            <span class="text-xs">{{ __('In Batch') }}</span>
-                                                        </span>
-                                                    @elseif($deliveryStatus === 'waiting')
-                                                        <span class="tbl-action-btn text-purple-600 dark:text-purple-400 opacity-75">
-                                                            <i class="fas fa-clock-rotate-left text-base"></i>
-                                                            <span class="text-xs">{{ __('In Queue') }}</span>
-                                                        </span>
-                                                    @else
-                                                        <span class="tbl-action-btn text-orange-600 dark:text-orange-400 opacity-75">
-                                                            <i class="fas fa-clock text-base"></i>
-                                                            <span class="text-xs">{{ __('Busy') }}</span>
-                                                        </span>
-                                                    @endif
-
-                                                @elseif($order->status === 'preparing')
-                                                    @php
-                                                        $employeeId    = $order->delivered_by;
-                                                        $batchInfo     = $this->getBatchInfo($employeeId);
-                                                        $remainingTime = $batchInfo['remaining_time'] ?? 0;
-                                                    @endphp
-                                                    @if($employeeId)
-                                                        <div x-data="{
-                                                                r: {{ $remainingTime }},
-                                                                started: false,
-                                                                tick() {
-                                                                    if (this.started) return;
-                                                                    this.started = true;
-                                                                    let iv = setInterval(() => {
-                                                                        if (this.r > 0) { this.r--; }
-                                                                        else { clearInterval(iv); $wire.processBatchDelivery({{ $employeeId }}); }
-                                                                    }, 1000);
-                                                                }
-                                                            }"
-                                                            x-init="tick()"
-                                                            class="tbl-action-btn text-yellow-600 dark:text-yellow-400">
-                                                            <i class="fas fa-hourglass-half text-base"></i>
-                                                            <span class="text-xs">{{ __('Preparing') }}</span>
-                                                            <span class="font-mono text-[10px] bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded"
-                                                                x-text="Math.floor(r/60)+':'+String(r%60).padStart(2,'0')"></span>
-                                                        </div>
-                                                    @else
-                                                        <span class="tbl-action-btn text-orange-600 dark:text-orange-400">
-                                                            <i class="fas fa-user-slash text-base"></i>
-                                                            <span class="text-xs">{{ __('No Staff') }}</span>
-                                                        </span>
-                                                    @endif
-
-                                                @elseif($order->status === 'in_transit')
-                                                    <button wire:click="markDelivered({{ $order->id }})"
-                                                        class="tbl-action-btn text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20">
-                                                        <i class="fas fa-box-open text-base"></i>
-                                                        <span class="text-xs">{{ __('Delivered') }}</span>
-                                                    </button>
-
-                                                @elseif($order->status === 'delivered' && !$order->is_paid)
-                                                    <button wire:click="togglePaid({{ $order->id }})"
-                                                        class="tbl-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
-                                                        <i class="fas fa-money-bill-transfer text-base"></i>
-                                                        <span class="text-xs">{{ __('Paid') }}</span>
-                                                    </button>
-
-                                                @elseif($order->status === 'delivered' && $order->is_paid)
-                                                    <button wire:click="markFinished({{ $order->id }})"
-                                                        class="tbl-action-btn text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
-                                                        <i class="fas fa-check-double text-base"></i>
-                                                        <span class="text-xs">{{ __('Complete') }}</span>
-                                                    </button>
-
-                                                @else
-                                                    <div class="w-16 h-10"></div>
-                                                @endif
-
-                                                {{-- Cancel / Delete --}}
-                                                @if($order->status === 'preparing')
-                                                    <button wire:click="cancelPrepare({{ $order->id }})"
-                                                        class="tbl-action-btn text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20">
-                                                        <i class="fas fa-ban text-base"></i>
-                                                        <span class="text-xs">{{ __('Cancel') }}</span>
-                                                    </button>
-                                                @else
-                                                    <button wire:click="confirmDelete({{ $order->id }})"
-                                                        class="tbl-action-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
-                                                        <i class="fas fa-trash text-base"></i>
-                                                        <span class="text-xs">{{ __('Delete') }}</span>
-                                                    </button>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            @else
-                <div class="flex flex-col items-center justify-center py-20 text-zinc-400 dark:text-zinc-500">
-                    <i class="fas fa-inbox text-5xl mb-4 opacity-40"></i>
-                    <p class="text-sm">{{ __('No ongoing orders today.') }}</p>
-                </div>
-            @endif
+    {{-- SHARED LOADING SPINNER (shown while filters/search run) --}}
+    <div wire:loading.flex wire:target="search,paymentFilter,statusFilter,clearFilters"
+        class="justify-center py-10">
+        <div class="flex items-center gap-2 rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm dark:border-blue-900/40 dark:bg-zinc-800 dark:text-blue-300">
+            <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                <path class="opacity-75" fill="currentColor" d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V2z"></path>
+            </svg>
+            <span>{{ __('Loading orders...') }}</span>
         </div>
     </div>
 
-    {{-- COMPLETED / CANCELLED ORDERS PANEL --}}
-    <div x-show="activeTab === 'completed'" x-cloak x-transition:enter="transition ease-out duration-150"
-         x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
-
-        <div wire:loading.flex wire:target="search,paymentFilter,statusFilter,clearFilters"
-            class="justify-center py-10">
-            <div class="flex items-center gap-2 rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm dark:border-blue-900/40 dark:bg-zinc-800 dark:text-blue-300">
-                <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V2z"></path>
-                </svg>
-                <span>{{ __('Loading orders...') }}</span>
-            </div>
-        </div>
-
+    {{-- ONGOING TAB --}}
+    <div x-show="activeTab === 'ongoing'"
+         x-transition:enter="transition ease-out duration-150"
+         x-transition:enter-start="opacity-0 translate-y-1"
+         x-transition:enter-end="opacity-100 translate-y-0">
         <div wire:loading.remove wire:target="search,paymentFilter,statusFilter,clearFilters">
-            @if($completed->isEmpty())
-                <div class="flex flex-col items-center justify-center py-20 text-zinc-400 dark:text-zinc-500">
-                    <i class="fas fa-archive text-5xl mb-4 opacity-40"></i>
-                    <p class="text-sm">{{ __('No completed or cancelled orders today.') }}</p>
-                </div>
-            @else
-            {{-- ── Mobile Cards (< lg) ── --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
-                @foreach($completed as $order)
-                    <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden opacity-90">
-                        @php
-                            $stripColors = [
-                                'completed' => 'bg-green-500',
-                                'cancelled' => 'bg-red-400',
-                            ];
-                            $strip = $stripColors[$order->status] ?? 'bg-zinc-400';
-                        @endphp
-                        <div class="h-1 w-full {{ $strip }}"></div>
-
-                        <div class="p-4 space-y-3">
-                            <div class="flex items-start justify-between gap-2">
-                                <div>
-                                    <p class="font-mono text-xs text-zinc-400 dark:text-zinc-500">
-                                        <i class="fas fa-receipt mr-1"></i>{{ $order->receipt_number }}
-                                    </p>
-                                    @php
-                                        $customerBadgeClass = $order->order_type === 'walk_in'
-                                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                            : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300';
-                                    @endphp
-                                    <span class="mt-1 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold {{ $customerBadgeClass }}">
-                                        @if($order->order_type === 'walk_in')
-                                            <i class="fas fa-walking text-[10px]"></i>{{ __('Walk-In') }}
-                                        @else
-                                            <i class="fas fa-user-circle text-[10px]"></i>{{ $order->customer->name ?? __('N/A') }}
-                                        @endif
-                                    </span>
-                                </div>
-                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full shrink-0
-                                             bg-{{ $order->status_color }}-100 text-{{ $order->status_color }}-800
-                                             dark:bg-{{ $order->status_color }}-900/30 dark:text-{{ $order->status_color }}-300">
-                                    @if($order->status === 'completed') <i class="fas fa-check-circle"></i>
-                                    @elseif($order->status === 'cancelled') <i class="fas fa-times-circle"></i>
-                                    @endif
-                                    {{ __([
-                                        'completed' => 'Completed',
-                                        'cancelled' => 'Cancelled',
-                                    ][$order->status] ?? ucfirst(str_replace('_',' ', $order->status))) }}
-                                </span>
-                            </div>
-
-                            @if(!$order->created_at->isToday())
-                                @php $days = max(1, (int)$order->created_at->diffInDays(now())); @endphp
-                                <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    @if($days <= 7) {{ trans_choice('days_ago', $days, ['count' => $days]) }}
-                                    @else {{ __('Old Order') }}
-                                    @endif
-                                </span>
-                            @endif
-
-                            <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
-                                <div class="text-zinc-500 dark:text-zinc-400">
-                                    <i class="fas fa-{{ $order->is_paid ? 'check-circle text-green-500' : 'exclamation-triangle text-red-500' }} mr-1"></i>
-                                    {{ $order->is_paid ? __('Paid') : __('Unpaid') }}
-                                </div>
-                                <div class="text-zinc-500 dark:text-zinc-400 truncate">
-                                    @if($order->order_type === 'walk_in')
-                                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                            <i class="fas fa-walking text-[10px]"></i>{{ __('Walk-In') }}
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300">
-                                            <i class="fas fa-user-tie text-[10px]"></i>{{ $order->employee->name ?? __('N/A') }}
-                                        </span>
-                                    @endif
-                                </div>
-                                <div class="text-zinc-400 dark:text-zinc-500 col-span-2">
-                                    @php $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale(); @endphp
-                                    <i class="fas fa-clock mr-1"></i>
-                                    {{ $order->updated_at->locale($loc)->isoFormat('MMM D · hh:mm A') }}
-                                </div>
-                            </div>
-
-
-                            <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-100 dark:border-zinc-700">
-                                <button wire:click="viewOrderDetails({{ $order->id }})"
-                                    class="card-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
-                                    <i class="fas fa-eye"></i> {{ __('View') }}
-                                </button>
-                                @php
-                                    $editLocked = in_array($order->status, ['in_transit','delivered','completed','cancelled']);
-                                @endphp
-
-                                @if(!$editLocked)
-                                    <a href="{{ route('orders.edit', $order) }}" wire:navigate
-                                        class="card-action-btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700">
-                                        <i class="fas fa-edit"></i> {{ __('Edit') }}
-                                    </a>
-                                @else
-                                    <span class="card-action-btn text-zinc-300 dark:text-zinc-600 cursor-not-allowed opacity-50"
-                                        title="{{ __('Cannot edit') }} — {{ $order->status }}">
-                                        <i class="fas fa-lock"></i> {{ __('Edit') }}
-                                    </span>
-                                @endif
-                                <button wire:click="confirmDelete({{ $order->id }})"
-                                    class="card-action-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 ml-auto">
-                                    <i class="fas fa-trash"></i> {{ __('Delete') }}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
-            {{-- ── Desktop Table (≥ lg) ── --}}
-            <div class="hidden lg:block bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
-                        <thead class="bg-zinc-50 dark:bg-zinc-900/60">
-                            <tr>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Order Number') }}</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Customer Name') }}</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Status') }}</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Payment') }}</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Delivered By') }}</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Date & Time') }}</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Actions') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
-                            @foreach($completed as $order)
-                                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/40 transition-colors opacity-90">
-
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <span class="font-mono text-sm text-zinc-700 dark:text-zinc-300">
-                                            <i class="fas fa-receipt mr-1 text-zinc-400"></i>{{ $order->receipt_number }}
-                                        </span>
-                                    </td>
-
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-700 dark:text-zinc-300">
-                                        @if($order->order_type === 'walk_in')
-                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                                                <i class="fas fa-walking text-[10px]"></i>{{ __('Walk-In') }}
-                                            </span>
-                                        @else
-                                            <i class="fas fa-user-circle mr-1 text-zinc-400"></i>{{ $order->customer->name ?? __('N/A') }}
-                                        @endif
-                                    </td>
-
-                                    <td class="px-4 py-3 whitespace-nowrap text-center">
-                                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full
-                                                        bg-{{ $order->status_color }}-100 text-{{ $order->status_color }}-800
-                                                        dark:bg-{{ $order->status_color }}-900/30 dark:text-{{ $order->status_color }}-300">
-                                            @if($order->status === 'completed') <i class="fas fa-check-circle"></i>
-                                            @elseif($order->status === 'cancelled') <i class="fas fa-times-circle"></i>
-                                            @endif
-                                            {{ __([
-                                                'preparing'  => 'Preparing',
-                                                'pending'    => 'Pending',
-                                                'in_transit' => 'In transit',
-                                                'delivered'  => 'Delivered',
-                                                'completed'  => 'Completed',
-                                                'cancelled'  => 'Cancelled',
-                                            ][$order->status] ?? ucfirst(str_replace('_',' ', $order->status))) }}
-                                        </span>
-                                        @if(!$order->created_at->isToday())
-                                            @php $days = max(1, (int)$order->created_at->diffInDays(now())); @endphp
-                                            <span class="block mt-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300">
-                                                <i class="fas fa-calendar-alt mr-1"></i>
-                                                @if($days <= 7) {{ trans_choice('days_ago', $days, ['count' => $days]) }}
-                                                @else {{ __('Old Order') }}
-                                                @endif
-                                            </span>
-                                        @endif
-                                    </td>
-
-                                    <td class="px-4 py-3 whitespace-nowrap text-center">
-                                        @if($order->is_paid)
-                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                                <i class="fas fa-check-circle"></i> {{ __('Paid') }}
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                                <i class="fas fa-exclamation-triangle"></i> {{ __('Unpaid') }}
-                                            </span>
-                                        @endif
-                                    </td>
-
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-700 dark:text-zinc-300">
-                                            <i class="fas fa-user-tie mr-1 text-zinc-400"></i>{{ $order->employee->name ?? __('N/A') }}
-                                    </td>
-
-                                    <td class="px-4 py-3 whitespace-nowrap text-center">
-                                        @php $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale(); @endphp
-                                        <time class="text-xs text-zinc-500 dark:text-zinc-400" datetime="{{ $order->updated_at->toIso8601String() }}">
-                                            <span class="block">{{ $order->updated_at->locale($loc)->isoFormat('LL') }}</span>
-                                            <span class="block">{{ $order->updated_at->locale($loc)->isoFormat('hh:mm A') }}</span>
-                                        </time>
-                                    </td>
-
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <div class="flex items-center justify-center gap-1">
-                                            <button wire:click="viewOrderDetails({{ $order->id }})"
-                                                class="tbl-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
-                                                <i class="fas fa-eye text-base"></i>
-                                                <span class="text-xs">{{ __('View') }}</span>
-                                            </button>
-
-                                            @php
-                                                $editLocked = in_array($order->status, ['in_transit','delivered','completed','cancelled']);
-                                            @endphp
-
-                                            @if(!$editLocked)
-                                                <a href="{{ route('orders.edit', $order) }}" wire:navigate>
-                                                    <button class="tbl-action-btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                                                            title="{{ __('Edit') }}">
-                                                        <i class="fas fa-edit text-base"></i>
-                                                        <span class="text-xs">{{ __('Edit') }}</span>
-                                                    </button>
-                                                </a>
-                                            @else
-                                                <span class="tbl-action-btn text-zinc-300 dark:text-zinc-600 cursor-not-allowed opacity-50"
-                                                    title="{{ __('Cannot edit') }} — {{ $order->status }}">
-                                                    <i class="fas fa-lock text-base"></i>
-                                                    <span class="text-xs">{{ __('Edit') }}</span>
-                                                </span>
-                                            @endif
-
-                                            <button wire:click="confirmDelete({{ $order->id }})"
-                                                class="tbl-action-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
-                                                <i class="fas fa-trash text-base"></i>
-                                                <span class="text-xs">{{ __('Delete') }}</span>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            @endif
+            @include('livewire.partials.orders.table', [
+                'orders' => $ongoing,
+                'tab'    => 'ongoing',
+            ])
         </div>
     </div>
 
-    {{-- ORDER DETAILS MODAL --}}
-    @if($showOrderDetailsModal && $selectedOrder)
-        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-            <div class="bg-white dark:bg-zinc-800 w-full sm:rounded-2xl sm:max-w-3xl max-h-[92dvh] overflow-y-auto shadow-2xl">
-
-                {{-- Modal header --}}
-                <div class="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 z-10">
-                    <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                        <i class="fas fa-file-invoice text-blue-500"></i>{{ __('Order Details') }}
-                        <span class="font-mono text-xs text-zinc-400">{{ $selectedOrder->receipt_number }}</span>
-                    </h3>
-                    <button wire:click="closeOrderDetailsModal"
-                        class="cursor-pointer w-8 h-8 flex items-center justify-center rounded-full text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-
-                <div class="p-5 space-y-5">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-
-                        {{-- Order Info --}}
-                        <div class="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 space-y-3">
-                            <h4 class="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                                <i class="fas fa-shopping-bag mr-1"></i>{{ __('Order Information') }}
-                            </h4>
-                            <dl class="space-y-2">
-                                <div class="flex justify-between text-sm">
-                                    <dt class="text-zinc-500 dark:text-zinc-400"><i class="fas fa-hashtag mr-1"></i>{{ __('Order ID') }}</dt>
-                                    <dd class="font-medium text-zinc-900 dark:text-zinc-100">#{{ $selectedOrder->id }}</dd>
-                                </div>
-                                <div class="flex justify-between text-sm">
-                                    <dt class="text-zinc-500 dark:text-zinc-400"><i class="fas fa-receipt mr-1"></i>{{ __('Receipt Number') }}</dt>
-                                    <dd class="font-mono font-medium text-zinc-900 dark:text-zinc-100">{{ $selectedOrder->receipt_number }}</dd>
-                                </div>
-                                <div class="flex justify-between text-sm">
-                                    <dt class="text-zinc-500 dark:text-zinc-400"><i class="fas fa-user-tie mr-1"></i>{{ __('Delivered By') }}</dt>
-                                    <dd class="text-zinc-900 dark:text-zinc-100">{{ $selectedOrder->employee->name ?? 'N/A' }}</dd>
-                                </div>
-                                <div class="flex justify-between text-sm items-center">
-                                    <dt class="text-zinc-500 dark:text-zinc-400"><i class="fas fa-info-circle mr-1"></i>{{ __('Status') }}</dt>
-                                    <dd>
-                                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full
-                                                     bg-{{ $selectedOrder->status_color }}-100 text-{{ $selectedOrder->status_color }}-800
-                                                     dark:bg-{{ $selectedOrder->status_color }}-900/30 dark:text-{{ $selectedOrder->status_color }}-300">
-                                            {{ __([
-                                                'preparing'  => 'Preparing',
-                                                'pending'    => 'Pending',
-                                                'in_transit' => 'In transit',
-                                                'delivered'  => 'Delivered',
-                                                'completed'  => 'Completed',
-                                                'cancelled'  => 'Cancelled',
-                                            ][$selectedOrder->status] ?? ucfirst(str_replace('_',' ', $selectedOrder->status))) }}
-                                        </span>
-                                    </dd>
-                                </div>
-                                <div class="flex justify-between text-sm items-center">
-                                    <dt class="text-zinc-500 dark:text-zinc-400"><i class="fas fa-credit-card mr-1"></i>{{ __('Payment Status') }}</dt>
-                                    <dd>
-                                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full
-                                            {{ $selectedOrder->is_paid ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' }}">
-                                            <i class="fas fa-{{ $selectedOrder->is_paid ? 'check-circle' : 'exclamation-triangle' }}"></i>
-                                            {{ $selectedOrder->is_paid ? __('Paid') : __('Unpaid') }}
-                                        </span>
-                                    </dd>
-                                </div>
-                                <div class="flex justify-between text-sm">
-                                    <dt class="text-zinc-500 dark:text-zinc-400"><i class="fas fa-money-bill mr-1"></i>{{ __('Payment Method') }}</dt>
-                                    <dd class="text-zinc-900 dark:text-zinc-100">
-                                        @php
-                                            $map = ['cash' => 'Cash', 'online' => 'Online'];
-                                            $code = strtolower($selectedOrder->payment_type ?? '');
-                                            $label = $map[$code] ?? ($selectedOrder->payment_type ?? __('N/A'));
-                                        @endphp
-                                        {{ __($label) }}
-                                    </dd>
-                                </div>
-                            </dl>
-                        </div>
-
-                        {{-- Customer Info --}}
-                        <div class="bg-zinc-50 dark:bg-zinc-900/50 rounded-xl p-4 space-y-3">
-                            <h4 class="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                                <i class="fas fa-user mr-1"></i>{{ __('Customer Information') }}
-                            </h4>
-                            @if($selectedOrder->customer)
-                                <dl class="space-y-2">
-                                    <div class="flex justify-between text-sm">
-                                        <dt class="text-zinc-500 dark:text-zinc-400"><i class="fas fa-id-badge mr-1"></i>{{ __('Name') }}</dt>
-                                        <dd class="text-zinc-900 dark:text-zinc-100">{{ $selectedOrder->customer->name }}</dd>
-                                    </div>
-                                    <div class="flex justify-between text-sm">
-                                        <dt class="text-zinc-500 dark:text-zinc-400"><i class="fas fa-map-marker-alt mr-1"></i>{{ __('Unit & Address') }}</dt>
-                                        <dd class="text-zinc-900 dark:text-zinc-100 text-right">
-                                            @if($selectedOrder->customer->unit || $selectedOrder->customer->address)
-                                                {{ implode(', ', array_filter([$selectedOrder->customer->unit, $selectedOrder->customer->address])) }}
-                                            @else
-                                                {{ __('Not Provided') }}
-                                            @endif
-                                        </dd>
-                                    </div>
-                                    <div class="flex justify-between text-sm">
-                                        <dt class="text-zinc-500 dark:text-zinc-400"><i class="fas fa-phone mr-1"></i>{{ __('Contact Number') }}</dt>
-                                        <dd class="text-zinc-900 dark:text-zinc-100">{{ $selectedOrder->customer->contact_number ?? __('N/A') }}</dd>
-                                    </div>
-                                </dl>
-                            @else
-                                <p class="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
-                                    <i class="fas fa-user-slash"></i>{{ __('No customer information available.') }}
-                                </p>
-                            @endif
-                        </div>
-                    </div>
-
-                    {{-- Items --}}
-                    <div>
-                        <h4 class="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">
-                            <i class="fas fa-shopping-basket mr-1"></i>{{ __('Ordered Items') }}
-                        </h4>
-                        @if($selectedOrder->orderItems && count($selectedOrder->orderItems) > 0)
-                            <div class="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                                <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700 text-sm">
-                                    <thead class="bg-zinc-100 dark:bg-zinc-900/60">
-                                        <tr>
-                                            <th class="px-4 py-2.5 text-left text-xs font-semibold text-zinc-500 uppercase">ID</th>
-                                            <th class="px-4 py-2.5 text-left text-xs font-semibold text-zinc-500 uppercase">{{ __('Product') }}</th>
-                                            <th class="px-4 py-2.5 text-center text-xs font-semibold text-zinc-500 uppercase">{{ __('Quantity') }}</th>
-                                            <th class="px-4 py-2.5 text-center text-xs font-semibold text-zinc-500 uppercase">{{ __('Unit Price') }}</th>
-                                            <th class="px-4 py-2.5 text-right text-xs font-semibold text-zinc-500 uppercase">{{ __('Total') }}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-white dark:bg-zinc-800 divide-y divide-zinc-100 dark:divide-zinc-700">
-                                        @foreach($selectedOrder->orderItems as $item)
-                                            <tr>
-                                                <td class="px-4 py-2.5 text-zinc-500 dark:text-zinc-400 text-xs">#{{ $item->product->id ?? __('N/A') }}</td>
-                                                <td class="px-4 py-2.5 text-zinc-900 dark:text-zinc-100">{{ $item->product->name ?? '#' }}</td>
-                                                <td class="px-4 py-2.5 text-center text-zinc-700 dark:text-zinc-300">{{ $item->quantity }}</td>
-                                                <td class="px-4 py-2.5 text-center text-zinc-700 dark:text-zinc-300">₱{{ number_format($item->unit_price, 2) }}</td>
-                                                <td class="px-4 py-2.5 text-right font-semibold text-zinc-900 dark:text-zinc-100">₱{{ number_format($item->total_price, 2) }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="mt-3 flex justify-between items-center px-2">
-                                <span class="font-semibold text-zinc-700 dark:text-zinc-300">{{ __('Total Amount') }}</span>
-                                <span class="text-xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($selectedOrder->order_total, 2) }}</span>
-                            </div>
-                        @else
-                            <p class="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
-                                <i class="fas fa-exclamation-triangle"></i>{{ __('No items found for this order.') }}
-                            </p>
-                        @endif
-                    </div>
-                </div>
-
-                <div class="sticky bottom-0 flex justify-end px-5 py-4 bg-zinc-50 dark:bg-zinc-900/80 border-t border-zinc-200 dark:border-zinc-700">
-                    <button wire:click="closeOrderDetailsModal"
-                        class="cursor-pointer px-5 py-2 text-sm font-semibold rounded-xl border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
-                        <i class="fas fa-times mr-1"></i>{{ __('Close') }}
-                    </button>
-                </div>
-            </div>
+    {{-- COMPLETED TAB --}}
+    <div x-show="activeTab === 'completed'" x-cloak
+         x-transition:enter="transition ease-out duration-150"
+         x-transition:enter-start="opacity-0 translate-y-1"
+         x-transition:enter-end="opacity-100 translate-y-0">
+        <div wire:loading.remove wire:target="search,paymentFilter,statusFilter,clearFilters">
+            @include('livewire.partials.orders.table', [
+                'orders' => $completed,
+                'tab'    => 'completed',
+            ])
         </div>
-    @endif
+    </div>
 
-    {{-- DELETE CONFIRMATION MODAL --}}
-    @if($showDeleteModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-            <div class="relative w-full max-w-sm bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-zinc-200 dark:border-zinc-700">
-                    <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                        <i class="fas fa-triangle-exclamation text-red-500"></i>{{ __('Confirm Deletion') }}
-                    </h3>
-                </div>
-                <div class="px-5 py-4 space-y-1.5">
-                    <p class="text-sm text-zinc-700 dark:text-zinc-300">
-                        {{ __('Are you sure you want to delete this order? This action can\'t be undone.') }}
-                    </p>
-                    @if($deleteReceipt)
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400 font-mono">
-                            {{ __('Receipt #') }}: {{ $deleteReceipt }}
-                        </p>
-                    @endif
-                </div>
-                <div class="px-5 py-4 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-700 flex justify-end gap-2">
-                    <button wire:click="closeDeleteModal"
-                        class="cursor-pointer px-4 py-2 text-sm rounded-xl border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
-                        {{ __('Cancel') }}
-                    </button>
-                    <button wire:click="deleteOrderConfirmed"
-                        class="cursor-pointer px-4 py-2 text-sm font-semibold rounded-xl bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-all">
-                        <i class="fas fa-trash mr-1"></i>{{ __('Delete') }}
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
+    {{-- MODALS --}}
+    @include('livewire.partials.orders.modal.order', [
+        'modalMode' => 'view',
+    ])
+    @include('livewire.partials.orders.modal.delete')
 
-    {{-- Utility classes (injected inline so Livewire keeps a single root element) --}}
+    {{-- SHARED UTILITY CSS --}}
     <style>
-    .card-action-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.375rem 0.625rem;
-        border-radius: 0.625rem;
-        font-size: 0.75rem;
-        font-weight: 500;
-        transition: background-color 0.15s;
-        cursor: pointer;
-        white-space: nowrap;
-    }
-    .tbl-action-btn {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.125rem;
-        padding: 0.375rem 0.625rem;
-        border-radius: 0.5rem;
-        font-size: 0.75rem;
-        font-weight: 500;
-        transition: background-color 0.15s;
-        cursor: pointer;
-        white-space: nowrap;
-        min-width: 3.25rem;
-    }
-</style>
+        /* Card action button – used inside mobile cards */
+        .card-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.375rem 0.625rem;
+            border-radius: 0.625rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: background-color 0.15s;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        /* Table action button – used inside desktop table rows */
+        .tbl-action-btn {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.125rem;
+            padding: 0.375rem 0.625rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: background-color 0.15s;
+            cursor: pointer;
+            white-space: nowrap;
+            min-width: 3.25rem;
+        }
+    </style>
 
-    {{-- Full-screen loading overlay for all dashboard actions --}}
-    @include('livewire.partials.loading-overlay', ['wireTarget' => 'search,paymentFilter,statusFilter,clearFilters,viewOrderDetails,confirmDelete,deleteOrderConfirmed,markPreparing,markInTransit,markDelivered,markCompleted,markCancelled,editOrder,closeOrderDetailsModal,closeDeleteModal'])
+    {{-- Full-screen loading overlay --}}
+    @include('livewire.partials.loading-overlay', [
+        'wireTarget' => implode(',', [
+            'search','paymentFilter','statusFilter','clearFilters',
+            'viewOrderDetails','confirmDelete','deleteOrderConfirmed',
+            'markPreparing','markInTransit','markDelivered',
+            'markCompleted','markCancelled','editOrder',
+            'closeOrderDetailsModal','closeDeleteModal',
+        ])
+    ])
 
 </div>

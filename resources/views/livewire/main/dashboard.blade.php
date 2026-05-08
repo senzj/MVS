@@ -47,7 +47,7 @@
                     <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($todayStats['income'] ?? 0, 2) }}</p>
                     @if(isset($todayStats['sales_growth']) && $todayStats['sales_growth'] != 0)
                         <p class="text-sm {{ $todayStats['sales_growth'] > 0 ? 'text-green-600' : 'text-red-600' }}">
-                            {{ $todayStats['sales_growth'] > 0 ? '+' : '' }}{{ number_format($todayStats['sales_growth'], 1) }}% from yesterday
+                            {{ $todayStats['sales_growth'] > 0 ? '+' : '' }}{{ number_format($todayStats['sales_growth'], 1) }}% {{ __('from yesterday') }}
                         </p>
                     @endif
                 </div>
@@ -156,40 +156,40 @@
     {{-- No Charge Activity --}}
     <div class="grid grid-cols-1 gap-3 mb-8 md:grid-cols-2 xl:grid-cols-4">
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Free Items Today') }}</p>
+            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Product Losses Today') }}</p>
             <div class="flex items-end justify-between mt-2">
                 <div>
                     <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['free_items'] ?? 0 }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Line items given away') }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Line items recorded as product loss') }}</p>
                 </div>
-                <i class="fas fa-gift text-emerald-500 text-xl"></i>
+                <i class="fas fa-triangle-exclamation text-rose-500 text-xl"></i>
             </div>
         </div>
 
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Free Units Today') }}</p>
+            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Lost Units Today') }}</p>
             <div class="flex items-end justify-between mt-2">
                 <div>
                     <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['free_units'] ?? 0 }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Units moved with zero charge') }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Units recorded as loss or debit') }}</p>
                 </div>
                 <i class="fas fa-box-open text-blue-500 text-xl"></i>
             </div>
         </div>
 
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Orders with Free Items Today') }}</p>
+            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Orders with Lost Items Today') }}</p>
             <div class="flex items-end justify-between mt-2">
                 <div>
                     <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['free_orders'] ?? 0 }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Orders containing no-charge items') }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Orders containing items recorded as loss') }}</p>
                 </div>
                 <i class="fas fa-bag-shopping text-purple-500 text-xl"></i>
             </div>
         </div>
 
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Free Order Share') }}</p>
+            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Loss Order Share') }}</p>
             <div class="flex items-end justify-between mt-2">
                 <div>
                     <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['free_order_rate'] ?? 0, 1) }}%</p>

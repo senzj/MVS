@@ -66,8 +66,9 @@ class OrderSeeder extends Seeder
             ]);
 
             $products = Product::query()
+                ->whereNotNull('stocks')
                 ->where('stocks', '>', 0)
-                ->inRandomOrder('id')
+                ->inRandomOrder()
                 ->take(fake()->numberBetween(1, 4))
                 ->get();
 
@@ -80,11 +81,12 @@ class OrderSeeder extends Seeder
             $hasItems = false;
 
             foreach ($products as $product) {
-                if ($product->stocks < 1) {
+                $available = is_numeric($product->stocks) ? (int) $product->stocks : 0;
+                if ($available < 1) {
                     continue;
                 }
 
-                $quantity = fake()->numberBetween(1, min(5, $product->stocks));
+                $quantity = fake()->numberBetween(1, min(5, $available));
                 $lineTotal = $quantity * (float) $product->price;
 
                 OrderItem::create([
@@ -95,9 +97,14 @@ class OrderSeeder extends Seeder
                     'total_price' => $lineTotal,
                 ]);
 
-                $product->decrement('stocks', $quantity);
-                $product->increment('sold', $quantity);
-                $product->update(['is_in_stock' => $product->stocks > 0]);
+                $remainingStocks = max(0, (int) $product->stocks - $quantity);
+                $soldCount = (int) ($product->sold ?? 0) + $quantity;
+
+                $product->update([
+                    'stocks' => $remainingStocks,
+                    'sold' => $soldCount,
+                    'is_in_stock' => $remainingStocks > 0,
+                ]);
 
                 $orderTotal += $lineTotal;
                 $hasItems = true;

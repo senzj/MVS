@@ -17,6 +17,8 @@
 
     "Log Out": "登出",
 
+    "Back": "返回",
+
     "Log In": "登录",
     "Welcome Back": "欢迎",
     "Please enter your email and password below to log in": "请输入您的电子邮件和密码以登录",
@@ -213,6 +215,7 @@
     "Order Status": "订单状态",
     "Customer Information": "客户信息",
     "Create New Customer": "创建新客户",
+    "New Customer": "新客户",
     "Select customer": "选择客户",
     "Search customers...": "搜索客户...",
     "Create Product": "创建商品",
@@ -370,6 +373,7 @@
     "Delete Product": "删除产品",
     "Are you sure you want to delete this product? This action cannot be undone.": "您确定要删除此产品吗？此操作无法撤销。",
     "No Customer Selected.": "未选择客户。",
+    "No customer selected. Choose one above or create a new one.": "未选择客户。请在上方选择一个或创建一个新客户。",
     "Select Customer": "选择客户",
     "Item Product": "商品",
 
@@ -523,6 +527,7 @@
     "Confirm": "确认",
 
     "Please fill in all required fields.": "请填写所有必填字段。",
+    "Not Provided": "未提供",
 
     "Logs": "日志"
 }

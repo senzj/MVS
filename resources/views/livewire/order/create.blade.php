@@ -47,7 +47,7 @@
             <a href="{{ route('orders') }}" class="flex items-center gap-1" wire:navigate>
                 <button type="button" class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 transition dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
                     <i class="fas fa-arrow-left"></i>
-                    <span>{{ __('Back to Dashboard') }}</span>
+                    <span>{{ __('Back') }}</span>
                 </button>
             </a>
         </div>
@@ -117,116 +117,14 @@
 
             {{-- Delivery Person (Only for Delivery Orders) --}}
             @if($orderType === 'deliver')
-            <div>
+            <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    <i class="fas fa-user-tie mr-1"></i>
-                    {{ __('Delivery Person') }}
-                    <span class="text-red-500 normal-case font-normal">*</span>
+                    <i class="fas fa-user-tie mr-1"></i>{{ __('Delivery Person') }}
+                    <span class="text-red-500">*</span>
                 </label>
-
-                <div x-data="{
-                        open: false,
-                        dropUp: false,
-                        toggle() {
-                            this.open = !this.open;
-                            if (this.open) this.$nextTick(() => this.reposition());
-                        },
-                        reposition() {
-                            const t = this.$refs.trigger, p = this.$refs.panel;
-                            if (!t || !p) return;
-                            const rect = t.getBoundingClientRect();
-                            const panelHeight = Math.min((p.scrollHeight || 0), 320);
-                            const spaceBelow = window.innerHeight - rect.bottom;
-                            const spaceAbove = rect.top;
-                            this.dropUp = spaceBelow < panelHeight && spaceAbove > spaceBelow;
-                        }
-                    }"
-                    x-init="
-                        window.addEventListener('resize', () => open && reposition());
-                        window.addEventListener('scroll', () => open && reposition(), true);
-                    "
-                    class="relative">
-                    <button type="button"
-                            x-ref="trigger"
-                            @click="toggle()"
-                            data-field="selectedEmployeeId"
-                            class="cursor-pointer w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 flex items-center justify-between transition">
-                        <span class="truncate">
-                            {{ optional($this->selectedEmployee)->name ?? __('Select delivery person') }}
-                        </span>
-                        <i class="fas fa-chevron-down ml-2 text-sm"></i>
-                    </button>
-
-                    <div x-show="open"
-                        x-ref="panel"
-                        @click.outside="open = false"
-                        @keydown.escape.window="open = false"
-                        x-cloak
-                        :class="dropUp ? 'bottom-full mb-1' : 'top-full mt-1'"
-                        class="absolute z-20 w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg shadow-lg">
-
-                        <div class="sticky top-0 z-10 p-2 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-600">
-                            <div class="relative">
-                                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
-                                <input type="text"
-                                    wire:model.live="employeeSearch"
-                                    placeholder="{{ __('Search delivery person...') }}"
-                                    class="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                        </div>
-
-                        <ul class="max-h-80 overflow-y-auto p-2">
-                            @forelse(($this->filteredEmployees ?? $employees) as $employee)
-                                @php $isInTransit = $this->isEmployeeInTransit($employee->id); @endphp
-                                <li class="mb-2 last:mb-0">
-                                    <div x-data="{ inTransit: {{ $isInTransit ? 'true' : 'false' }}, employeeId: {{ $employee->id }}, employeeName: @js($employee->name) }"
-                                        @click="
-                                            const tmpl = @js(__('Delivery Person :name is currently delivering. Assign anyway?'));
-                                            if (inTransit) {
-                                                if (confirm(tmpl.replace(':name', employeeName))) {
-                                                    $wire.forceSelectEmployee(employeeId);
-                                                    open = false;
-                                                }
-                                            } else {
-                                                $wire.selectEmployee(employeeId);
-                                                open = false;
-                                            }
-                                        "
-                                        class="p-3 border border-zinc-200 dark:border-zinc-600 rounded-lg cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700 {{ $isInTransit ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' : '' }}">
-
-                                        <div class="font-medium text-zinc-900 dark:text-zinc-100 flex items-center justify-between">
-                                            <span>
-                                                <i class="fas fa-user-tie mr-1"></i>{{ $employee->name }}
-                                            </span>
-                                            @if($isInTransit)
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                                                    <i class="fas fa-shipping-fast mr-1"></i>{{ __('In transit') }}
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </li>
-                            @empty
-                                <li class="p-6 text-center text-zinc-500 dark:text-zinc-400">
-                                    <i class="fas fa-user-slash mr-2"></i>{{ __('No Available Delivery Person. Try to create one.') }}
-                                </li>
-                            @endforelse
-                        </ul>
-                    </div>
-                </div>
-
-                @if($this->selectedEmployee)
-                    @php $selectedIsInTransit = $this->isEmployeeInTransit($this->selectedEmployee->id); @endphp
-                    <p class="text-sm mt-1 flex items-center">
-                        <i class="fas fa-check mr-1 text-green-600 dark:text-green-400"></i>
-                        <span class="text-green-600 dark:text-green-400">{{ __('Selected') }}: {{ $this->selectedEmployee->name }}</span>
-                        @if($selectedIsInTransit)
-                            <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                                <i class="fas fa-shipping-fast mr-1"></i>{{ __('In Transit') }}
-                            </span>
-                        @endif
-                    </p>
-                @endif
+                @include('livewire.partials.orders.form.employee.dropdown', [
+                    'forceSelect' => false,
+                ])
             </div>
             @endif
         </div>
@@ -263,75 +161,7 @@
             </div>
 
             {{-- Product Form --}}
-            @if($showProductForm)
-                <div class="mb-5 rounded-lg border border-blue-200 dark:border-blue-900/40 bg-blue-50/70 dark:bg-blue-900/10 p-4">
-                    <div class="flex items-center justify-between gap-3 mb-3">
-                        <div>
-                            <h4 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Create Product') }}</h4>
-                        </div>
-                        <button type="button" wire:click="closeProductForm" class="text-xs font-semibold text-red-500 hover:text-red-600 transition">{{ __('Cancel') }}</button>
-                    </div>
-
-                    {{-- Product Details --}}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {{-- Product Name --}}
-                        <div>
-                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                                {{ __('Product Name') }}
-                                <span class="text-red-500 normal-case font-normal">*</span>
-                            </label>
-                            <input type="text" wire:model="productName" class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                        </div>
-
-                        {{-- Category --}}
-                        <div>
-                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                                {{ __('Category') }}
-                                <span class="text-red-500 normal-case font-normal">*</span>
-                            </label>
-                            <select wire:model="productCategory" class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                                @foreach(\App\Models\Product::getCategories() as $key => $category)
-                                    <option value="{{ $key }}">{{ $category }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        {{-- Unit Price --}}
-                        <div>
-                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                                {{ __('Unit Price') }}
-                                <span class="text-red-500 normal-case font-normal">*</span>
-                            </label>
-                            <input type="number" step="0.01" min="0" wire:model="productPrice" class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                        </div>
-
-                        {{-- Stock Quantity --}}
-                        <div>
-                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                                {{ __('Stock Quantity') }}
-                                <span class="text-red-500 normal-case font-normal">*</span>
-                            </label>
-                            <input type="number" min="0" wire:model="productStocks" class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                        </div>
-
-                        {{-- Description --}}
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                                {{ __('Description') }}
-                                <span class="text-gray-500 normal-case font-normal">*</span>
-                            </label>
-                            <textarea wire:model="productDescription" rows="3" class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end mt-4">
-                        <button type="button" wire:click="createProduct" wire:loading.attr="disabled" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
-                            <i class="fas fa-save"></i>
-                            <span>{{ __('Create Product') }}</span>
-                        </button>
-                    </div>
-                </div>
-            @endif
+            @include('livewire.partials.orders.form.product.create')
 
             {{-- Order Items --}}
             <div class="space-y-4">
@@ -367,7 +197,7 @@
                                     {{ __('Product') }}
                                     <span class="text-red-500 normal-case font-normal">*</span>
                                 </label>
-                                @include('livewire.partials.orders.form.products', ['index' => $index, 'item' => $item])
+                                @include('livewire.partials.orders.form.product.dropdown', ['index' => $index, 'item' => $item])
                             </div>
 
                             {{-- Quantity --}}
@@ -377,7 +207,7 @@
                                     <span class="text-red-500 normal-case font-normal">*</span>
                                 </label>
                                 <input type="number"
-                                    wire:model.live="orderItems.{{ $index }}.quantity"
+                                    wire:model.live.debounce.300ms="orderItems.{{ $index }}.quantity"
                                     data-field="orderItems.{{ $index }}.quantity"
                                     min="1"
                                     class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 transition">
@@ -390,7 +220,7 @@
                                     <span class="text-gray-500 normal-case font-normal">*</span>
                                 </label>
                                 <input type="number"
-                                    wire:model.live="orderItems.{{ $index }}.price"
+                                    wire:model.blur="orderItems.{{ $index }}.price"
                                     data-field="orderItems.{{ $index }}.price"
                                     min="0" step="0.01"
                                     class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 transition">
@@ -400,7 +230,7 @@
                             <div class="md:col-span-1">
                                 <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Total') }}</label>
                                 <div class="px-3 py-2 bg-zinc-100 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-900 dark:text-zinc-100">
-                                    ₱{{ number_format($item['is_free'] ? 0 : (($item['quantity'] ?? 0) * ($item['price'] ?? 0)), 2) }}
+                                    ₱{{ number_format((float) ($item['total'] ?? 0), 2) }}
                                 </div>
 
                                 {{-- No Charge Toggle --}}
@@ -447,7 +277,7 @@
     @include('livewire.partials.orders.modal.payment')
 
     {{-- Confirm Order Modal --}}
-    @include('livewire.partials.orders.modal.confirm', [
+    @include('livewire.partials.orders.modal.order', [
         'confirmData' => [
             'receiptNumber' => $orderNumber,
             'reviewDateTime' => now()->locale(app()->getLocale())->isoFormat('LLLL'),
