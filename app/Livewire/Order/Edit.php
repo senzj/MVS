@@ -8,10 +8,9 @@ use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Product;
+use App\Services\Products\InventoryService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -59,12 +58,6 @@ class Edit extends Component
     public string       $productCategory    = 'other';
     public string|int   $productStocks      = 1;
     public string|float $productPrice       = 0;
-
-    /**
-     * Snapshot of each product's NET quantity (ordered - refunded) at mount time.
-     * Used as the baseline for reconcileInventory() when the user edits quantities.
-     */
-    private array $originalNetTotals = [];
 
     private function lockedStatuses(): array
     {
@@ -234,7 +227,7 @@ class Edit extends Component
             ->find($this->order->id);
 
         $this->payment_status = $this->order->payment_status;
-        $this->loadOrderItems(); // refreshes originalNetTotals too
+        $this->loadOrderItems();
         $this->dispatch('show-success', ['message' => __('Refund processed. Review and save the order if needed.')]);
     }
 
@@ -278,27 +271,6 @@ class Edit extends Component
             ->values()
             ->all();
 
-        // Baseline = net quantity already in use (what was deducted from stock,
-        // excluding units already returned via refund).
-        $this->originalNetTotals = $this->calcNetTotals($this->orderItems);
-    }
-
-    /**
-     * Compute per-product NET quantities: ordered minus already-refunded.
-     * This matches what is currently "consumed" from the inventory.
-     */
-    private function calcNetTotals(array $items): array
-    {
-        $totals = [];
-        foreach ($items as $item) {
-            $id  = (int) ($item['product_id'] ?? 0);
-            $net = max(0, (int) ($item['quantity'] ?? 0) - (int) ($item['refunded_quantity'] ?? 0));
-            if ($id > 0) {
-                $totals[$id] = ($totals[$id] ?? 0) + $net;
-            }
-        }
-        ksort($totals);
-        return $totals;
     }
 
     // ── Save ───────────────────────────────────────────────────────
@@ -347,13 +319,10 @@ class Edit extends Component
             $oldStatus = $this->order->status;
             $newStatus = $this->status;
 
-            // ── 1. Build the "new net totals" from the edited form items ──────────
-            // Each item's net = new quantity - its existing refunded_quantity.
-            // We must fetch refunded_quantity from DB (not from form state)
-            // because the form carries it read-only and it could be stale.
-            $existingItemsFromDb = OrderItem::where('order_id', $this->order->id)
+            // ── 1. Build edited items using authoritative refunded_quantity from DB ──
+            $existingItemsFromDb = OrderItem::query()->where('order_id', $this->order->id)
                 ->get()
-                ->keyBy('id');
+                ->keyBy('product_id');
 
             $newItems = collect($this->orderItems)
                 ->map(function ($item) use ($existingItemsFromDb) {
@@ -379,7 +348,7 @@ class Edit extends Component
                 // Cancellation: restore ALL net quantities back to stock
                 $this->restoreOriginalInventory($existingItemsFromDb);
             } else {
-                // Normal edit: delta = newNet - oldNet per product
+                // Normal edit: sync old net qty to new net qty per product
                 $this->reconcileInventory($newItems, $existingItemsFromDb);
             }
 
@@ -387,9 +356,14 @@ class Edit extends Component
             $newProductIds = collect($newItems)->pluck('product_id')->all();
 
             // Delete rows that were removed from the order
-            OrderItem::where('order_id', $this->order->id)
-                ->whereNotIn('product_id', $newProductIds)
-                ->delete();
+            foreach ($existingItemsFromDb as $existingItem) {
+                if (! in_array((int) $existingItem->product_id, $newProductIds, true)) {
+                    OrderItem::query()
+                        ->where('order_id', $this->order->id)
+                        ->where('product_id', (int) $existingItem->product_id)
+                        ->delete();
+                }
+            }
 
             foreach ($newItems as $item) {
                 $existing = $existingItemsFromDb->get($item['product_id']);
@@ -441,64 +415,39 @@ class Edit extends Component
     // ── Inventory helpers ──────────────────────────────────────────
 
     /**
-     * Reconcile stock changes when the user edits quantities.
+     * Sync inventory by product using net quantities (ordered - refunded).
      *
-     * Baseline (oldNet): what was originally deducted from stock,
-     * excluding units already returned via refund (from $this->originalNetTotals).
-     *
-     * New net: new_quantity - refunded_quantity (fetched fresh from DB).
-     *
-     * Delta = newNet - oldNet:
-     *   > 0 → user added more units → deduct more stock
-     *   < 0 → user reduced units   → return stock
-     *
-     * @param array             $newItems         From the form (product_id, quantity, refunded_quantity)
+     * @param array $newItems From the form (product_id, quantity, refunded_quantity)
      * @param \Illuminate\Support\Collection $existingItemsFromDb Keyed by product_id
      */
     private function reconcileInventory(array $newItems, $existingItemsFromDb): void
     {
-        // Build new net totals using DB refunded_quantity (authoritative)
+        $inventory = app(InventoryService::class);
+
+        // Build new net totals from edited items.
         $newNetTotals = [];
         foreach ($newItems as $item) {
             $id          = (int) $item['product_id'];
-            $refundedQty = (int) ($existingItemsFromDb->get($id)?->refunded_quantity ?? 0);
-            $net         = max(0, (int) $item['quantity'] - $refundedQty);
+            $net         = max(0, (int) $item['quantity'] - (int) ($item['refunded_quantity'] ?? 0));
             $newNetTotals[$id] = ($newNetTotals[$id] ?? 0) + $net;
         }
 
-        $oldNetTotals = $this->originalNetTotals;
+        // Build old net totals from DB state.
+        $oldNetTotals = [];
+        foreach ($existingItemsFromDb as $existing) {
+            $id  = (int) $existing->product_id;
+            $net = max(0, (int) $existing->quantity - (int) ($existing->refunded_quantity ?? 0));
+            $oldNetTotals[$id] = ($oldNetTotals[$id] ?? 0) + $net;
+        }
+
         $productIds   = array_unique(array_merge(array_keys($oldNetTotals), array_keys($newNetTotals)));
 
         foreach ($productIds as $productId) {
-            $oldNet = (int) ($oldNetTotals[$productId] ?? 0);
-            $newNet = (int) ($newNetTotals[$productId] ?? 0);
-            $delta  = $newNet - $oldNet;
-
-            if ($delta === 0) continue;
-
-            $product = Product::query()->where('id', $productId)->lockForUpdate()->first();
-
-            if (! $product) {
-                throw ValidationException::withMessages([
-                    'orderItems' => "Product ID {$productId} not found.",
-                ]);
-            }
-
-            // delta > 0 = ordering more = need to deduct from stock
-            if ($delta > 0 && (int) $product->stocks < $delta) {
-                throw ValidationException::withMessages([
-                    'orderItems' => __('Insufficient stock for :product. Only :stock left.', [
-                        'product' => $product->name,
-                        'stock'   => $product->stocks,
-                    ]),
-                ]);
-            }
-
-            // Subtract delta (negative delta = stock goes UP = return to inventory)
-            $product->stocks      = max(0, (int) $product->stocks - $delta);
-            $product->sold        = max(0, (int) ($product->sold ?? 0) + $delta);
-            $product->is_in_stock = $product->stocks > 0;
-            $product->save();
+            $inventory->sync(
+                (int) $productId,
+                (int) ($oldNetTotals[$productId] ?? 0),
+                (int) ($newNetTotals[$productId] ?? 0)
+            );
         }
     }
 
@@ -511,17 +460,13 @@ class Edit extends Component
      */
     private function restoreOriginalInventory($existingItemsFromDb): void
     {
+        $inventory = app(InventoryService::class);
+
         foreach ($existingItemsFromDb as $item) {
             $toRestore = max(0, (int) $item->quantity - (int) ($item->refunded_quantity ?? 0));
             if ($toRestore <= 0) continue;
 
-            $product = Product::query()->where('id', $item->product_id)->lockForUpdate()->first();
-            if (! $product) continue;
-
-            $product->stocks      = (int) $product->stocks + $toRestore;
-            $product->sold        = max(0, (int) ($product->sold ?? 0) - $toRestore);
-            $product->is_in_stock = $product->stocks > 0;
-            $product->save();
+            $inventory->restore((int) $item->product_id, $toRestore);
         }
     }
 
