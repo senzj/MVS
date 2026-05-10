@@ -52,6 +52,12 @@
     $panelWidth   = $modalMode === 'view'
         ? 'w-full sm:max-w-xl max-h-[98dvh] sm:max-h-[90vh]'
         : 'w-full sm:max-w-xl max-h-[98dvh] sm:max-h-[90vh]';
+    $currentOrderType = $orderType ?? ($order_type ?? $reviewOrderType ?? '');
+    $confirmProofUrl = $existingProofUrl
+        ?? (!empty($existingProof) ? asset('storage/' . $existingProof) : null);
+    $confirmProofAllowCamera = $modalMode === 'confirm'
+        ? $currentOrderType === 'walk_in'
+        : false;
 @endphp
 
 <div
@@ -85,8 +91,7 @@
                             <i class="fas fa-file-invoice text-blue-500 shrink-0"></i>
                             <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                                 @if($modalMode === 'view')
-                                    {{ __('Order') }}
-                                    @if($order) <span class="font-mono text-xs text-zinc-400 ml-1">{{ $order->receipt_number }}</span> @endif
+                                    {{ __('Order Information') }}
                                 @elseif($modalMode === 'walkin')
                                     {{ __('Review & Payment') }}
                                 @else
@@ -221,7 +226,7 @@
                                             @if($showQr && $walkinImage)
                                                 <div class="text-center space-y-2">
                                                     <div class="inline-block rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                                                        <img src="{{ $walkinImage }}" alt="{{ __('GCash QR') }}" class="max-w-52 max-h-52 object-contain">
+                                                        <img src="{{ $walkinImage }}" alt="{{ __('GCash QR') }}" class="max-w-90 max-h-96 object-contain">
                                                     </div>
                                                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
                                                         {{ __('Scan to pay') }}:
@@ -241,10 +246,12 @@
                             @endif
 
                             {{-- GCash proof upload — confirm mode (Add / Edit pages) --}}
-                            @if($modalMode === 'confirm' && $isGcash && !$isDelivery)
+                            @if($modalMode === 'confirm' && $isGcash && (! empty($confirmProofUrl) || ! empty($proofOfPayment)))
                                 @include('livewire.partials.orders.proof-of-payment', [
                                     'compact'          => true,
-                                    'existingProofUrl' => null,
+                                    'existingProofUrl' => $confirmProofUrl,
+                                    'readOnly'         => false,
+                                    'allowCamera'      => $confirmProofAllowCamera,
                                 ])
                             @endif
 

@@ -102,7 +102,7 @@
                             </span>
                             <div class="flex items-center gap-2 shrink-0">
                                 @if($isInTransit)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 dark:text-indigo-200">
                                         <i class="fas fa-shipping-fast mr-1"></i>{{ __('In transit') }}
                                     </span>
                                 @endif
@@ -117,8 +117,8 @@
                             <i class="fas fa-user-tie mr-1 text-zinc-400 shrink-0"></i>
                             <span class="truncate text-zinc-900 dark:text-zinc-100">{{ $employee->name }}</span>
                             @if($isInTransit)
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 shrink-0">
-                                    {{ __('In Transit') }}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 shrink-0">
+                                    <i class="fas fa-shipping-fast mr-1"></i>{{ __('In transit') }}
                                 </span>
                             @endif
                             <span class="ml-auto text-xs text-zinc-400 shrink-0">#{{ $employee->id }}</span>
@@ -144,8 +144,8 @@
             {{ __('Selected') }}: {{ $resolvedEmployee->name }}
         </span>
         @if($selectedIsInTransit)
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                <i class="fas fa-shipping-fast mr-1"></i>{{ __('In Transit') }}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 shrink-0">
+                <i class="fas fa-shipping-fast mr-1"></i>{{ __('In transit') }}
             </span>
         @endif
     </p>

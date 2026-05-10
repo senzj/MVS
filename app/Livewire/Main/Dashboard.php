@@ -5,6 +5,7 @@ namespace App\Livewire\Main;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\InventoryMovement;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
@@ -28,6 +29,7 @@ class Dashboard extends Component
         $orderItems = OrderItem::all();
         $orderItems->load(['order', 'product']);
         $products = Product::all();
+        $inventoryMovements = InventoryMovement::with('product')->get();
 
         $this->todayStats = $this->getTodayStats($orders, $orderItems);
         $this->topSellingProducts = $this->getTopSellingProducts($orderItems);
@@ -35,7 +37,7 @@ class Dashboard extends Component
         $this->ordersByDayData = $this->getOrdersByDayData($orders);
         $this->monthlyTrendsData = $this->getMonthlyTrendsData($orders);
         $this->categoryBreakdownData = $this->getCategoryBreakdownData($orderItems);
-        $this->businessInsights = $this->getBusinessInsights($orders, $orderItems, $products);
+        $this->businessInsights = $this->getBusinessInsights($orders, $orderItems, $products, $inventoryMovements);
 
         // Dispatch data to the browser so JS can render charts after Livewire mounts
         $this->dispatch('dashboard-charts-data', data: [
@@ -195,8 +197,8 @@ class Dashboard extends Component
             'avg_order' => $todayOrderCount > 0 ? round($todaySales / $todayOrderCount, 2) : 0,
             'pending' => $todayOrders->whereIn('status', ['pending', 'preparing', 'in_transit'])->count(),
             'completed' => $todayOrders->whereIn('status', ['delivered', 'completed'])->count(),
-            'paid' => $todayOrders->where('is_paid', true)->count(),
-            'unpaid' => $orders->filter(fn (Order $order) => ! $order->is_paid && ! in_array($order->status, ['completed', 'cancelled'], true))->count(),
+            'paid' => $todayOrders->where('payment_status', 'paid')->count(),
+            'unpaid' => $orders->filter(fn (Order $order) => ($order->payment_status ?? 'unpaid') === 'unpaid' && ! in_array($order->status, ['completed', 'cancelled'], true))->count(),
             'units_sold' => (int) $todayItems->sum('quantity'),
             'free_items' => $todayNoCharge['items'],
             'free_units' => $todayNoCharge['units'],
@@ -383,9 +385,12 @@ class Dashboard extends Component
         }
     }
 
-    private function getBusinessInsights(Collection $orders, Collection $orderItems, Collection $products): array
+    private function getBusinessInsights(Collection $orders, Collection $orderItems, Collection $products, Collection $inventoryMovements): array
     {
         $last30Days = Carbon::now()->subDays(29)->startOfDay();
+        $today = Carbon::today();
+        $todayEnd = $today->copy()->endOfDay();
+
         $monthOrders = $this->filterOrders($orders, $last30Days);
         $monthItems = $this->filterOrderItems($orderItems, $last30Days);
         $monthNoCharge = $this->summarizeNoChargeItems($orderItems, $last30Days);
@@ -393,11 +398,42 @@ class Dashboard extends Component
         $monthProfit = round($monthSales * self::ESTIMATED_PROFIT_MARGIN, 2);
         $monthOrdersCount = $monthOrders->count();
         $completedOrders = $monthOrders->whereIn('status', ['delivered', 'completed'])->count();
-        $paidOrders = $monthOrders->where('is_paid', true)->count();
+        $paidOrders = $monthOrders->where('payment_status', 'paid')->count();
+        $refundedOrders = $monthOrders->where('payment_status', 'refunded')->count();
         $unitsSold = (int) $monthItems->sum('quantity');
         $activeProducts = $products->filter(fn (Product $product) => (int) $product->stocks > 0)->count();
         $lowStockProducts = $products->filter(fn (Product $product) => (int) $product->stocks > 0 && (int) $product->stocks < 10)->count();
         $outOfStockProducts = $products->filter(fn (Product $product) => (int) $product->stocks <= 0)->count();
+
+        $todayMovements = $inventoryMovements->filter(function (InventoryMovement $movement) use ($today, $todayEnd) {
+            return $this->dateInRange($movement->created_at, $today, $todayEnd);
+        })->values();
+
+        $monthMovements = $inventoryMovements->filter(function (InventoryMovement $movement) use ($last30Days) {
+            return $this->dateInRange($movement->created_at, $last30Days);
+        })->values();
+
+        $inventoryOutToday = (int) $todayMovements
+            ->filter(fn (InventoryMovement $movement) => (int) $movement->after_stocks < (int) $movement->before_stocks)
+            ->sum('quantity');
+
+        $inventoryInToday = (int) $todayMovements
+            ->filter(fn (InventoryMovement $movement) => (int) $movement->after_stocks > (int) $movement->before_stocks)
+            ->sum('quantity');
+
+        $topMovedProduct = $monthMovements
+            ->groupBy('product_id')
+            ->map(function (Collection $group) {
+                /** @var InventoryMovement|null $first */
+                $first = $group->first();
+
+                return [
+                    'name' => $first?->product?->name ?? __('Unknown product'),
+                    'units' => (int) $group->sum('quantity'),
+                ];
+            })
+            ->sortByDesc('units')
+            ->first();
 
         $categorySummary = $monthItems
             ->groupBy(function (OrderItem $orderItem) {
@@ -428,6 +464,7 @@ class Dashboard extends Component
             'average_order_value' => $monthOrdersCount > 0 ? round($monthSales / $monthOrdersCount, 2) : 0,
             'completion_rate' => $monthOrdersCount > 0 ? round(($completedOrders / $monthOrdersCount) * 100, 1) : 0,
             'payment_rate' => $monthOrdersCount > 0 ? round(($paidOrders / $monthOrdersCount) * 100, 1) : 0,
+            'refund_rate' => $monthOrdersCount > 0 ? round(($refundedOrders / $monthOrdersCount) * 100, 1) : 0,
             'active_products' => $activeProducts,
             'low_stock_products' => $lowStockProducts,
             'out_of_stock_products' => $outOfStockProducts,
@@ -436,6 +473,12 @@ class Dashboard extends Component
             'top_category_key' => $categorySummary['category'] ?? null,
             'top_product_name' => $topProduct['name'] ?? __('No product data'),
             'top_product_sales' => $topProduct['total_sold'] ?? 0,
+            'inventory_out_today' => $inventoryOutToday,
+            'inventory_in_today' => $inventoryInToday,
+            'inventory_net_today' => $inventoryInToday - $inventoryOutToday,
+            'inventory_events_today' => $todayMovements->count(),
+            'inventory_top_product_name' => $topMovedProduct['name'] ?? __('No product data'),
+            'inventory_top_product_units' => $topMovedProduct['units'] ?? 0,
         ];
     }
 

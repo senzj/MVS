@@ -25,7 +25,7 @@
     <div class="flex items-center gap-2">
         <i class="fas fa-receipt text-blue-400 text-sm" aria-hidden="true"></i>
         <p class="text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
-            {{ __('Proof of Payment') }}
+            {{ __('Image of Payment') }}
             @if(!$readOnly)
                 <span class="text-zinc-400 font-normal normal-case ml-1">({{ __('optional') }})</span>
             @endif
@@ -40,7 +40,7 @@
                 <a href="{{ $existingProofUrl }}" target="_blank" rel="noopener"
                    class="block overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
                     <img src="{{ $existingProofUrl }}"
-                         alt="{{ __('Proof of payment') }}"
+                         alt="{{ __('Image of Payment') }}"
                          class="w-full max-h-60 object-contain bg-white dark:bg-zinc-800">
                 </a>
                 <p class="text-xs text-zinc-400 text-center">
@@ -54,36 +54,6 @@
                 <p class="text-sm text-zinc-500 dark:text-zinc-400">
                     {{ __('No proof of payment uploaded.') }}
                 </p>
-
-                {{-- Allow uploading even from the view modal --}}
-                @if(!$readOnly || ($readOnly && isset($allowUploadInView) && $allowUploadInView))
-                    <div class="flex flex-col sm:flex-row gap-2 justify-center">
-                        <button type="button"
-                            x-on:click="captureMode = null; $refs.proofInput.click()"
-                            class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm
-                                   rounded-lg border border-zinc-300 dark:border-zinc-600
-                                   text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800
-                                   hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
-                            <i class="fas fa-upload" aria-hidden="true"></i>{{ __('Upload') }}
-                        </button>
-                        @if($allowCamera)
-                            <button type="button"
-                                x-on:click="captureMode = 'environment'; $refs.proofInput.click()"
-                                class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm
-                                       rounded-lg border border-zinc-300 dark:border-zinc-600
-                                       text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800
-                                       hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
-                                <i class="fas fa-camera" aria-hidden="true"></i>{{ __('Take Photo') }}
-                            </button>
-                        @endif
-                    </div>
-                    <input x-ref="proofInput"
-                           type="file"
-                           wire:model="proofOfPayment"
-                           accept="image/*"
-                           x-bind:capture="captureMode === 'environment' ? 'environment' : null"
-                           class="hidden">
-                @endif
             </div>
         @endif
 
@@ -96,7 +66,7 @@
                 <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Current upload') }}</p>
                 <div class="relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700">
                     <img src="{{ $existingProofUrl }}"
-                         alt="{{ __('Current proof of payment') }}"
+                         alt="{{ __('Image of Payment') }}"
                          class="w-full max-h-48 object-contain bg-white dark:bg-zinc-800">
                     <button type="button"
                         wire:click="removeProof"

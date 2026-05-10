@@ -7,7 +7,10 @@
     $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
 @endphp
 
-<tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/40 transition-colors {{ $tab === 'completed' ? 'opacity-90' : '' }}">
+@if(empty($order))
+    <tr></tr>
+@else
+    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/40 transition-colors {{ $tab === 'completed' ? 'opacity-90' : '' }}">
 
     {{-- Receipt --}}
     <td class="px-4 py-3 whitespace-nowrap">
@@ -30,7 +33,8 @@
     {{-- Status --}}
     <td class="px-4 py-3 whitespace-nowrap text-center">
         <div class="flex flex-col items-center gap-1">
-            @include('livewire.partials.orders.status-badge', ['order' => $order])
+            @include('livewire.partials.orders.status.order-badge', ['order' => $order])
+            @include('livewire.partials.orders.status.payment-badge', ['status' => $order->payment_status])
         </div>
     </td>
 
@@ -58,4 +62,5 @@
         @include('livewire.partials.orders.action', ['order' => $order, 'style' => 'table'])
     </td>
 
-</tr>
+    </tr>
+@endif

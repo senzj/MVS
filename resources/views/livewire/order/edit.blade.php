@@ -115,7 +115,7 @@
                     </select>
                     {{-- Current badge for quick reference --}}
                     <div class="mt-1.5">
-                        @include('livewire.partials.orders.payment-status-badge', [
+                        @include('livewire.partials.orders.status.payment-badge', [
                             'status' => $payment_status,
                         ])
                     </div>
@@ -132,33 +132,6 @@
                     </div>
                 @endif
             </div>
-
-            {{--
-                Proof of payment:
-                Show when GCash + walk-in only.
-                QR code is NOT shown for delivery orders.
-            --}}
-            @if($payment_type === 'gcash' && $order_type === 'walk_in')
-                <div class="pt-2">
-                    @if($this->showQr)
-                        {{-- QR code for unpaid walk-in gcash --}}
-                        @php $qrImage = \App\Helpers\PaymentImageHelper::getPaymentImageUrl(); @endphp
-                        @if($qrImage)
-                            <div class="mb-3 flex flex-col items-center gap-2 p-4
-                                        rounded-xl border border-zinc-200 dark:border-zinc-700
-                                        bg-zinc-50 dark:bg-zinc-900/40">
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Scan to pay') }}</p>
-                                <img src="{{ $qrImage }}" alt="{{ __('GCash QR') }}"
-                                     class="max-w-[160px] max-h-[160px] object-contain rounded-lg">
-                            </div>
-                        @endif
-                    @endif
-
-                    @include('livewire.partials.orders.proof-of-payment', [
-                        'existingProofUrl' => $existingProof ? asset('storage/' . $existingProof) : null,
-                    ])
-                </div>
-            @endif
         </div>
 
         {{-- Customer --}}
@@ -204,6 +177,35 @@
                         ])
                     @endforeach
                 </div>
+
+                {{--
+                    Proof of payment:
+                    Show for every GCash order.
+                    Walk-in orders can take a photo; delivery orders upload only.
+                --}}
+                @if($payment_type === 'gcash')
+                    <div class="pt-2">
+                        @if($this->showQr)
+                            {{-- QR code for unpaid walk-in gcash --}}
+                            @php $qrImage = \App\Helpers\PaymentImageHelper::getPaymentImageUrl(); @endphp
+                            @if($qrImage)
+                                <div class="mb-3 flex flex-col items-center gap-2 p-4
+                                            rounded-xl border border-zinc-200 dark:border-zinc-700
+                                            bg-zinc-50 dark:bg-zinc-900/40">
+                                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Scan to pay') }}</p>
+                                    <img src="{{ $qrImage }}" alt="{{ __('GCash QR') }}"
+                                        class="max-w-[160px] max-h-[160px] object-contain rounded-lg">
+                                </div>
+                            @endif
+                        @endif
+
+                        @include('livewire.partials.orders.proof-of-payment', [
+                            'existingProofUrl' => $existingProof ? asset('storage/' . $existingProof) : null,
+                            'allowCamera'      => $order_type === 'walk_in',
+                            'readOnly'         => false,
+                        ])
+                    </div>
+                @endif
 
                 <div class="pt-4 border-t border-zinc-200 dark:border-zinc-600 flex justify-between items-center">
                     <span class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">

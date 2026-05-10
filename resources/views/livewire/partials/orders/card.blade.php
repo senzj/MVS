@@ -3,23 +3,27 @@
     Props: $order, $tab ('ongoing' | 'completed')
 --}}
 
-@php
-    $stripColors = [
-        'pending'    => 'bg-yellow-400',
-        'preparing'  => 'bg-orange-400',
-        'in_transit' => 'bg-indigo-500',
-        'delivered'  => 'bg-purple-500',
-        'completed'  => 'bg-green-500',
-        'cancelled'  => 'bg-red-500',
-    ];
-    $strip = $stripColors[$order->status] ?? 'bg-zinc-400';
+@if(empty($order))
+    {{-- Guard: nothing to render when order is missing to avoid null property access --}}
+    <div></div>
+@else
+    @php
+        $stripColors = [
+            'pending'    => 'bg-yellow-400',
+            'preparing'  => 'bg-orange-400',
+            'in_transit' => 'bg-indigo-500',
+            'delivered'  => 'bg-purple-500',
+            'completed'  => 'bg-green-500',
+            'cancelled'  => 'bg-red-500',
+        ];
+        $strip = $stripColors[$order->status] ?? 'bg-zinc-400';
 
-    $customerBadgeClass = $order->order_type === 'walk_in'
-        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-        : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300';
+        $customerBadgeClass = $order->order_type === 'walk_in'
+            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+            : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300';
 
-    $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
-@endphp
+        $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
+    @endphp
 
 <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden {{ $tab === 'completed' ? 'opacity-90' : '' }}">
 
@@ -44,7 +48,7 @@
             </div>
 
             <div class="flex flex-col items-end gap-1 shrink-0">
-                @include('livewire.partials.orders.status-badge', ['order' => $order])
+                @include('livewire.partials.orders.status.order-badge', ['order' => $order])
             </div>
         </div>
 
@@ -76,3 +80,4 @@
 
     </div>
 </div>
+@endif

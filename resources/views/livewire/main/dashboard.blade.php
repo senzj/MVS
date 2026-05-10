@@ -129,49 +129,54 @@
         </div>
     </div>
 
-    {{-- No Charge Activity --}}
+    {{-- Product Loss + Inventory Movement --}}
     <div class="grid grid-cols-1 gap-3 mb-6 md:grid-cols-2 xl:grid-cols-4">
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
             <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Product Losses Today') }}</p>
             <div class="flex items-end justify-between mt-2">
                 <div>
                     <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['free_items'] ?? 0 }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Line items recorded as product loss') }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                        {{ number_format($todayStats['free_units'] ?? 0) }} {{ __('units') }} · {{ number_format($todayStats['free_orders'] ?? 0) }} {{ __('orders') }}
+                    </p>
                 </div>
                 <i class="fas fa-triangle-exclamation text-rose-500 text-xl"></i>
             </div>
         </div>
 
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Lost Units Today') }}</p>
+            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Stock Outflow Today') }}</p>
             <div class="flex items-end justify-between mt-2">
                 <div>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['free_units'] ?? 0 }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Units recorded as loss or debit') }}</p>
+                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['inventory_out_today'] ?? 0) }}</p>
+                    <p class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ __('Today') }} · {{ __('Stock Out') }}</p>
                 </div>
-                <i class="fas fa-box-open text-blue-500 text-xl"></i>
+                <i class="fas fa-arrow-trend-down text-rose-500 text-xl"></i>
             </div>
         </div>
 
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Orders with Lost Items Today') }}</p>
+            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Stock Restored Today') }}</p>
             <div class="flex items-end justify-between mt-2">
                 <div>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['free_orders'] ?? 0 }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Orders containing items recorded as loss') }}</p>
+                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['inventory_in_today'] ?? 0) }}</p>
+                    <p class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ __('Today') }} · <span>{{ __('Restored') }} / {{ __('Restocked') }}</span></p>
                 </div>
-                <i class="fas fa-bag-shopping text-purple-500 text-xl"></i>
+                <i class="fas fa-arrow-trend-up text-emerald-500 text-xl"></i>
             </div>
         </div>
 
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Loss Order Share') }}</p>
+            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Net Stock Change Today') }}</p>
             <div class="flex items-end justify-between mt-2">
                 <div>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['free_order_rate'] ?? 0, 1) }}%</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Last 30 days') }}</p>
+                    @php $net = (int) ($businessInsights['inventory_net_today'] ?? 0); @endphp
+                    <p class="text-2xl font-bold {{ $net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">{{ $net >= 0 ? '+' : '' }}{{ number_format($net) }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                        {{ number_format($businessInsights['inventory_events_today'] ?? 0) }} {{ __('movements') }} · {{ Str::limit($businessInsights['inventory_top_product_name'] ?? 'No data', 14) }}
+                    </p>
                 </div>
-                <i class="fas fa-percentage text-amber-500 text-xl"></i>
+                <i class="fas fa-scale-balanced text-amber-500 text-xl"></i>
             </div>
         </div>
     </div>
@@ -368,6 +373,16 @@
                     <div class="text-right">
                         <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['payment_rate'] ?? 0, 1) }}%</p>
                         <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Cash flow health') }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                    <div>
+                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Refund Rate') }}</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Share of refunded orders in the last 30 days') }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['refund_rate'] ?? 0, 1) }}%</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Lower is better') }}
                     </div>
                 </div>
             </div>

@@ -135,15 +135,6 @@
                         @include('livewire.partials.orders.form.employee.dropdown', ['forceSelect' => false])
                     </div>
                 @endif
-
-                {{-- Proof of payment (GCash + walk-in only) --}}
-                @if($paymentType === 'gcash' && $orderType === 'walk_in')
-                    <div class="md:col-span-2">
-                        @include('livewire.partials.orders.proof-of-payment', [
-                            'existingProofUrl' => null,
-                        ])
-                    </div>
-                @endif
             </div>
         </div>
 
@@ -200,6 +191,17 @@
                     ])
                 @endforeach
             </div>
+
+            {{-- Proof of payment (all GCash orders) --}}
+            @if($paymentType === 'gcash')
+                <div class="md:col-span-2">
+                    @include('livewire.partials.orders.proof-of-payment', [
+                        'existingProofUrl' => null,
+                        'allowCamera' => $orderType === 'walk_in',
+                        'readOnly' => false,
+                    ])
+                </div>
+            @endif
 
             <div class="pt-4 border-t border-zinc-200 dark:border-zinc-600 flex justify-between items-center">
                 <span class="text-sm font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">

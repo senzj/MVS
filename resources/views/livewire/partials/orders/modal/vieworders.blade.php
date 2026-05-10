@@ -18,26 +18,6 @@
     $isGcash = $paymentType === 'gcash';
     $isDelivery = $sourceOrder?->order_type === 'deliver' || in_array($reviewOrderType ?? '', [__('Delivery'), 'Delivery', 'deliver']);
 
-    $statusColor = match ($statusKey) {
-        'pending'    => ['dot' => 'bg-amber-400',  'text' => 'text-amber-700 dark:text-amber-300'],
-        'preparing'  => ['dot' => 'bg-yellow-400', 'text' => 'text-yellow-700 dark:text-yellow-300'],
-        'in_transit' => ['dot' => 'bg-indigo-400', 'text' => 'text-indigo-700 dark:text-indigo-300'],
-        'delivered'  => ['dot' => 'bg-purple-400', 'text' => 'text-purple-700 dark:text-purple-300'],
-        'completed'  => ['dot' => 'bg-green-500',  'text' => 'text-green-700 dark:text-green-300'],
-        'cancelled'  => ['dot' => 'bg-red-500',    'text' => 'text-red-700 dark:text-red-300'],
-        default      => ['dot' => 'bg-gray-400',   'text' => 'text-gray-600 dark:text-gray-400'],
-    };
-    $statusLabel = $sourceOrder
-        ? __([
-            'preparing'  => 'Preparing',
-            'pending'    => 'Pending',
-            'in_transit' => 'In transit',
-            'delivered'  => 'Delivered',
-            'completed'  => 'Completed',
-            'cancelled'  => 'Cancelled',
-        ][$sourceOrder->status] ?? ucfirst(str_replace('_', ' ', $sourceOrder->status)))
-        : ($reviewStatusLabel ?? __('N/A'));
-
     $receiptNumber = $sourceOrder?->receipt_number ?? ($reviewReceiptNumber ?? '');
     $receiptDate = $sourceOrder?->created_at
         ? $sourceOrder->created_at->locale($loc)->isoFormat('ddd, MMM D, YYYY · hh:mm:ss A')
@@ -73,18 +53,18 @@
     $existingProofUrl = $sourceOrder?->proof_url ?? null;
 @endphp
 
-<div class="mx-auto w-full max-w-md space-y-3 font-mono text-sm text-gray-800 dark:text-gray-100 select-text">
+<div class="mx-auto w-full max-w-md space-y-3 text-sm text-gray-800 dark:text-gray-100 select-text">
 
     {{-- Header --}}
     <div class="space-y-2.5 pb-3 border-b border-zinc-800/50 dark:border-gray-200/50">
         <div class="flex items-start justify-between gap-3">
             <div>
-                <p class="text-lg font-bold tracking-tight text-zinc-800 dark:text-zinc-200 truncate">
+                <p class="text-xl font-bold tracking-tight text-zinc-800 dark:text-zinc-200 truncate">
                     #{{ $receiptNumber }}
                 </p>
             </div>
             <div class="text-right">
-                <p class="text-xs text-zinc-800 dark:text-zinc-200 font-sans leading-tight">
+                <p class="text-xs text-zinc-800 dark:text-zinc-200 leading-tight">
                     {{ $receiptDate }}
                 </p>
             </div>
@@ -94,8 +74,11 @@
     {{-- Invoice metadata --}}
     <div class="space-y-2.5 pb-3 border-b border-zinc-800/50 dark:border-gray-200/50">
         @if($sourceOrder)
-            <div class="text-sm text-zinc-700 dark:text-zinc-300 font-sans">
-                Order ID: <span class="font-semibold text-zinc-900 dark:text-zinc-100">#{{ $sourceOrder->id }}</span>
+            <div class="text-sm text-zinc-700 dark:text-zinc-300">
+                {{ __('Order ID') }}:
+                <span class="font-semibold text-zinc-900 dark:text-zinc-100">
+                    #{{ $sourceOrder->id }}
+                </span>
             </div>
         @endif
 
@@ -104,19 +87,21 @@
             @php $addr = implode(', ', array_filter([$customerUnit, $customerAddress])); @endphp
             <div class="space-y-2 border-b border-zinc-800/50 dark:border-zinc-200/50 pb-2">
                 <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+
                     <div class="space-y-0.5">
-                        <p class="text-[13px] uppercase text-zinc-700 dark:text-zinc-300 font-sans">Customer</p>
-                        <p class="font-semibold text-zinc-900 dark:text-zinc-100 font-sans leading-snug">{{ $customerName ?: 'N/A' }}</p>
+                        <p class="text-[13px] uppercase text-zinc-700 dark:text-zinc-300">{{ __('Customer Name') }}</p>
+                        <p class="font-semibold text-zinc-900 dark:text-zinc-100 leading-snug">{{ $customerName ?: 'N/A' }}</p>
                     </div>
+
                     <div class="space-y-0.5 text-right">
-                        <p class="text-[13px] uppercase text-zinc-700 dark:text-zinc-300 font-sans">Contact Number</p>
-                        <p class="font-semibold text-zinc-900 dark:text-zinc-100 font-sans">{{ $customerContact ?: __('Not Provided') }}</p>
+                        <p class="text-[13px] uppercase text-zinc-700 dark:text-zinc-300">{{ __('Contact Number') }}</p>
+                        <p class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $customerContact ?: __('Not Provided') }}</p>
                     </div>
                 </div>
 
                 @if($addr)
                     <div class="space-y-0.5">
-                        <p class="text-[13px] uppercase text-zinc-700 dark:text-zinc-300 font-sans mb-1">Delivery address</p>
+                        <p class="text-[13px] uppercase text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Address') }}</p>
                         <p class="font-semibold text-zinc-900 dark:text-zinc-100 leading-snug">{{ $addr }}</p>
                     </div>
                 @endif
@@ -125,36 +110,35 @@
 
         <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
             <div class="space-y-0.5">
-                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300 font-sans">Order type</p>
-                <p class="font-semibold text-zinc-900 dark:text-zinc-100 font-sans">{{ $isDelivery ? 'Delivery' : 'Walk-In' }}</p>
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300">{{ __('Cashier') }}</p>
+                <p class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $sourceOrder?->staff?->name ?? __('Staff') }}</p>
             </div>
             <div class="space-y-0.5 text-right">
-                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300 font-sans">Payment</p>
-                <p class="font-semibold text-zinc-900 dark:text-zinc-100 font-sans">{{ $paymentLabel }}</p>
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300">{{ __('Courier') }}</p>
+                <p class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $deliveredBy ?? __('N/A') }}</p>
             </div>
 
             <div class="space-y-0.5">
-                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300 font-sans">Order status</p>
-                <div class="inline-flex items-center gap-1.5">
-                    <span class="h-1.5 w-1.5 rounded-full {{ $statusColor['dot'] }} shrink-0"></span>
-                    <span class="font-semibold {{ $statusColor['text'] }} font-sans">{{ $statusLabel }}</span>
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300">{{ __('Order Type') }}</p>
+                <p class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $isDelivery ? __('Delivery') : __('Walk-In') }}</p>
+            </div>
+            <div class="space-y-0.5 text-right">
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300">{{ __('Payment') }}</p>
+                <p class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $paymentLabel }}</p>
+            </div>
+
+            <div class="space-y-0.5">
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300">{{ __('Order Status') }}</p>
+                <div class="inline-flex justify-start">
+                    @include('livewire.partials.orders.status.order-badge', ['order' => $sourceOrder])
                 </div>
             </div>
 
             <div class="space-y-0.5 text-right">
-                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300 font-sans">Payment status</p>
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300">{{ __('Payment Status') }}</p>
                 <div class="inline-flex justify-end">
-                    @include('livewire.partials.orders.payment-status-badge', ['status' => $paymentStatus])
+                    @include('livewire.partials.orders.status.payment-badge', ['status' => $paymentStatus])
                 </div>
-            </div>
-
-            <div class="space-y-0.5">
-                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300 font-sans">Cashier</p>
-                <p class="font-semibold text-zinc-900 dark:text-zinc-100 font-sans">{{ $sourceOrder?->staff?->name ?? __('Staff') }}</p>
-            </div>
-            <div class="space-y-0.5 text-right">
-                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300 font-sans">Courier</p>
-                <p class="font-semibold text-zinc-900 dark:text-zinc-100 font-sans">{{ $deliveredBy ?? __('N/A') }}</p>
             </div>
         </div>
     </div>
@@ -164,17 +148,17 @@
         <div class="space-y-2.5 pb-3 border-b border-zinc-800/50 dark:border-gray-200/50">
             <div class="flex items-end justify-between gap-3">
                 <div>
-                    <p class="text-[13px] uppercase tracking-[0.22em] text-zinc-700 dark:text-zinc-300 font-sans">Orders</p>
+                    <p class="text-[13px] uppercase tracking-[0.22em] text-zinc-700 dark:text-zinc-300">{{ __('Orders') }}</p>
                 </div>
-                <p class="text-xs text-zinc-700 dark:text-zinc-300 font-sans">{{ $displayItems->count() }} item(s)</p>
+                <p class="text-xs text-zinc-700 dark:text-zinc-300">{{ $displayItems->count() }} {{ __('item(s)') }}</p>
             </div>
 
             <div class="overflow-hidden">
-                <div class="grid grid-cols-[1fr_3.25rem_4.5rem_5rem] gap-2 px-3 py-2 text-[13px] uppercase text-zinc-700 dark:text-zinc-300 border-b border-dashed border-gray-500/80 font-sans">
-                    <span class="text-center">Item</span>
-                    <span class="text-center">Qty</span>
-                    <span class="text-center">Price</span>
-                    <span class="text-center">Total</span>
+                <div class="grid grid-cols-[1fr_3.25rem_4.5rem_5rem] gap-2 px-3 py-2 text-[13px] uppercase text-zinc-700 dark:text-zinc-300 border-b border-dashed border-gray-500/80">
+                    <span class="text-center">{{ __('Item') }}</span>
+                    <span class="text-center">{{ __('Qty / kg') }}</span>
+                    <span class="text-center">{{ __('Price') }}</span>
+                    <span class="text-center">{{ __('Total') }}</span>
                 </div>
 
                 <div class="divide-y divide-gray-100 dark:divide-gray-800">
@@ -204,7 +188,7 @@
                                         </span>
                                     @elseif((float) ($item->total_price ?? 0) <= 0 && (int) ($item->quantity ?? 0) > 0)
                                         <span class="inline-flex items-center rounded bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 dark:text-emerald-300">
-                                            No Charge
+                                            {{ __('No Charge') }}
                                         </span>
                                     @endif
                                 </div>
@@ -233,14 +217,14 @@
         @if($amountReceived !== null || $changeAmount !== null)
             <div class="pt-2 space-y-1.5">
                 @if($amountReceived !== null)
-                    <div class="flex items-center justify-between gap-3 text-xs font-sans">
-                        <span class="text-zinc-700 dark:text-zinc-300">Amount received</span>
+                    <div class="flex items-center justify-between gap-3 text-xs">
+                        <span class="text-zinc-700 dark:text-zinc-300">{{ __('Amount Received') }}</span>
                         <span class="font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">₱{{ number_format((float) $amountReceived, 2) }}</span>
                     </div>
                 @endif
                 @if($changeAmount !== null)
-                    <div class="flex items-center justify-between gap-3 text-xs font-sans">
-                        <span class="text-zinc-700 dark:text-zinc-300">Change</span>
+                    <div class="flex items-center justify-between gap-3 text-xs">
+                        <span class="text-zinc-700 dark:text-zinc-300">{{ __('Amount Changed') }}</span>
                         <span class="font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">₱{{ number_format((float) $changeAmount, 2) }}</span>
                     </div>
                 @endif
@@ -249,8 +233,9 @@
 
         <div class="pt-2">
             <div class="flex items-end justify-between gap-3">
-                <span class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase  font-sans">
-                    Total
+                <span class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                    <i class="fas fa-receipt mr-2"></i>
+                    {{ __('Total Amount') }}
                 </span>
                 <span class="text-2xl font-black text-zinc-900 dark:text-zinc-100 font-mono tabular-nums leading-none">
                     ₱{{ number_format((float) $orderTotal, 2) }}
@@ -262,7 +247,7 @@
     {{-- Footer --}}
     @if($showFooter)
         <div class="pt-4 text-center space-y-2.5">
-            <p class="text-xs uppercase tracking-wider text-zinc-500 font-sans">
+            <p class="text-xs uppercase tracking-wider text-zinc-500">
                 {{ __('Thank you! Please come again.') }}
             </p>
         </div>
@@ -271,7 +256,9 @@
     {{-- Payment proof --}}
     @if($showProofSection && $isGcash)
         <div class="pt-3 border-t border-gray-200/80 dark:border-gray-700/80">
-            <p class="text-xs uppercase tracking-[0.22em] text-gray-400 dark:text-gray-500 font-sans mb-2">Payment proof</p>
+            <p class="text-xs uppercase tracking-[0.22em] text-gray-400 dark:text-gray-500 mb-2">
+                {{ __('Payment Proof') }}
+            </p>
             @include('livewire.partials.orders.proof-of-payment', [
                 'readOnly'          => true,
                 'allowUploadInView' => in_array($paymentStatus, ['unpaid']),
