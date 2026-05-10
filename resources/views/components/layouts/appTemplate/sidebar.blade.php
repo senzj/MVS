@@ -31,34 +31,36 @@
                     {{-- dashboard --}}
                     <flux:navlist.item icon="home" :href="route('dashboard')" :current="$dashboardCurrent" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
 
+                </flux:navlist.group>
+
+                {{-- orders nav group --}}
+                <flux:navlist.group :heading="__('Orders')" class="grid mt-2.5">
                     {{-- orders --}}
                     <flux:navlist.item icon="shopping-cart" :href="route('orders')" :current="$ordersCurrent" wire:navigate>{{ __('Orders') }}</flux:navlist.item>
 
+                    {{-- orders history --}}
+                    <flux:navlist.item icon="clock" :href="route('orders.history')" :current="$ordersHistoryCurrent" wire:navigate>{{ __('Orders History') }}</flux:navlist.item>
+                </flux:navlist.group>
+
+                {{-- products nav group --}}
+                <flux:navlist.group :heading="__('Products')" class="grid mt-2.5">
+                    {{-- products --}}
+                    <flux:navlist.item icon="shopping-bag" :href="route('products')" :current="$productsCurrent" wire:navigate>{{ __('Products') }}</flux:navlist.item>
+
+                    {{-- Inventory Audit --}}
+                    <flux:navlist.item icon="chart-bar" :href="route('inventory.audit')" :current="request()->routeIs('inventory.audit')" wire:navigate>{{ __('Inventory Audit') }}</flux:navlist.item>
                 </flux:navlist.group>
 
                 {{-- management nav group --}}
                 <flux:navlist.group :heading="__('Management')" class="grid mt-2.5">
-                    {{-- products --}}
-                    <flux:navlist.item icon="shopping-bag" :href="route('products')" :current="$productsCurrent" wire:navigate>{{ __('Products') }}</flux:navlist.item>
-
                     {{-- customers --}}
                     <flux:navlist.item icon="identification" :href="route('customers')" :current="$customersCurrent" wire:navigate>{{ __('Customers') }}</flux:navlist.item>
 
                     {{-- employees --}}
                     <flux:navlist.item icon="users" :href="route('employees')" :current="$employeesCurrent" wire:navigate>{{ __('Employees') }}</flux:navlist.item>
-                </flux:navlist.group>
-
-                {{-- records nav group --}}
-                <flux:navlist.group :heading="__('Records')" class="grid mt-2.5">
-                    {{-- sales --}}
-                    {{-- <flux:navlist.item icon="chart-bar" :href="route('sales')" :current="request()->routeIs('sales')" wire:navigate>{{ __('Sales') }}</flux:navlist.item> --}}
-
-                    {{-- orders history --}}
-                    <flux:navlist.item icon="clock" :href="route('orders.history')" :current="$ordersHistoryCurrent" wire:navigate>{{ __('Orders History') }}</flux:navlist.item>
 
                     {{-- logs --}}
                     <flux:navlist.item icon="server" :href="route('logs')" :current="$logsCurrent" wire:navigate>{{ __('Logs') }}</flux:navlist.item>
-
                 </flux:navlist.group>
 
             </flux:navlist>

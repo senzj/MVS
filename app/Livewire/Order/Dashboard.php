@@ -3,7 +3,7 @@ namespace App\Livewire\Order;
 
 use App\Models\Customer;
 use App\Models\Order;
-use App\Models\Product;
+use App\Services\Products\InventoryService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +46,11 @@ class Dashboard extends Component
     public bool $showDeleteModal = false;
     public ?int $deleteOrderId = null;
     public ?string $deleteReceipt = null;
+
+    // Cancel Order modal state
+    public bool $showCancelModal = false;
+    public ?int $cancelOrderId = null;
+    public ?string $cancelReceipt = null;
 
     // New order form
     public array $newOrder = [
@@ -548,37 +553,35 @@ class Dashboard extends Component
 
     private function applyInventory(Order $order): void
     {
-        foreach ($order->orderItems as $item) {
-            $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
-            if (!$product) {
-                continue;
-            }
+        $inventory = app(InventoryService::class);
 
+        foreach ($order->orderItems as $item) {
             $qty = (int) $item->quantity;
 
-            // Deduct stocks, increase sold
-            $product->stocks = max(0, (int) $product->stocks - $qty);
-            $product->sold = max(0, (int) ($product->sold ?? 0) + $qty);
-            $product->is_in_stock = $product->stocks > 0;
-            $product->save();
+            $inventory->deduct(
+                (int) $item->product_id,
+                $qty,
+                'order_created',
+                $order,
+                __('Order #:receipt created.', ['receipt' => $order->receipt_number])
+            );
         }
     }
 
     private function rollbackInventory(Order $order): void
     {
-        foreach ($order->orderItems as $item) {
-            $product = Product::where('id', $item->product_id)->lockForUpdate()->first();
-            if (!$product) {
-                continue;
-            }
+        $inventory = app(InventoryService::class);
 
+        foreach ($order->orderItems as $item) {
             $qty = (int) $item->quantity;
 
-            // Return stocks, reduce sold
-            $product->stocks = (int) $product->stocks + $qty;
-            $product->sold = max(0, (int) ($product->sold ?? 0) - $qty);
-            $product->is_in_stock = $product->stocks > 0;
-            $product->save();
+            $inventory->restore(
+                (int) $item->product_id,
+                $qty,
+                'manual_adjustment',
+                $order,
+                __('Order #:receipt deleted.', ['receipt' => $order->receipt_number])
+            );
         }
     }
 
@@ -601,6 +604,55 @@ class Dashboard extends Component
         $this->deleteOrderId = $order->id;
         $this->deleteReceipt = $order->receipt_number;
         $this->showDeleteModal = true;
+    }
+
+    public function openCancel(int $orderId): void
+    {
+        $order = Order::select('id', 'receipt_number', 'status')->find($orderId);
+        if (! $order) return;
+
+        // Only open when order is cancellable
+        if (in_array($order->status, ['cancelled', 'completed', 'preparing'], true)) {
+            $this->dispatch('show-error', ['message' => __('This order cannot be cancelled.')]);
+            return;
+        }
+
+        $this->cancelOrderId = $order->id;
+        $this->cancelReceipt = $order->receipt_number;
+        $this->showCancelModal = true;
+    }
+
+    public function closeCancelModal(): void
+    {
+        $this->showCancelModal = false;
+        $this->cancelOrderId = null;
+        $this->cancelReceipt = null;
+    }
+
+    public function confirmCancel(): void
+    {
+        if (! $this->cancelOrderId) return;
+
+        $this->cancelOrder($this->cancelOrderId);
+        $this->closeCancelModal();
+    }
+
+    /**
+     * Cancel an order: restore inventory and mark as cancelled.
+     */
+    public function cancelOrder(int $orderId): void
+    {
+        $order = Order::with('orderItems')->find($orderId);
+        if (! $order) return;
+
+        DB::transaction(function () use ($order) {
+            // Restore inventory for this order and mark cancelled
+            $this->rollbackInventory($order);
+            $order->status = 'cancelled';
+            $order->save();
+        });
+
+        $this->dispatch('show-success', ['message' => __('Order ":receipt" cancelled.', ['receipt' => $order->receipt_number])]);
     }
 
     public function closeDeleteModal(): void

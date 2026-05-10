@@ -4,7 +4,7 @@ namespace App\Livewire\Partials\Orders\Modal;
 
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Product;
+use App\Services\Products\InventoryService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -146,7 +146,7 @@ class Refund extends Component
     public function confirmRefund(): void
     {
         // Re-check guard in case order state changed while modal was open
-        $fresh = Order::find($this->orderId);
+        $fresh = Order::query()->find($this->orderId);
         if (! $fresh || $fresh->status !== 'completed' || $fresh->payment_status !== 'paid') {
             $this->addError('refundLines', __('This order can no longer be refunded.'));
             return;
@@ -178,6 +178,7 @@ class Refund extends Component
         }
 
         DB::transaction(function () {
+            $inventory = app(InventoryService::class);
             $allItemsFullyRefunded = true;
 
             foreach ($this->refundLines as $line) {
@@ -207,17 +208,13 @@ class Refund extends Component
 
                     // Conditionally restore stock
                     if ((bool) ($line['restore_stock'] ?? true)) {
-                        $product = Product::query()
-                            ->where('id', $line['product_id'])
-                            ->lockForUpdate()
-                            ->first();
-
-                        if ($product) {
-                            $product->stocks      = (int) $product->stocks + $qty;
-                            $product->sold        = max(0, (int) ($product->sold ?? 0) - $qty);
-                            $product->is_in_stock = true;
-                            $product->save();
-                        }
+                        $inventory->restore(
+                            (int) $line['product_id'],
+                            $qty,
+                            'refund',
+                            $this->order,
+                            __('Refund processed for order #:receipt.', ['receipt' => $this->order->receipt_number])
+                        );
                     }
                 }
 

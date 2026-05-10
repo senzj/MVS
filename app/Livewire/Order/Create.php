@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Services\Products\InventoryService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -268,7 +269,7 @@ class Create extends Component
                 $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$index}.product_id"]);
                 return;
             }
-            $product  = Product::find($item['product_id']);
+            $product  = Product::query()->whereKey($item['product_id'])->first();
             $quantity = (int) ($item['quantity'] ?? 0);
 
             if (! $product || ! $product->is_in_stock || $product->stocks <= 0) {
@@ -296,6 +297,7 @@ class Create extends Component
         }
 
         DB::transaction(function () use ($proofPath, $paymentStatus) {
+            $inventory = app(InventoryService::class);
             $customerId = $this->persistCustomer();
             $isWalkIn   = $this->orderType === 'walk_in';
 
@@ -317,14 +319,7 @@ class Create extends Component
             foreach ($this->orderItems as $item) {
                 if (! ($item['product_id'] ?? null)) continue;
 
-                $product  = Product::query()->where('id', $item['product_id'])->lockForUpdate()->first();
                 $qty      = (int) $item['quantity'];
-
-                if (! $product || $product->stocks < $qty) {
-                    throw ValidationException::withMessages([
-                        'orderItems' => "Insufficient stock for product ID {$item['product_id']}.",
-                    ]);
-                }
 
                 $isFree    = (bool) ($item['is_free'] ?? false);
                 $unitPrice = $isFree ? 0 : max(0, (float) ($item['price'] ?? 0));
@@ -337,10 +332,13 @@ class Create extends Component
                     'total_price' => $qty * $unitPrice,
                 ]);
 
-                $product->stocks      = max(0, (int) $product->stocks - $qty);
-                $product->sold        = (int) ($product->sold ?? 0) + $qty;
-                $product->is_in_stock = $product->stocks > 0;
-                $product->save();
+                $inventory->deduct(
+                    (int) $item['product_id'],
+                    $qty,
+                    'order_created',
+                    $order,
+                    __('Order #:receipt created.', ['receipt' => $order->receipt_number])
+                );
             }
         });
 

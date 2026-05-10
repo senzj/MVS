@@ -247,22 +247,8 @@
         'confirmData' => $confirmData,
     ])
 
-    {{-- Refund modal (Livewire component) --}}
-    <livewire:partials.orders.modal.refund />
-
+    {{-- Loading overlay --}}
     @include('livewire.partials.loading-overlay', [
         'wireTarget' => 'save,selectProduct,addOrderItem,removeOrderItem,openSaveConfirmation,deleteExistingProof',
     ])
 </div>
-
-<script>
-    // Listen for the confirm-cancel-refund event and prompt the user.
-    window.addEventListener('confirm-cancel-refund', () => {
-        const msg = 'This order is being cancelled but is currently paid.\n\nDo you want to refund the payment and return items to inventory?\n\nChoose OK to refund now (you will be prompted to select quantities), or Cancel to keep payment as-is.';
-        if (confirm(msg)) {
-            Livewire.emit('userAcceptedCancelRefund');
-        } else {
-            Livewire.emit('userDeclinedCancelRefund');
-        }
-    });
-</script>

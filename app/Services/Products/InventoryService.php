@@ -2,20 +2,28 @@
 
 namespace App\Services\Products;
 
+use App\Models\InventoryMovement;
 use App\Models\Product;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
-// Centralized inventory management for all stock changes:
 class InventoryService
 {
-    // Remove stock when an order is placed or quantity increased
-    public function deduct(int $productId, int $qty): void
+    public function deduct(
+        int $productId,
+        int $qty,
+        string $type = 'manual_adjustment',
+        ?Model $reference = null,
+        ?string $remarks = null,
+        ?int $userId = null
+    ): void
     {
         if ($qty <= 0) {
             return;
         }
 
-        $product = Product::lockForUpdate()->find($productId);
+        $product = Product::query()->lockForUpdate()->find($productId);
 
         if (! $product) {
             throw ValidationException::withMessages([
@@ -29,44 +37,114 @@ class InventoryService
             ]);
         }
 
+        $beforeStocks = (int) $product->stocks;
+        $beforeSold = (int) ($product->sold ?? 0);
+
         $product->stocks -= $qty;
         $product->sold += $qty;
         $product->is_in_stock = $product->stocks > 0;
         $product->save();
+
+        $this->logMovement(
+            $product,
+            $type,
+            $qty,
+            $beforeStocks,
+            $beforeSold,
+            (int) $product->stocks,
+            (int) $product->sold,
+            $userId,
+            $reference,
+            $remarks
+        );
     }
 
-    // Restore stock when an order is cancelled or quantity decreased
-    public function restore(int $productId, int $qty): void
+    public function restore(
+        int $productId,
+        int $qty,
+        string $type = 'manual_adjustment',
+        ?Model $reference = null,
+        ?string $remarks = null,
+        ?int $userId = null
+    ): void
     {
         if ($qty <= 0) {
             return;
         }
 
-        $product = Product::lockForUpdate()->find($productId);
+        $product = Product::query()->lockForUpdate()->find($productId);
 
         if (! $product) {
             return;
         }
 
+        $beforeStocks = (int) $product->stocks;
+        $beforeSold = (int) ($product->sold ?? 0);
+
         $product->stocks += $qty;
         $product->sold = max(0, $product->sold - $qty);
         $product->is_in_stock = true;
         $product->save();
+
+        $this->logMovement(
+            $product,
+            $type,
+            $qty,
+            $beforeStocks,
+            $beforeSold,
+            (int) $product->stocks,
+            (int) $product->sold,
+            $userId,
+            $reference,
+            $remarks
+        );
     }
 
-    // Synchronize inventory when an order item's quantity is updated
-    public function sync(int $productId, int $oldQty, int $newQty): void
+    public function sync(
+        int $productId,
+        int $oldQty,
+        int $newQty,
+        string $type = 'manual_adjustment',
+        ?Model $reference = null,
+        ?string $remarks = null,
+        ?int $userId = null
+    ): void
     {
         $difference = $newQty - $oldQty;
 
-        // Increased quantity
         if ($difference > 0) {
-            $this->deduct($productId, $difference);
+            $this->deduct($productId, $difference, $type, $reference, $remarks, $userId);
         }
 
-        // Decreased quantity
         if ($difference < 0) {
-            $this->restore($productId, abs($difference));
+            $this->restore($productId, abs($difference), $type, $reference, $remarks, $userId);
         }
+    }
+
+    private function logMovement(
+        Product $product,
+        string $type,
+        int $quantity,
+        int $beforeStocks,
+        int $beforeSold,
+        int $afterStocks,
+        int $afterSold,
+        ?int $userId = null,
+        ?Model $reference = null,
+        ?string $remarks = null
+    ): void {
+        InventoryMovement::create([
+            'product_id' => $product->id,
+            'user_id' => $userId ?? Auth::id(),
+            'type' => $type,
+            'quantity' => $quantity,
+            'before_stocks' => $beforeStocks,
+            'before_sold' => $beforeSold,
+            'after_stocks' => $afterStocks,
+            'after_sold' => $afterSold,
+            'reference_type' => $reference ? $reference->getMorphClass() : null,
+            'reference_id' => $reference?->getKey(),
+            'remarks' => $remarks,
+        ]);
     }
 }

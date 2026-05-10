@@ -125,15 +125,10 @@ class Edit extends Component
 
     /**
      * When user tries to set payment_status = 'refunded' via the dropdown,
-     * intercept and open the refund modal instead — the modal handles the DB update.
+     * Previously this intercepted attempts to set `refunded` and opened the
+     * refund modal. Refunds are now handled exclusively by the Refund modal
+     * component; the Edit component should only update order fields.
      */
-    public function updatedPaymentStatus(string $value): void
-    {
-        if ($value === 'refunded' && $this->order->payment_status !== 'refunded') {
-            $this->payment_status = $this->order->payment_status; // revert
-            $this->dispatch('open-refund', orderId: $this->order->id);
-        }
-    }
 
     public function updatedPaymentType(): void
     {
@@ -446,7 +441,10 @@ class Edit extends Component
             $inventory->sync(
                 (int) $productId,
                 (int) ($oldNetTotals[$productId] ?? 0),
-                (int) ($newNetTotals[$productId] ?? 0)
+                (int) ($newNetTotals[$productId] ?? 0),
+                'order_updated',
+                $this->order,
+                __('Order #:receipt updated.', ['receipt' => $this->order->receipt_number])
             );
         }
     }
@@ -466,7 +464,13 @@ class Edit extends Component
             $toRestore = max(0, (int) $item->quantity - (int) ($item->refunded_quantity ?? 0));
             if ($toRestore <= 0) continue;
 
-            $inventory->restore((int) $item->product_id, $toRestore);
+            $inventory->restore(
+                (int) $item->product_id,
+                $toRestore,
+                'order_cancelled',
+                $this->order,
+                __('Order #:receipt cancelled.', ['receipt' => $this->order->receipt_number])
+            );
         }
     }
 

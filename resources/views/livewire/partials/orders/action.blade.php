@@ -11,8 +11,7 @@
 @php
     $btn   = $style === 'table' ? 'tbl-action-btn' : 'card-action-btn';
 
-    $editLocked = in_array($order->status, (array) config('storeconfig.order_edit_lock_status', []))
-        && in_array($order->payment_status, ['paid', 'refunded']);
+    $editLocked = in_array($order->status, (array) config('storeconfig.order_edit_lock_status'));
 
     // Determine which primary action to show
     $primarySlot = null;
@@ -122,8 +121,7 @@
                     class="{{ $btn }} text-yellow-600 dark:text-yellow-400">
                     <i class="fas fa-hourglass-half {{ $style === 'table' ? 'text-base' : '' }}"></i>
                     <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Preparing') }}</span>
-                    <span class="font-mono text-[10px] bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded ml-1"
-                        x-text="Math.floor(r/60)+':'+String(r%60).padStart(2,'0')"></span>
+                    <span class="font-mono text-[10px] bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded ml-1" x-text="Math.floor(r/60)+':'+String(r%60).padStart(2,'0')"></span>
                 </div>
             @else
                 <span class="{{ $btn }} text-orange-600 dark:text-orange-400">
@@ -154,12 +152,6 @@
             </button>
 
         @elseif ($primarySlot === 'completed:paid')
-            {{--
-                Refund button.
-                The Refund Livewire component (<livewire:partials.orders.modal.refund />)
-                listens for the 'open-refund' window event directly.
-                We dispatch it from Alpine so no Dashboard PHP method is needed.
-            --}}
             <button type="button"
                 x-data
                 @click="$dispatch('open-refund', { orderId: {{ $order->id }} })"
@@ -180,17 +172,32 @@
 
     {{-- SLOT 4: Cancel | Delete --}}
     @if($order->status === 'preparing')
+        {{-- When preparing — show Stop (cancel preparation / remove from batch) --}}
         <button wire:click="cancelPrepare({{ $order->id }})"
+            class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 {{ $style === 'card' ? 'ml-auto' : '' }}">
+            <i class="fas fa-hand {{ $style === 'table' ? 'text-base' : '' }}"></i>
+            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Stop') }}</span>
+        </button>
+    @elseif (!in_array($order->status, ['cancelled', 'completed', 'preparing', 'delivered'], true))
+        {{-- Delivered but unpaid — allow cancel only when not cancelled/completed/preparing --}}
+        <button wire:click="openCancel({{ $order->id }})"
             class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 {{ $style === 'card' ? 'ml-auto' : '' }}">
             <i class="fas fa-ban {{ $style === 'table' ? 'text-base' : '' }}"></i>
             <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Cancel') }}</span>
         </button>
-    @else
+    @elseif (in_array($order->status, ['cancelled', 'completed', 'delivered'], true))
+        {{-- Show delete when order is not cancelled or completed --}}
         <button wire:click="confirmDelete({{ $order->id }})"
             class="{{ $btn }} text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 {{ $style === 'card' ? 'ml-auto' : '' }}">
             <i class="fas fa-trash {{ $style === 'table' ? 'text-base' : '' }}"></i>
             <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Delete') }}</span>
         </button>
+    @else
+        {{-- cancelled / completed: empty placeholder preserves column width --}}
+        <span class="{{ $btn }} invisible" aria-hidden="true">
+            <i class="fas fa-circle {{ $style === 'table' ? 'text-base' : '' }}"></i>
+            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">‌</span>
+        </span>
     @endif
 
 </div>

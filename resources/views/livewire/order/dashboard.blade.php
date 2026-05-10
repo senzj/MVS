@@ -203,7 +203,10 @@
         'modalMode' => 'view',
         'selectedOrder' => $selectedOrder,
     ])
+
     @include('livewire.partials.orders.modal.delete')
+
+    @include('livewire.partials.orders.modal.cancel')
 
     {{-- Refund component — MUST be a Livewire component tag, not @include --}}
     <livewire:partials.orders.modal.refund />
@@ -250,7 +253,7 @@
             'viewOrderDetails','confirmDelete','deleteOrderConfirmed',
             'startDelivery','cancelPrepare','togglePaid',
             'markDelivered','markFinished','processBatchDelivery',
-            'closeOrderDetailsModal','closeDeleteModal',
+            'closeOrderDetailsModal','closeDeleteModal','openCancel','confirmCancel','closeCancelModal',
             ''
         ])
     ])

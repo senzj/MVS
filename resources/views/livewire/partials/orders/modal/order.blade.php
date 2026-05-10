@@ -256,19 +256,6 @@
                                 px-5 sm:px-6 py-4 border-t border-zinc-200 dark:border-zinc-700
                                 bg-white dark:bg-zinc-900">
 
-                        @if($modalMode === 'view' && $order && $order->payment_status === 'paid' && $order->status !== 'cancelled')
-                            <div x-data>
-                                <button type="button"
-                                    @click="$dispatch('open-refund', { orderId: {{ $order->id }} })"
-                                    class="cursor-pointer mr-auto px-4 py-2.5 text-sm font-medium rounded-xl
-                                        border border-purple-300 dark:border-purple-700
-                                        text-purple-700 dark:text-purple-300
-                                        hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors">
-                                    <i class="fas fa-undo mr-1"></i>{{ __('Refund') }}
-                                </button>
-                            </div>
-                        @endif
-
                         <button type="button" wire:click="{{ $wireClose }}"
                             class="cursor-pointer px-4 py-2.5 text-sm font-medium rounded-xl
                                 border border-zinc-300 dark:border-zinc-600

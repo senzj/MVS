@@ -42,12 +42,13 @@ Route::middleware(['auth'])->group(function () {
     // Customers route
     Volt::route('customers', 'customer.dashboard')->name('customers');
 
-
     // Employee route
     Volt::route('employees', 'employee.dashboard')->name('employees');
     Volt::route('employees/archived', 'employee.archive')->name('employees.archived');
 
-    Volt::route('logs', 'logs.log')->name('logs');
+    // Logs and Audits
+    Volt::route('inventory-audit', 'logs.inventoryaudit')->name('inventory.audit');
+    Volt::route('System logs', 'logs.log')->name('logs');
 
     Route::get('payment-qr/{path}', function (string $path) {
         abort_unless(Storage::disk('public')->exists($path), 404);
