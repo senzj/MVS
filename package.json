@@ -7,7 +7,6 @@
         "serve": "concurrently \"npm run dev\" \"php artisan serve\""
     },
     "dependencies": {
-        "-": "^0.0.1",
         "@fortawesome/fontawesome-free": "^7.0.0",
         "@tailwindcss/vite": "^4.1.11",
         "alpinejs": "^3.14.9",
