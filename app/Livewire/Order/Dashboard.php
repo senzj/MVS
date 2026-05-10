@@ -1,9 +1,7 @@
 <?php
-
 namespace App\Livewire\Order;
 
 use App\Models\Customer;
-use App\Models\Employee;
 use App\Models\Order;
 use App\Models\Product;
 use Carbon\Carbon;
@@ -33,7 +31,13 @@ class Dashboard extends Component
 
     // Order Details Modal
     public $showOrderDetailsModal = false;
-    public $selectedOrder = null;
+    public ?int $selectedOrderId = null;
+
+    // Order Payment Modal
+    protected $listeners = [
+        'orderPaymentConfirmed' => '$refresh',
+    ];
+
 
     // Create Order modal state
     public bool $showCreateModal = false;
@@ -49,7 +53,7 @@ class Dashboard extends Component
         'delivered_by' => null,
         'payment_type' => 'cash',
         'status' => 'pending',
-        'is_paid' => false,
+        'payment_status' => 'unpaid',
         'receipt_number' => null,
     ];
 
@@ -58,7 +62,7 @@ class Dashboard extends Component
         'newOrder.delivered_by'  => 'nullable|integer|exists:employees,id',
         'newOrder.payment_type'  => 'required|in:cash,gcash',
         'newOrder.status'        => 'required|in:pending,delivered',
-        'newOrder.is_paid'       => 'boolean',
+        'newOrder.payment_status'=> 'required|in:unpaid,paid,refunded',
         'newOrder.receipt_number'=> 'nullable|string|max:255|unique:orders,receipt_number',
     ];
 
@@ -133,20 +137,16 @@ class Dashboard extends Component
         }
     }
 
-    public function viewOrderDetails($orderId)
+    public function viewOrderDetails(int $orderId): void
     {
-        $this->selectedOrder = Order::with(['customer', 'employee', 'staff', 'orderItems.product'])
-            ->find($orderId);
-
-        if ($this->selectedOrder) {
-            $this->showOrderDetailsModal = true;
-        }
+        $this->selectedOrderId = $orderId;
+        $this->showOrderDetailsModal = true;
     }
 
-    public function closeOrderDetailsModal()
+    public function closeOrderDetailsModal(): void
     {
         $this->showOrderDetailsModal = false;
-        $this->selectedOrder = null;
+        $this->selectedOrderId = null;
     }
 
     public function updatedSearch(): void
@@ -173,13 +173,8 @@ class Dashboard extends Component
 
     public function togglePaid($orderId)
     {
-        $order = Order::find($orderId);
-        if ($order) {
-            $order->is_paid = !$order->is_paid;
-            $order->save();
-
-            $this->dispatch('show-success', ['message' => __('Order ":receipt" has been marked as paid!', ['receipt' => $order->receipt_number])]);
-        }
+        // Dispatch to the Payment child component using Livewire v3 syntax
+        $this->dispatch('openPaymentModal', orderId: $orderId);
     }
 
     // Transition: Pending -> In Transit (with batch delivery support)
@@ -430,7 +425,7 @@ class Dashboard extends Component
         // Check if there are any delivered but unpaid orders
         $hasUnpaidDelivered = Order::where('delivered_by', $employeeId)
             ->where('status', 'delivered')
-            ->where('is_paid', false)
+            ->whereIn('payment_status', ['unpaid', 'refunded'])
             ->exists();
 
         // Check if currently in a batch preparation phase
@@ -525,7 +520,7 @@ class Dashboard extends Component
         $this->dispatch('show-success', ['message' => __('Order ":receipt" has been marked as finished!', ['receipt' => $order->receipt_number])]);
 
         // mark order status complete
-        if ($order->is_paid && $order->status === 'delivered') {
+        if ($order->payment_status === 'paid' && $order->status === 'delivered') {
             $order->status = 'completed';
             $order->save();
 
@@ -539,7 +534,7 @@ class Dashboard extends Component
                         $query->where('status', 'in_transit')
                               ->orWhere(function($subQuery) {
                                   $subQuery->where('status', 'delivered')
-                                           ->where('is_paid', false);
+                                           ->whereIn('payment_status', ['unpaid', 'refunded']);
                               });
                     })
                     ->exists();
@@ -691,7 +686,7 @@ class Dashboard extends Component
             'delivered_by' => null, // Updated field name
             'payment_type' => 'cash',
             'status' => 'pending',
-            'is_paid' => false,
+            'payment_status' => 'unpaid',
             'receipt_number' => null,
         ];
     }
@@ -705,7 +700,7 @@ class Dashboard extends Component
         // Set defaults and required fields
         $data['payment_type'] = $data['payment_type'] ?? 'cash';
         $data['status'] = $data['status'] ?? 'pending';
-        $data['is_paid'] = (bool) ($data['is_paid'] ?? false);
+        $data['payment_status'] = $data['payment_status'] ?? 'unpaid';
         $data['created_by'] = Auth::id(); // Set the user who created the order
         $data['receipt_number'] = $data['receipt_number'] ?: $this->generateReceiptNumber();
 
@@ -720,10 +715,23 @@ class Dashboard extends Component
         return 'R'.now()->format('YmdHis').random_int(100, 999);
     }
 
+    /**
+     * Called by wire:poll — runs server-side sweep on a timer.
+     * Add wire:poll.30s="pollBatchTimers" to your root div.
+     */
+    public function pollBatchTimers(): void
+    {
+        $this->autoProcessExpiredPreparing();
+        $this->checkBatchTimers();
+    }
+
     public function render()
     {
-        // Ensure expired batches are processed even if user was away
-        $this->autoProcessExpiredPreparing();
+        // load selectedOrder fresh here — NOT stored in public state
+        $selectedOrder = $this->selectedOrderId
+            ? Order::with(['customer', 'employee', 'staff', 'orderItems.product'])
+                ->find($this->selectedOrderId)
+            : null;
 
         $ordersQuery = Order::with(['customer', 'employee', 'staff'])
             ->where(function ($outer) {
@@ -750,10 +758,13 @@ class Dashboard extends Component
                 });
             })
             ->when($this->paymentFilter === 'paid', function ($query) {
-                $query->where('is_paid', true);
+                $query->where('payment_status', 'paid');
             })
             ->when($this->paymentFilter === 'unpaid', function ($query) {
-                $query->where('is_paid', false);
+                $query->where('payment_status', 'unpaid');
+            })
+            ->when($this->paymentFilter === 'refunded', function ($query) {
+                $query->where('payment_status', 'refunded');
             })
             ->when($this->statusFilter !== 'all', function ($query) {
                 $query->where('status', $this->statusFilter);
@@ -762,9 +773,17 @@ class Dashboard extends Component
 
         $orders = $ordersQuery->get();
 
-        // Filter for ongoing vs completed based on status only
-        $ongoing = $orders->whereNotIn('status', ['completed', 'cancelled']);
-        $completed = $orders->whereIn('status', ['completed', 'cancelled']);
+        // Filter for ongoing vs completed using payment state too.
+        // Completed orders that are still unpaid stay in the ongoing bucket.
+        $ongoing = $orders->filter(function ($order) {
+            return ! in_array($order->status, ['completed', 'cancelled'], true)
+                || ($order->status === 'completed' && $order->payment_status === 'unpaid');
+        });
+
+        $completed = $orders->filter(function ($order) {
+            return ($order->status === 'completed' && $order->payment_status !== 'unpaid')
+                || $order->status === 'cancelled';
+        });
 
         $customers = Customer::query()->orderBy('name')->get(['id', 'name']);
 
@@ -775,6 +794,7 @@ class Dashboard extends Component
             'ongoingCount' => $ongoing->count(),
             'completedCount' => $completed->count(),
             'customers' => $customers,
+            'selectedOrder'  => $selectedOrder,
         ]);
     }
 }

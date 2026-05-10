@@ -81,7 +81,7 @@
                         <i class="fas fa-money-bill-wave mr-1"></i>{{ __('Payment Method') }}
                         <span class="text-red-500">*</span>
                     </label>
-                    <select wire:model="paymentType" data-field="paymentType"
+                    <select wire:model.defer="paymentType" data-field="paymentType"
                         class="w-full px-3 py-2.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-600
                                bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
                                focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
@@ -90,18 +90,19 @@
                     </select>
                 </div>
 
-                {{-- Payment Status --}}
+                {{-- Payment Status (replaces old is_paid boolean) --}}
                 <div>
                     <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
                         <i class="fas fa-check-circle mr-1"></i>{{ __('Payment Status') }}
                         <span class="text-red-500">*</span>
                     </label>
-                    <select wire:model="isPaid" data-field="isPaid"
+                    <select wire:model="paymentStatus" data-field="paymentStatus"
                         class="w-full px-3 py-2.5 text-sm rounded-lg border border-zinc-200 dark:border-zinc-600
                                bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
                                focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                        <option value="1">{{ __('Paid') }}</option>
-                        <option value="0">{{ __('Unpaid') }}</option>
+                        <option value="paid">{{ __('Paid') }}</option>
+                        <option value="unpaid">{{ __('Unpaid') }}</option>
+                        <option value="refunded">{{ __('Refunded') }}</option>
                     </select>
                 </div>
 
@@ -131,8 +132,15 @@
                             <i class="fas fa-user-tie mr-1"></i>{{ __('Delivery Person') }}
                             <span class="text-red-500">*</span>
                         </label>
-                        @include('livewire.partials.orders.form.employee.dropdown', [
-                            'forceSelect' => false,
+                        @include('livewire.partials.orders.form.employee.dropdown', ['forceSelect' => false])
+                    </div>
+                @endif
+
+                {{-- Proof of payment (GCash + walk-in only) --}}
+                @if($paymentType === 'gcash' && $orderType === 'walk_in')
+                    <div class="md:col-span-2">
+                        @include('livewire.partials.orders.proof-of-payment', [
+                            'existingProofUrl' => null,
                         ])
                     </div>
                 @endif
@@ -169,14 +177,26 @@
                 </div>
             </div>
 
-            @include('livewire.partials.orders.form.product.create')
+            @include('livewire.partials.orders.form.product.create', [
+                'subtitle' => __('The new product will be added to this sales record after it is created.'),
+            ])
 
             <div class="space-y-3">
                 @foreach($orderItems as $index => $item)
+                    @php
+                        // Collect product IDs from all other items to exclude from this item's dropdown
+                        $excludeIds = [];
+                        foreach ($orderItems as $otherIndex => $otherItem) {
+                            if ($otherIndex !== $index && !empty($otherItem['product_id'])) {
+                                $excludeIds[] = $otherItem['product_id'];
+                            }
+                        }
+                    @endphp
                     @include('livewire.partials.orders.form.itemrow', [
                         'index' => $index,
                         'item'  => $item,
                         'count' => count($orderItems),
+                        'excludeProductIds' => $excludeIds,
                     ])
                 @endforeach
             </div>
@@ -208,31 +228,10 @@
         </div>
     </form>
 
-    {{-- Receipt / Confirm modal --}}
+    {{-- Universal confirm modal --}}
     @include('livewire.partials.orders.modal.order', [
-        'mode'       => 'confirm',
-        'saveAction' => 'saveSalesRecord',
-        'confirmData' => [
-            'receiptNumber'      => $receiptNumber,
-            'reviewDateTime'     => \Carbon\Carbon::parse($saleDate)
-                                        ->locale(app()->getLocale())->isoFormat('LLLL'),
-            'orderType'          => $orderType === 'deliver' ? __('Delivery') : __('Walk-In'),
-            'paymentLabel'       => $paymentType === 'cash' ? __('Cash') : __('GCash'),
-            'paymentStatusLabel' => $isPaid ? __('Paid') : __('Unpaid'),
-            'statusLabel'        => match ($status) {
-                'completed'  => __('Completed'),  'pending'    => __('Pending'),
-                'preparing'  => __('Preparing'),  'in_transit' => __('In transit'),
-                'delivered'  => __('Delivered'),  'cancelled'  => __('Cancelled'),
-                default      => ucfirst(str_replace('_', ' ', $status)),
-            },
-            'deliveredBy'    => optional($this->selectedEmployee)->name,
-            'customerName'   => $customerName,
-            'customerContact'=> $customerContact,
-            'customerUnit'   => $customerUnit,
-            'customerAddress'=> $customerAddress,
-            'items'          => $orderItems,
-            'totalAmount'    => $this->totalAmount,
-        ],
+        'modalMode'   => 'confirm',
+        'confirmData' => $confirmData,
     ])
 
     @include('livewire.partials.loading-overlay', [

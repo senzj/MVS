@@ -27,15 +27,18 @@ class OrderSeeder extends Seeder
 
         $statuses = ['pending', 'in_transit', 'delivered', 'completed', 'cancelled'];
 
-        $random = fake()->numberBetween(1, 25);
+        $random = fake()->numberBetween(8, 30);
+        $successfulOrders = 0;
 
         // Create random orders with items
         for ($i = 1; $i <= $random; $i++) {
             $orderType = fake()->randomElement(['deliver']);
             $status = fake()->randomElement($statuses);
-            $isPaid = in_array($status, ['delivered', 'completed'], true)
-                ? true
-                : fake()->boolean(60);
+            $paymentStatus = match ($status) {
+                'delivered', 'completed' => 'paid',
+                'cancelled' => 'refunded',
+                default => fake()->boolean(60) ? 'paid' : 'unpaid',
+            };
 
             $datePart = now()->format('ymd');
             $prefix = "OR{$datePart}";
@@ -61,7 +64,7 @@ class OrderSeeder extends Seeder
                 'order_type' => $orderType,
                 'payment_type' => fake()->randomElement(['cash', 'gcash']),
                 'status' => $status,
-                'is_paid' => $isPaid,
+                'payment_status' => $paymentStatus,
                 'receipt_number' => $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT),
             ]);
 
@@ -117,8 +120,12 @@ class OrderSeeder extends Seeder
 
             $order->update([
                 'order_total' => $orderTotal,
-                'is_paid' => $status === 'cancelled' ? false : $order->is_paid,
+                'payment_status' => $paymentStatus,
             ]);
+
+            $successfulOrders++;
         }
+
+        $this->command->line("{$successfulOrders} orders seeded");
     }
 }

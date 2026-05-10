@@ -52,9 +52,9 @@
                 <i class="fas fa-sliders text-blue-500 mr-2"></i>{{ __('Order Settings') }}
             </h3>
 
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-                {{-- Status --}}
+                {{-- Order Status --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
                         {{ __('Status') }} <span class="text-red-500 normal-case font-normal">*</span>
@@ -77,7 +77,7 @@
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
                         {{ __('Order Type') }} <span class="text-red-500 normal-case font-normal">*</span>
                     </label>
-                    <select wire:model.live="order_type"
+                    <select wire:model.defer="order_type"
                         class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
                                bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
                                focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
@@ -91,7 +91,7 @@
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
                         {{ __('Payment Method') }} <span class="text-red-500 normal-case font-normal">*</span>
                     </label>
-                    <select wire:model="payment_type"
+                    <select wire:model.defer="payment_type"
                         class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
                                bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
                                focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
@@ -100,40 +100,65 @@
                     </select>
                 </div>
 
-                {{-- Payment Status toggle --}}
-                <div class="flex flex-col justify-end pb-1">
-                    <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">
+                {{-- Payment Status (replaces is_paid toggle) --}}
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
                         {{ __('Payment Status') }} <span class="text-red-500 normal-case font-normal">*</span>
-                    </p>
-                    <div class="flex items-center gap-3">
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" wire:model="is_paid" class="sr-only peer">
-                            <div class="w-12 h-6 rounded-full bg-zinc-300 dark:bg-zinc-600
-                                        peer-checked:bg-green-500 transition-colors
-                                        after:content-[''] after:absolute after:top-0.5 after:left-0.5
-                                        after:bg-white after:rounded-full after:h-5 after:w-5
-                                        after:transition-transform peer-checked:after:translate-x-6
-                                        relative"></div>
-                        </label>
-                        <span class="text-sm font-semibold {{ $is_paid ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400' }}">
-                            {{ $is_paid ? __('Paid') : __('Unpaid') }}
-                        </span>
+                    </label>
+                    <select wire:model="payment_status"
+                        class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
+                               bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
+                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
+                        <option value="unpaid">{{ __('Unpaid') }}</option>
+                        <option value="paid">{{ __('Paid') }}</option>
+                        <option value="refunded">{{ __('Refunded') }}</option>
+                    </select>
+                    {{-- Current badge for quick reference --}}
+                    <div class="mt-1.5">
+                        @include('livewire.partials.orders.payment-status-badge', [
+                            'status' => $payment_status,
+                        ])
                     </div>
                 </div>
 
                 {{-- Delivery Person --}}
                 @if($order_type === 'deliver')
-                    <div class="col-span-1 sm:col-span-4">
+                    <div class="col-span-1 sm:col-span-2 lg:col-span-4">
                         <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-2">
                             <i class="fas fa-user-tie mr-1"></i>{{ __('Delivery Person') }}
                             <span class="text-red-500 normal-case font-normal">*</span>
                         </label>
-                        @include('livewire.partials.orders.form.employee.dropdown', [
-                            'forceSelect' => false,
-                        ])
+                        @include('livewire.partials.orders.form.employee.dropdown', ['forceSelect' => false])
                     </div>
                 @endif
             </div>
+
+            {{--
+                Proof of payment:
+                Show when GCash + walk-in only.
+                QR code is NOT shown for delivery orders.
+            --}}
+            @if($payment_type === 'gcash' && $order_type === 'walk_in')
+                <div class="pt-2">
+                    @if($this->showQr)
+                        {{-- QR code for unpaid walk-in gcash --}}
+                        @php $qrImage = \App\Helpers\PaymentImageHelper::getPaymentImageUrl(); @endphp
+                        @if($qrImage)
+                            <div class="mb-3 flex flex-col items-center gap-2 p-4
+                                        rounded-xl border border-zinc-200 dark:border-zinc-700
+                                        bg-zinc-50 dark:bg-zinc-900/40">
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Scan to pay') }}</p>
+                                <img src="{{ $qrImage }}" alt="{{ __('GCash QR') }}"
+                                     class="max-w-[160px] max-h-[160px] object-contain rounded-lg">
+                            </div>
+                        @endif
+                    @endif
+
+                    @include('livewire.partials.orders.proof-of-payment', [
+                        'existingProofUrl' => $existingProof ? asset('storage/' . $existingProof) : null,
+                    ])
+                </div>
+            @endif
         </div>
 
         {{-- Customer --}}
@@ -162,10 +187,20 @@
             @if($orderItems)
                 <div class="space-y-3">
                     @foreach($orderItems as $index => $item)
+                        @php
+                            // Collect product IDs from all other items to exclude from this item's dropdown
+                            $excludeIds = [];
+                            foreach ($orderItems as $otherIndex => $otherItem) {
+                                if ($otherIndex !== $index && !empty($otherItem['product_id'])) {
+                                    $excludeIds[] = $otherItem['product_id'];
+                                }
+                            }
+                        @endphp
                         @include('livewire.partials.orders.form.itemrow', [
                             'index' => $index,
                             'item'  => $item,
                             'count' => count($orderItems),
+                            'excludeProductIds' => $excludeIds,
                         ])
                     @endforeach
                 </div>
@@ -183,7 +218,6 @@
 
         {{-- Action buttons --}}
         <div class="flex gap-3">
-
             <button type="button" wire:click="cancel"
                 class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl
                        bg-zinc-100 dark:bg-zinc-700 text-sm font-semibold
@@ -207,38 +241,28 @@
         </div>
     </div>
 
-    {{-- Receipt / Confirm modal --}}
+    {{-- Universal confirm modal --}}
     @include('livewire.partials.orders.modal.order', [
-        'mode'       => 'confirm',
-        'saveAction' => 'save',
-        'confirmData' => [
-            'receiptNumber'      => $order->receipt_number,
-            'reviewDateTime'     => $order->created_at
-                                        ->locale(app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale())
-                                        ->isoFormat('LLLL'),
-            'orderType'          => $order_type === 'deliver' ? __('Delivery') : __('Walk-In'),
-            'paymentLabel'       => $payment_type === 'cash' ? __('Cash') : __('GCash / Online'),
-            'paymentStatusLabel' => $is_paid ? __('Paid') : __('Unpaid'),
-            'statusLabel'        => match ($status) {
-                'completed'  => __('Completed'),
-                'pending'    => __('Pending'),
-                'preparing'  => __('Preparing'),
-                'in_transit' => __('In transit'),
-                'delivered'  => __('Delivered'),
-                'cancelled'  => __('Cancelled'),
-                default      => ucfirst(str_replace('_', ' ', $status)),
-            },
-            'deliveredBy'    => optional($selectedEmployee)->name,
-            'customerName'   => optional($selectedCustomer)->name,
-            'customerContact'=> optional($selectedCustomer)->contact_number,
-            'customerUnit'   => optional($selectedCustomer)->unit,
-            'customerAddress'=> optional($selectedCustomer)->address,
-            'items'          => $orderItems,
-            'totalAmount'    => $this->editedTotal,
-        ],
+        'modalMode'   => 'confirm',
+        'confirmData' => $confirmData,
     ])
 
+    {{-- Refund modal (Livewire component) --}}
+    <livewire:partials.orders.modal.refund />
+
     @include('livewire.partials.loading-overlay', [
-        'wireTarget' => 'save,selectProduct,addOrderItem,removeOrderItem,openSaveConfirmation',
+        'wireTarget' => 'save,selectProduct,addOrderItem,removeOrderItem,openSaveConfirmation,deleteExistingProof',
     ])
 </div>
+
+<script>
+    // Listen for the confirm-cancel-refund event and prompt the user.
+    window.addEventListener('confirm-cancel-refund', () => {
+        const msg = 'This order is being cancelled but is currently paid.\n\nDo you want to refund the payment and return items to inventory?\n\nChoose OK to refund now (you will be prompted to select quantities), or Cancel to keep payment as-is.';
+        if (confirm(msg)) {
+            Livewire.emit('userAcceptedCancelRefund');
+        } else {
+            Livewire.emit('userDeclinedCancelRefund');
+        }
+    });
+</script>

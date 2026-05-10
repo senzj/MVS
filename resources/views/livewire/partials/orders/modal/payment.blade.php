@@ -1,137 +1,199 @@
-{{-- Payment Modal --}}
-<div x-data="{ show: @entangle('showPaymentModal') }"
-    x-show="show"
-    x-cloak
-    class="fixed inset-0 z-50 overflow-y-auto"
-    style="display: none;">
-    <div class="flex items-center justify-center min-h-screen p-4 bg-black/50 transition-opacity">
-        <div class="relative bg-white dark:bg-zinc-800 rounded-lg shadow-xl max-w-md w-full mx-auto"
-            x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0 transform scale-95"
-            x-transition:enter-end="opacity-100 transform scale-100"
-            x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100 transform scale-100"
-            x-transition:leave-end="opacity-0 transform scale-95">
+<div
+    x-data="{
+        get show() { return $wire.show }
+    }"
+    x-effect="document.body.style.overflow = show ? 'hidden' : ''"
+    x-on:keydown.escape.window="$wire.close()"
+>
 
-            <div class="px-6 py-4 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Process Payment') }}</h3>
-                    <button wire:click="closePaymentModal" class="cursor-pointer text-gray-400 hover:text-gray-600 transition-colors">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
+    {{-- Payment-scoped loading overlay — listens for browser events from the Payment component --}}
+    <div
+        x-data="{ processing: false }"
+        x-on:payment-processing-start.window="processing = true"
+        x-on:payment-processing-done.window="processing = false"
+        x-show="processing"
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40"
+        style="display: none;">
+        <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
+            <div class="relative w-12 h-12 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-4 border-blue-200 dark:border-blue-900"></div>
+                <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 dark:border-t-blue-400 animate-spin"></div>
             </div>
-
-            <div class="px-6 py-4">
-                <div class="mb-4 flex justify-between">
-                    <label class="block text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-2">
-                        {{ __('Payment Method') }}:
-                        <span class="font-semibold text-green-400">
-                            {{ $paymentType === 'cash' ? __('Cash') : __('Online') }}
-                        </span>
-                    </label>
-                    @if ($paymentType == 'gcash')
-                        <div class="relative group">
-                            <button type="button" class="cursor-pointer flex items-center justify-center w-6 h-6 text-gray-400 hover:text-gray-600 dark:text-zinc-400 dark:hover:text-zinc-300 transition-colors duration-200">
-                                <i class="fas fa-info-circle"></i>
-                            </button>
-                            <div class="absolute top-full left-0 mb-2 w-70 p-3 bg-gray-900 dark:bg-zinc-700 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                                <p class="font-medium mb-2">{{ __('Online Payment Steps') }}:</p>
-                                <ol class="list-decimal list-inside space-y-1">
-                                    <li>{{ __('Open your GCash app or any online payment app') }}</li>
-                                    <li>{{ __('Scan the QR code below') }}</li>
-                                    <li>{{ __('Confirm the amount') }}: ₱{{ number_format($this->totalAmount, 2) }}</li>
-                                    <li>{{ __('Complete the payment') }}</li>
-                                    <li>{{ __('Click "Complete Order" button') }}</li>
-                                </ol>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-
-                <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <h4 class="font-medium text-zinc-900 dark:text-zinc-100 mb-2">{{ __('Order Summary') }}</h4>
-                    <div class="space-y-1 text-sm">
-                        @foreach($orderItems as $item)
-                            @if($item['product_id'])
-                                <div class="flex justify-between">
-                                    <span>{{ $item['product_name'] }} ({{ $item['quantity'] }}x)</span>
-                                    <span>₱{{ number_format($item['total'], 2) }}</span>
-                                </div>
-                            @endif
-                        @endforeach
-                        <div class="border-t pt-2 mt-2 font-semibold">
-                            <div class="flex justify-between">
-                                <span>{{ __('Total Amount') }}:</span>
-                                <span>₱{{ number_format($this->totalAmount, 2) }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                @if($paymentType === 'cash')
-                    <div class="space-y-4">
-                        @if(($this->totalAmount ?? 0) > 0)
-                            <div>
-                                <label for="amountReceived" class="block text-sm font-medium text-zinc-900 dark:text-zinc-100 mb-1">
-                                    {{ __('Amount Received') }}
-                                </label>
-                                <div class="relative">
-                                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600">₱</span>
-                                    <input type="number"
-                                        id="amountReceived"
-                                        wire:model.live.debounce.300ms="amountReceived"
-                                        data-field="amountReceived"
-                                        step="0.01"
-                                        min="0"
-                                        class="w-full pl-8 pr-3 py-2 rounded-lg focus:ring border border-gray-500 transition"
-                                        placeholder="0.00">
-                                </div>
-                            </div>
-                            <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm font-medium text-green-800">{{ __('Change') }}:</span>
-                                    <span class="text-lg font-bold text-green-900">₱{{ number_format($changeAmount, 2) }}</span>
-                                </div>
-                            </div>
-                        @else
-                            <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
-                                {{ __('No cash input is required because the total amount is zero.') }}
-                            </div>
-                        @endif
-                    </div>
-                @elseif ($paymentType === 'gcash')
-                    <div class="text-center space-y-2">
-                        <div class="mx-auto bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center overflow-hidden {{ $currentImage ? '' : 'w-32 h-32' }}">
-                            @if ($currentImage)
-                                <img src="{{ $currentImage }}" alt="GCash QR Code" class="max-w-full max-h-70 object-contain rounded-lg" />
-                            @else
-                                <span class="text-gray-400 text-sm">{{ __('No Image') }}</span>
-                            @endif
-                        </div>
-                        <p class="text-sm text-gray-500 mt-1">{{ __('Scan to pay') }}: ₱{{ number_format($this->totalAmount, 2) }}.</p>
-                    </div>
-                @endif
-            </div>
-
-            <div class="px-6 py-4 border-t border-gray-200">
-                <div class="flex space-x-3">
-                    <button wire:click="closePaymentModal"
-                            class="cursor-pointer flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500">
-                        {{ __('Cancel') }}
-                    </button>
-                    <button wire:click="processPayment"
-                            wire:loading.attr="disabled"
-                            wire:target="processPayment"
-                            @if($paymentType === 'cash' && ($this->totalAmount ?? 0) > 0 && $changeAmount < 0) disabled @endif
-                            class="cursor-pointer flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span wire:loading.remove wire:target="processPayment">{{ __('Complete Order') }}</span>
-                        <span wire:loading wire:target="processPayment" class="flex items-center justify-center">
-                            <i class="fas fa-spinner fa-spin mr-2"></i>{{ __('Processing...') }}
-                        </span>
-                    </button>
-                </div>
+            <div class="text-center space-y-1">
+                <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Processing') }}</p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Please wait while we process your request') }}...</p>
             </div>
         </div>
     </div>
+
+    {{-- modal --}}
+    <template x-if="show">
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+
+            <div class="relative w-full max-w-md p-4"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+                 x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                 x-transition:leave-end="opacity-0 scale-95 translate-y-2">
+
+                <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg p-5 space-y-4">
+
+                    {{-- Header --}}
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-zinc-800 dark:text-zinc-100">
+                            {{ __('Confirm Payment') }}
+                        </h3>
+                        <button type="button"
+                                x-on:click="$wire.close()"
+                                class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    @if($order)
+                        {{-- Order info --}}
+                        <div class="flex items-baseline justify-between gap-3 pb-3 border-b border-zinc-100 dark:border-zinc-700">
+                            <div>
+                                <p class="text-xs text-zinc-500">{{ __('Order') }}</p>
+                                <p class="font-semibold text-sm text-zinc-700 dark:text-zinc-200">
+                                    {{ $order->receipt_number }}
+                                </p>
+                                @if($order->customer)
+                                    <p class="text-xs text-zinc-400">{{ $order->customer->name }}</p>
+                                @endif
+                                <p class="text-xs text-zinc-400 mt-1">
+                                    <span class="inline-block px-2 py-1 rounded text-white text-xs font-medium"
+                                          :class="'{{ $order->payment_type }}' === 'gcash' ? 'bg-blue-600' : 'bg-green-600'">
+                                        {{ ucfirst($order->payment_type) }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-zinc-500">{{ __('Total due') }}</p>
+                                <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                                    ₱{{ number_format($order->order_total, 2) }}
+                                </p>
+                            </div>
+                        </div>
+
+                        {{-- Amount received & Change —  Alpine local buffer prevents interrupting typing --}}
+                        <div class="space-y-3"
+                             x-data="{
+                                amount: {{ (float)($amountReceived ?? $order->order_total) }},
+                                total: {{ (float)($order->order_total ?? 0) }},
+                                commit() {
+                                    if (!this.amount || this.amount < 0) this.amount = 0;
+                                    $wire.amountReceived = this.amount;
+                                },
+                                get change() {
+                                    return Math.max(0, this.amount - this.total);
+                                }
+                             }"
+                             x-init="
+                                $watch(() => $wire.amountReceived, v => {
+                                    if (v !== null && v !== undefined && !document.activeElement?.matches('input[data-field=\"amountReceived\"]')) {
+                                        amount = parseFloat(v) || 0;
+                                    }
+                                });
+                             ">
+                            <div>
+                                <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                                    {{ __('Amount Received') }}
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-medium">₱</span>
+                                    <input type="number"
+                                           step="0.01"
+                                           min="0"
+                                           x-model.number="amount"
+                                           @blur="commit()"
+                                           @keydown.enter.prevent="commit()"
+                                           @keydown.tab="commit()"
+                                           data-field="amountReceived"
+                                           class="w-full pl-7 pr-3 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-600
+                                                  bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100
+                                                  focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition text-sm">
+                                </div>
+                                @error('amountReceived')
+                                    <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            {{-- Change — computed client-side for instant feedback --}}
+                            <div class="flex items-center justify-between rounded-lg px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20">
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Change') }}</p>
+                                <p class="font-mono text-base font-semibold text-emerald-700 dark:text-emerald-400">
+                                    ₱<span x-text="change.toFixed(2)">0.00</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        {{-- GCash proof --}}
+                        @if($order->payment_type === 'gcash')
+                            <div>
+                                <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">
+                                    {{ __('Proof of Payment') }}
+                                    <span class="font-normal normal-case text-zinc-400 ml-1">({{ __('optional') }})</span>
+                                </label>
+                                @include('livewire.partials.orders.proof-of-payment', [
+                                    'existingProofUrl'  => $order->proof_url ?? null,
+                                    'allowCamera'       => true,
+                                    'readOnly'          => false,
+                                    'compact'           => true,
+                                    'allowUploadInView' => true,
+                                ])
+                            </div>
+                        @endif
+
+                        {{-- Actions --}}
+                        <div class="flex items-center gap-2 justify-end pt-1">
+                            <button type="button"
+                                    x-on:click="$wire.close()"
+                                    wire:loading.attr="disabled"
+                                    wire:target="confirmPayment"
+                                    class="px-4 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-700 text-sm font-medium
+                                           text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-600
+                                           disabled:opacity-50 transition">
+                                {{ __('Cancel') }}
+                            </button>
+
+                            <button type="button"
+                                    wire:click="confirmPayment"
+                                    wire:loading.attr="disabled"
+                                    wire:target="confirmPayment,proofOfPayment"
+                                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg
+                                           bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold
+                                           disabled:opacity-60 disabled:cursor-not-allowed transition">
+                                <svg wire:loading wire:target="confirmPayment"
+                                     class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor"
+                                            stroke-width="3" class="opacity-25"></circle>
+                                    <path fill="currentColor"
+                                          d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V2z"></path>
+                                </svg>
+                                <i wire:loading.remove wire:target="confirmPayment"
+                                   class="fas fa-check text-xs"></i>
+                                <span>{{ __('Confirm & Save') }}</span>
+                            </button>
+                        </div>
+                    @endif
+
+                </div>
+            </div>
+        </div>
+    </template>
 </div>

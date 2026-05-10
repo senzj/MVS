@@ -2,32 +2,7 @@
     Product Dropdown
 
     Props: $index (int), $item (array with keys: product_name, stocks, quantity, price, is_free)
-
-    NOTE for the PHP component:
-      Add this method to any component using this partial:
-        public function updatedOrderItems($value, $key): void {
-            // Prevent quantity from being blank or zero
-            if (str_ends_with($key, '.quantity')) {
-                $parts = explode('.', $key);
-                $idx   = $parts[0];
-                if (blank($value) || (int)$value < 1) {
-                    $this->orderItems[$idx]['quantity'] = 1;
-                }
-                // Recalculate total for this item
-                $qty   = (int)($this->orderItems[$idx]['quantity'] ?? 1);
-                $price = (float)($this->orderItems[$idx]['price']    ?? 0);
-                $free  = (bool)($this->orderItems[$idx]['is_free']   ?? false);
-                $this->orderItems[$idx]['total'] = $free ? 0 : $qty * $price;
-            }
-            if (str_ends_with($key, '.price')) {
-                $parts = explode('.', $key);
-                $idx   = $parts[0];
-                $qty   = (int)($this->orderItems[$idx]['quantity'] ?? 1);
-                $price = (float)($value ?? 0);
-                $free  = (bool)($this->orderItems[$idx]['is_free']   ?? false);
-                $this->orderItems[$idx]['total'] = $free ? 0 : $qty * $price;
-            }
-        }
+           $excludeProductIds (optional array of product IDs to exclude from dropdown)
 --}}
 
 <div x-data="{
@@ -97,22 +72,24 @@
         {{-- List --}}
         <ul class="max-h-60 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-700/50">
             @forelse(($this->filteredProducts ?? $products ?? []) as $product)
-                <li wire:key="prod-opt-{{ $product->id }}-{{ $index }}"
-                    class="px-3 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors"
-                    wire:click="selectProduct({{ $product->id }}, {{ $index }})"
-                    @click="open = false">
-                    <div class="flex items-center justify-between gap-3">
-                        <div class="min-w-0">
-                            <p class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate">{{ $product->name }}</p>
+                @if(empty($excludeProductIds) || !in_array($product->id, $excludeProductIds))
+                    <li wire:key="prod-opt-{{ $product->id }}-{{ $index }}"
+                        class="px-3 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors"
+                        wire:click="selectProduct({{ $product->id }}, {{ $index }})"
+                        @click="open = false">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate">{{ $product->name }}</p>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <p class="font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100">₱{{ number_format($product->price, 2) }}</p>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                    <i class="fas fa-boxes mr-0.5"></i>{{ $product->stocks ?? 0 }}
+                                </p>
+                            </div>
                         </div>
-                        <div class="text-right shrink-0">
-                            <p class="font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100">₱{{ number_format($product->price, 2) }}</p>
-                            <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                                <i class="fas fa-boxes mr-0.5"></i>{{ $product->stocks ?? 0 }}
-                            </p>
-                        </div>
-                    </div>
-                </li>
+                    </li>
+                @endif
             @empty
                 <li class="px-3 py-8 text-center text-zinc-500 dark:text-zinc-400">
                     <i class="fas fa-box-open text-2xl mb-2 block opacity-40"></i>

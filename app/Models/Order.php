@@ -2,9 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Customer;
-use App\Models\Employee;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,73 +11,112 @@ use Illuminate\Database\Eloquent\Model;
 class Order extends Model
 {
     protected $fillable = [
-        'created_by', // person who created this order
-        'customer_id', // Foreign key to customers table
-        'delivered_by', // Foreign key to employees table (delivery person)
-        'order_type', // Type of order (walk_in, deliver)
-        'order_total', // Total amount for the order
-        'payment_type', // Payment method (cash, gcash)
-        'status', // Order status (pending, delivered, completed, cancelled)
-        'is_paid', // Whether the order is paid or not
-        'receipt_number', // Unique receipt identifier
+        'created_by',
+        'customer_id',
+        'delivered_by',
+        'order_type',
+        'order_total',
+        'payment_type',
+        'payment_status',   // 'unpaid' | 'paid' | 'refunded'
+        'status',
+        'receipt_number',
+        'proof_of_payment',
+        'amount_received',  // cash only, walk-in
+        'change_amount',    // cash only, walk-in
     ];
 
-    /**
-     * Get the customer associated with this order
-     */
+    protected $casts = [
+        'order_total'    => 'float',
+        'amount_received'=> 'float',
+        'change_amount'  => 'float',
+    ];
+
+    // ── Relationships ──────────────────────────────────────────────
+
     public function customer()
     {
         return $this->belongsTo(Customer::class, 'customer_id');
     }
 
-    /**
-     * Get the staff member who created this order
-     */
     public function staff()
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /**
-     * Get the delivery person assigned to this order
-     */
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'delivered_by');
     }
 
-    /**
-     * Get the order items associated with this order
-     */
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class, 'order_id');
     }
 
-    /**
-     * Calculate the total amount from order items (for verification)
-     */
-    public function getCalculatedTotalAttribute()
+    // ── Computed attributes ────────────────────────────────────────
+
+    public function getCalculatedTotalAttribute(): float
     {
-        return $this->orderItems->sum(function ($item) {
-            return $item->quantity * $item->unit_price;
-        });
+        return (float) $this->orderItems->sum(fn ($i) => $i->quantity * $i->unit_price);
     }
 
     /**
-     * Get formatted status with color coding
+     * Tailwind color name for the order status badge.
      */
-    public function getStatusColorAttribute()
+    public function getStatusColorAttribute(): string
     {
-        return match($this->status) {
-            'pending'    => 'amber',   // waiting, attention (yellowish-orange, softer than bright yellow)
-            'preparing'  => 'yellow',  // batch preparation phase
-            'paid'       => 'blue',    // financial / confirmed
-            'in_transit' => 'indigo',  // movement / ongoing process
-            'delivered'  => 'purple',  // finished delivery, but not fully closed
-            'completed'  => 'green',   // success / done
-            'cancelled'  => 'red',     // error / stop
-            default      => 'gray',    // unknown / neutral
+        return match ($this->status) {
+            'pending'    => 'amber',
+            'preparing'  => 'yellow',
+            'in_transit' => 'indigo',
+            'delivered'  => 'purple',
+            'completed'  => 'green',
+            'cancelled'  => 'red',
+            default      => 'gray',
         };
+    }
+
+    /**
+     * Tailwind color name for the payment_status badge.
+     */
+    public function getPaymentStatusColorAttribute(): string
+    {
+        return match ($this->payment_status) {
+            'paid'     => 'green',
+            'unpaid'   => 'red',
+            'refunded' => 'purple',
+            default    => 'gray',
+        };
+    }
+
+    /**
+     * Human-readable payment status label (translatable).
+     */
+    public function getPaymentStatusLabelAttribute(): string
+    {
+        return match ($this->payment_status) {
+            'paid'     => __('Paid'),
+            'unpaid'   => __('Unpaid'),
+            'refunded' => __('Refunded'),
+            default    => ucfirst($this->payment_status ?? ''),
+        };
+    }
+
+    /**
+     * Whether a proof-of-payment image has been stored.
+     */
+    public function getHasProofAttribute(): bool
+    {
+        return ! empty($this->proof_of_payment);
+    }
+
+    /**
+     * Public URL for the proof-of-payment image (storage disk).
+     */
+    public function getProofUrlAttribute(): ?string
+    {
+        return $this->proof_of_payment
+            ? asset('storage/' . $this->proof_of_payment)
+            : null;
     }
 }

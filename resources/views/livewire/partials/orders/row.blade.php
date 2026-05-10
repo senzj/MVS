@@ -31,16 +31,6 @@
     <td class="px-4 py-3 whitespace-nowrap text-center">
         <div class="flex flex-col items-center gap-1">
             @include('livewire.partials.orders.status-badge', ['order' => $order])
-
-            @if($order->is_paid)
-            <span class="inline-flex items-center gap-1 px-2 py-1 mt- text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                <i class="fas fa-check-circle"></i> {{ __('Paid') }}
-            </span>
-        @else
-            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                <i class="fas fa-exclamation-triangle"></i> {{ __('Unpaid') }}
-            </span>
-        @endif
         </div>
     </td>
 

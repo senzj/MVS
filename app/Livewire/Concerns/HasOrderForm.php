@@ -22,31 +22,6 @@ use App\Models\Product;
 trait HasOrderForm
 {
     // ──────────────────────────────────────────────────────────────
-    // Required component properties (declare these in your component)
-    // ──────────────────────────────────────────────────────────────
-    // public string  $orderType            = 'walk_in';
-    // public ?int    $selectedCustomerId   = null;
-    // public ?int    $selectedEmployeeId   = null;   (or $delivered_by for Edit)
-    // public bool    $isCreatingNewCustomer = false;
-    // public string  $customerName         = '';
-    // public string  $customerUnit         = '';
-    // public string  $customerAddress      = '';
-    // public string  $customerContact      = '';
-    // public string  $customerSearch       = '';
-    // public string  $employeeSearch       = '';
-    // public string  $productSearch        = '';
-    // public array   $orderItems           = [];
-    //
-    // Product-form fields:
-    // public bool    $showProductForm      = false;
-    // public ?int    $productTargetIndex   = null;
-    // public string  $productName          = '';
-    // public string  $productDescription   = '';
-    // public string  $productCategory      = 'other';
-    // public int|string $productStocks     = 1;
-    // public float|string $productPrice    = 0;
-
-    // ──────────────────────────────────────────────────────────────
     // Customer helpers
     // ──────────────────────────────────────────────────────────────
 

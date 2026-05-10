@@ -226,13 +226,6 @@
                         </span>
                     </div>
 
-                    {{-- Description --}}
-                    @if($product->description)
-                        <p class="text-xs text-zinc-400 dark:text-zinc-500 leading-relaxed line-clamp-2">
-                            {{ Str::limit($product->description, 80) }}
-                        </p>
-                    @endif
-
                     {{-- Stats row --}}
                     <div class="grid grid-cols-3 gap-2">
                         <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl px-3 py-2 text-center">
@@ -344,9 +337,6 @@
                                 @endif
                             </div>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                            {{ __('Description') }}
-                        </th>
                         <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                             {{ __('Category') }}
                         </th>
@@ -408,13 +398,6 @@
                             <td class="px-4 py-3">
                                 <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ $product->name }}</div>
                                 <div class="text-xs text-zinc-400 dark:text-zinc-500"><i class="fas fa-hashtag mr-0.5"></i>{{ $product->id }}</div>
-                            </td>
-
-                            {{-- Description --}}
-                            <td class="px-4 py-3 max-w-[180px]">
-                                <div class="text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                                    {{ Str::limit($product->description, 40) ?: __('No description') }}
-                                </div>
                             </td>
 
                             {{-- Category --}}

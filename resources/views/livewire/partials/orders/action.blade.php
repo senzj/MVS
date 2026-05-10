@@ -3,13 +3,6 @@
     Rendered inside a CSS grid so each "slot" always occupies the same space,
     preventing layout shift when state changes.
 
-    Slots (left → right):
-      1. View      – always visible
-      2. Edit      – locked for certain statuses
-      3. Primary   – state-driven (Deliver / Add Delivery / In Batch / In Queue /
-                     Delivered / Paid / Complete / Busy / No Staff)
-      4. Secondary – Cancel (preparing) OR Delete (everything else)
-
     Props:
       $order  – Order model
       $style  – 'card' | 'table'  (controls CSS class applied to each button)
@@ -17,7 +10,9 @@
 
 @php
     $btn   = $style === 'table' ? 'tbl-action-btn' : 'card-action-btn';
-    $editLocked = in_array($order->status, config('storeconfig.order_edit_lock_status'));
+
+    $editLocked = in_array($order->status, (array) config('storeconfig.order_edit_lock_status', []))
+        && in_array($order->payment_status, ['paid', 'refunded']);
 
     // Determine which primary action to show
     $primarySlot = null;
@@ -32,12 +27,14 @@
         $primarySlot   = 'preparing';
     } elseif ($order->status === 'in_transit') {
         $primarySlot = 'in_transit';
-    } elseif ($order->status === 'delivered' && !$order->is_paid) {
+    } elseif ($order->status === 'delivered' && $order->payment_status === 'unpaid') {
         $primarySlot = 'delivered:unpaid';
-    } elseif ($order->status === 'delivered' && $order->is_paid) {
+    } elseif ($order->status === 'delivered' && $order->payment_status === 'paid') {
         $primarySlot = 'delivered:paid';
+    } elseif ($order->status === 'completed' && $order->payment_status === 'paid') {
+        $primarySlot = 'completed:paid';
     }
-    // completed / cancelled → no primary action
+    // completed+refunded / cancelled → no primary action
 @endphp
 
 <div class="flex items-center {{ $style === 'table' ? 'justify-center' : '' }} gap-1 {{ $style === 'card' ? 'pt-1 border-t border-zinc-100 dark:border-zinc-700 flex-wrap' : '' }}">
@@ -50,7 +47,7 @@
     </button>
 
     {{-- SLOT 2: Edit --}}
-    @if(!$editLocked)
+    @if (!$editLocked)
         <a href="{{ route('orders.edit', $order) }}" wire:navigate
             class="{{ $btn }} text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700">
             <i class="fas fa-edit {{ $style === 'table' ? 'text-base' : '' }}"></i>
@@ -68,47 +65,47 @@
     {{-- Fixed min-width wrapper keeps width constant regardless of content --}}
     <div class="inline-flex items-center justify-center min-w-[5.5rem]">
 
-        @if($primarySlot === 'pending:no_person')
+        @if ($primarySlot === 'pending:no_person')
             <span class="{{ $btn }} text-zinc-400 opacity-50 cursor-not-allowed">
                 <i class="fas fa-user-slash {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('No Staff') }}</span>
             </span>
 
-        @elseif($primarySlot === 'pending:available')
+        @elseif ($primarySlot === 'pending:available')
             <button wire:click="startDelivery({{ $order->id }})"
                 class="{{ $btn }} text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20">
                 <i class="fas fa-truck {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Deliver') }}</span>
             </button>
 
-        @elseif($primarySlot === 'pending:batch_preparing' || $primarySlot === 'pending:busy')
+        @elseif ($primarySlot === 'pending:batch_preparing' || $primarySlot === 'pending:busy')
             <button wire:click="startDelivery({{ $order->id }})"
                 class="{{ $btn }} text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20">
                 <i class="fas fa-plus-circle {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Add Delivery') }}</span>
             </button>
 
-        @elseif($primarySlot === 'pending:preparing')
+        @elseif ($primarySlot === 'pending:preparing')
             <span class="{{ $btn }} text-yellow-600 dark:text-yellow-400">
                 <i class="fas fa-hourglass-half {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('In Batch') }}</span>
             </span>
 
-        @elseif($primarySlot === 'pending:waiting')
+        @elseif ($primarySlot === 'pending:waiting')
             <span class="{{ $btn }} text-purple-600 dark:text-purple-400 opacity-75">
                 <i class="fas fa-clock-rotate-left {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('In Queue') }}</span>
             </span>
 
-        @elseif(str_starts_with((string)$primarySlot, 'pending:'))
+        @elseif (str_starts_with((string)$primarySlot, 'pending:'))
             {{-- Catch-all "busy" fallback --}}
             <span class="{{ $btn }} text-orange-600 dark:text-orange-400 opacity-75">
                 <i class="fas fa-clock {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Busy') }}</span>
             </span>
 
-        @elseif($primarySlot === 'preparing')
-            @if($order->delivered_by)
+        @elseif ($primarySlot === 'preparing')
+            @if ($order->delivered_by)
                 <div x-data="{
                         r: {{ $remainingTime }},
                         started: false,
@@ -135,29 +132,44 @@
                 </span>
             @endif
 
-        @elseif($primarySlot === 'in_transit')
+        @elseif ($primarySlot === 'in_transit')
             <button wire:click="markDelivered({{ $order->id }})"
                 class="{{ $btn }} text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20">
                 <i class="fas fa-box-open {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Delivered') }}</span>
             </button>
 
-        @elseif($primarySlot === 'delivered:unpaid')
+        @elseif ($primarySlot === 'delivered:unpaid')
             <button wire:click="togglePaid({{ $order->id }})"
                 class="{{ $btn }} text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
                 <i class="fas fa-money-bill-transfer {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Paid') }}</span>
             </button>
 
-        @elseif($primarySlot === 'delivered:paid')
+        @elseif ($primarySlot === 'delivered:paid')
             <button wire:click="markFinished({{ $order->id }})"
                 class="{{ $btn }} text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
                 <i class="fas fa-check-double {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Complete') }}</span>
             </button>
 
+        @elseif ($primarySlot === 'completed:paid')
+            {{--
+                Refund button.
+                The Refund Livewire component (<livewire:partials.orders.modal.refund />)
+                listens for the 'open-refund' window event directly.
+                We dispatch it from Alpine so no Dashboard PHP method is needed.
+            --}}
+            <button type="button"
+                x-data
+                @click="$dispatch('open-refund', { orderId: {{ $order->id }} })"
+                class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20">
+                <i class="fas fa-rotate-left {{ $style === 'table' ? 'text-base' : '' }}"></i>
+                <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Refund') }}</span>
+            </button>
+
         @else
-            {{-- completed/cancelled: empty placeholder preserves column width --}}
+            {{-- completed+refunded / cancelled: empty placeholder preserves column width --}}
             <span class="{{ $btn }} invisible" aria-hidden="true">
                 <i class="fas fa-circle {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">‌</span>

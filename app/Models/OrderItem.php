@@ -7,32 +7,44 @@ use Illuminate\Database\Eloquent\Model;
 class OrderItem extends Model
 {
     protected $fillable = [
-        'order_id', //fk to orders table
-        'product_id', //fk to products table
+        'order_id',
+        'product_id',
         'quantity',
-        'unit_price', // Add this - individual product price
-        'total_price', // This stays - total for this line item
+        'refunded_quantity',  // tracks how many units have been returned
+        'unit_price',
+        'total_price',
     ];
 
     protected $casts = [
-        'unit_price' => 'decimal:2',
-        'total_price' => 'decimal:2',
+        'quantity'          => 'integer',
+        'refunded_quantity' => 'integer',
+        'unit_price'        => 'float',
+        'total_price'       => 'float',
     ];
 
-    // relations
     public function order()
     {
-        return $this->belongsTo(Order::class, 'order_id');
+        return $this->belongsTo(Order::class);
     }
 
     public function product()
     {
-        return $this->belongsTo(Product::class, 'product_id');
+        return $this->belongsTo(Product::class);
     }
 
-    // Accessor to get unit price from product if not stored
-    public function getUnitPriceAttribute($value)
+    /**
+     * Units that can still be refunded in a future refund.
+     */
+    public function getReturnableAttribute(): int
     {
-        return $value ?? $this->product?->price ?? 0;
+        return max(0, $this->quantity - ($this->refunded_quantity ?? 0));
+    }
+
+    /**
+     * Whether this line item has been fully returned.
+     */
+    public function getIsFullyRefundedAttribute(): bool
+    {
+        return ($this->refunded_quantity ?? 0) >= $this->quantity;
     }
 }

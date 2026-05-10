@@ -1,173 +1,283 @@
 {{--
-    vieworders.blade.php
-    --------------------
+    vieworders.blade.php  (receipt layout)
+    =======================================
     Rendered inside the universal modal when $modalMode === 'view'.
-    Props: $order  (Order model with orderItems.product, customer, employee loaded)
+
+    Props: $order — Order model (orderItems.product, customer, employee loaded)
 --}}
 
 @php
-    $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
-    $statusColors = [
-        'pending'    => 'amber',
-        'preparing'  => 'blue',
-        'in_transit' => 'orange',
-        'delivered'  => 'teal',
-        'completed'  => 'green',
-        'cancelled'  => 'red',
-    ];
-    $statusColor = $statusColors[$order->status] ?? 'zinc';
-    $statusLabel = __([
-        'preparing'  => 'Preparing',
-        'pending'    => 'Pending',
-        'in_transit' => 'In transit',
-        'delivered'  => 'Delivered',
-        'completed'  => 'Completed',
-        'cancelled'  => 'Cancelled',
-    ][$order->status] ?? ucfirst(str_replace('_', ' ', $order->status)));
+    $loc    = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
+    $previewMode = $previewMode ?? false;
+    $showProofSection = $showProofSection ?? true;
+    $showFooter = $showFooter ?? true;
+
+    $sourceOrder = $order ?? null;
+    $statusKey = $sourceOrder?->status ?? ($reviewStatusKey ?? null);
+    $paymentType = strtolower($sourceOrder->payment_type ?? ($reviewPaymentLabel ?? ''));
+    $isGcash = $paymentType === 'gcash';
+    $isDelivery = $sourceOrder?->order_type === 'deliver' || in_array($reviewOrderType ?? '', [__('Delivery'), 'Delivery', 'deliver']);
+
+    $statusColor = match ($statusKey) {
+        'pending'    => ['dot' => 'bg-amber-400',  'text' => 'text-amber-700 dark:text-amber-300'],
+        'preparing'  => ['dot' => 'bg-yellow-400', 'text' => 'text-yellow-700 dark:text-yellow-300'],
+        'in_transit' => ['dot' => 'bg-indigo-400', 'text' => 'text-indigo-700 dark:text-indigo-300'],
+        'delivered'  => ['dot' => 'bg-purple-400', 'text' => 'text-purple-700 dark:text-purple-300'],
+        'completed'  => ['dot' => 'bg-green-500',  'text' => 'text-green-700 dark:text-green-300'],
+        'cancelled'  => ['dot' => 'bg-red-500',    'text' => 'text-red-700 dark:text-red-300'],
+        default      => ['dot' => 'bg-gray-400',   'text' => 'text-gray-600 dark:text-gray-400'],
+    };
+    $statusLabel = $sourceOrder
+        ? __([
+            'preparing'  => 'Preparing',
+            'pending'    => 'Pending',
+            'in_transit' => 'In transit',
+            'delivered'  => 'Delivered',
+            'completed'  => 'Completed',
+            'cancelled'  => 'Cancelled',
+        ][$sourceOrder->status] ?? ucfirst(str_replace('_', ' ', $sourceOrder->status)))
+        : ($reviewStatusLabel ?? __('N/A'));
+
+    $receiptNumber = $sourceOrder?->receipt_number ?? ($reviewReceiptNumber ?? '');
+    $receiptDate = $sourceOrder?->created_at
+        ? $sourceOrder->created_at->locale($loc)->isoFormat('ddd, MMM D, YYYY · hh:mm:ss A')
+        : ($reviewDateTime ?? __('N/A'));
+
+    $paymentLabel = $sourceOrder
+        ? (strtolower($sourceOrder->payment_type ?? '') === 'cash' ? __('Cash') : __('GCash / Online'))
+        : ($reviewPaymentLabel ?? __('N/A'));
+
+    $paymentStatus = $sourceOrder?->payment_status ?? strtolower((string)($reviewPaymentStatus ?? ''));
+    $displayItems = $sourceOrder
+        ? $sourceOrder->orderItems
+        : collect($reviewItems ?? [])->map(function ($item) {
+            return (object) [
+                'product_id' => $item['product_id'] ?? null,
+                'product_name' => $item['product_name'] ?? null,
+                'quantity' => (int) ($item['quantity'] ?? 0),
+                'unit_price' => (float) ($item['price'] ?? 0),
+                'total_price' => (float) ($item['total'] ?? 0),
+                'is_free' => (bool) ($item['is_free'] ?? false),
+                'product' => null,
+            ];
+        });
+
+    $customerName = $sourceOrder?->customer?->name ?? ($reviewCustomerName ?? null);
+    $customerContact = $sourceOrder?->customer?->contact_number ?? ($reviewCustomerContact ?? null);
+    $customerUnit = $sourceOrder?->customer?->unit ?? ($reviewCustomerUnit ?? null);
+    $customerAddress = $sourceOrder?->customer?->address ?? ($reviewCustomerAddress ?? null);
+    $deliveredBy = $sourceOrder?->employee?->name ?? ($reviewDeliveredBy ?? null);
+    $orderTotal = $sourceOrder?->order_total ?? (float) ($reviewTotal ?? 0);
+    $amountReceived = $sourceOrder?->amount_received ?? null;
+    $changeAmount = $sourceOrder?->change_amount ?? null;
+    $existingProofUrl = $sourceOrder?->proof_url ?? null;
 @endphp
 
-<div class="space-y-4">
-    {{-- Receipt header --}}
-    <div class="text-center space-y-2 border-b border-dashed border-zinc-300 dark:border-zinc-600 pb-4">
-        <div>
-            <p class="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-[0.3em]">
-                    Order Receipt
-            </p>
-        </div>
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-600 dark:text-zinc-300">
-            <span>#{{ $order->receipt_number }}</span>
-            <span class="text-zinc-300 dark:text-zinc-600">•</span>
-            <span>{{ $order->created_at->locale($loc)->isoFormat('MMM D, YYYY · h:mm A') }}</span>
+<div class="mx-auto w-full max-w-md space-y-3 font-mono text-sm text-gray-800 dark:text-gray-100 select-text">
+
+    {{-- Header --}}
+    <div class="space-y-2.5 pb-3 border-b border-zinc-800/50 dark:border-gray-200/50">
+        <div class="flex items-start justify-between gap-3">
+            <div>
+                <p class="text-lg font-bold tracking-tight text-zinc-800 dark:text-zinc-200 truncate">
+                    #{{ $receiptNumber }}
+                </p>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-zinc-800 dark:text-zinc-200 font-sans leading-tight">
+                    {{ $receiptDate }}
+                </p>
+            </div>
         </div>
     </div>
 
-    {{-- Quick details --}}
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-        <div class="rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 p-2.5">
-                <p class="text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-                    {{ __('Order Type') }}
-                </p>
-                <p class="mt-0.5 font-semibold text-zinc-900 dark:text-zinc-100 text-sm">{{ $order->order_type === 'deliver' ? __('Delivery') : __('Walk-In') }}</p>
-        </div>
-        <div class="rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 p-2.5">
-                <p class="text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-                    {{ __('Payment') }}
-                </p>
-            <p class="mt-0.5 font-semibold text-zinc-900 dark:text-zinc-100 text-sm">
-                    {{ strtolower($order->payment_type ?? '') === 'cash' ? __('Cash') : __('GCash / Online') }}
-            </p>
+    {{-- Invoice metadata --}}
+    <div class="space-y-2.5 pb-3 border-b border-zinc-800/50 dark:border-gray-200/50">
+        @if($sourceOrder)
+            <div class="text-sm text-zinc-700 dark:text-zinc-300 font-sans">
+                Order ID: <span class="font-semibold text-zinc-900 dark:text-zinc-100">#{{ $sourceOrder->id }}</span>
+            </div>
+        @endif
 
-            <p class="mt-0.5 inline-flex items-center gap-1 font-semibold text-sm {{ $order->is_paid ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400' }}">
-                <i class="fas fa-{{ $order->is_paid ? 'check-circle' : 'exclamation-circle' }}"></i>
-                    {{ $order->is_paid ? __('Paid') : __('Unpaid') }}
-            </p>
-        </div>
-        <div class="rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 p-2.5">
-                <p class="text-[10px] uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-                    {{ __('Status') }}
-                </p>
-            <p class="mt-0.5 inline-flex items-center gap-2 font-semibold text-sm text-{{ $statusColor }}-700 dark:text-{{ $statusColor }}-300">
-                <span class="h-2 w-2 rounded-full bg-{{ $statusColor }}-500"></span>
-                {{ $statusLabel }}
-            </p>
-        </div>
-    </div>
+        {{-- Customer / delivery block --}}
+        @if($isDelivery)
+            @php $addr = implode(', ', array_filter([$customerUnit, $customerAddress])); @endphp
+            <div class="space-y-2 border-b border-zinc-800/50 dark:border-zinc-200/50 pb-2">
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div class="space-y-0.5">
+                        <p class="text-[13px] uppercase text-zinc-700 dark:text-zinc-300 font-sans">Customer</p>
+                        <p class="font-semibold text-zinc-900 dark:text-zinc-100 font-sans leading-snug">{{ $customerName ?: 'N/A' }}</p>
+                    </div>
+                    <div class="space-y-0.5 text-right">
+                        <p class="text-[13px] uppercase text-zinc-700 dark:text-zinc-300 font-sans">Contact Number</p>
+                        <p class="font-semibold text-zinc-900 dark:text-zinc-100 font-sans">{{ $customerContact ?: __('Not Provided') }}</p>
+                    </div>
+                </div>
 
-    {{-- Delivery + Customer --}}
-    @if($order->order_type === 'deliver')
-        <div class="grid grid-cols-1 gap-3">
-            <div class="rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 p-3">
-                    <p class="text-[11px] uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-1">
-                    {{ __('Delivery Person') }}
-                    </p>
-                    <p class="font-medium text-zinc-900 dark:text-zinc-100">{{ $order->employee?->name ?? 'N/A' }}</p>
+                @if($addr)
+                    <div class="space-y-0.5">
+                        <p class="text-[13px] uppercase text-zinc-700 dark:text-zinc-300 font-sans mb-1">Delivery address</p>
+                        <p class="font-semibold text-zinc-900 dark:text-zinc-100 leading-snug">{{ $addr }}</p>
+                    </div>
+                @endif
+            </div>
+        @endif
+
+        <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+            <div class="space-y-0.5">
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300 font-sans">Order type</p>
+                <p class="font-semibold text-zinc-900 dark:text-zinc-100 font-sans">{{ $isDelivery ? 'Delivery' : 'Walk-In' }}</p>
+            </div>
+            <div class="space-y-0.5 text-right">
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300 font-sans">Payment</p>
+                <p class="font-semibold text-zinc-900 dark:text-zinc-100 font-sans">{{ $paymentLabel }}</p>
             </div>
 
-            <div class="rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-700 p-3">
-                    <p class="text-[11px] uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-1">
-                    {{ __('Customer') }}
-                    </p>
-                @if($order->customer)
-                    <p class="font-medium text-zinc-900 dark:text-zinc-100">{{ $order->customer->name }}</p>
-                        <p class="text-sm text-zinc-600 dark:text-zinc-400">{{ $order->customer->contact_number ?? __('Not Provided') }}</p>
-                    <p class="text-sm text-zinc-600 dark:text-zinc-400">
-                            {{ implode(', ', array_filter([$order->customer->unit, $order->customer->address])) ?: __('Not Provided') }}
-                    </p>
-                @else
-                        <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('No customer') }}</p>
-                @endif
+            <div class="space-y-0.5">
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300 font-sans">Order status</p>
+                <div class="inline-flex items-center gap-1.5">
+                    <span class="h-1.5 w-1.5 rounded-full {{ $statusColor['dot'] }} shrink-0"></span>
+                    <span class="font-semibold {{ $statusColor['text'] }} font-sans">{{ $statusLabel }}</span>
+                </div>
+            </div>
+
+            <div class="space-y-0.5 text-right">
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300 font-sans">Payment status</p>
+                <div class="inline-flex justify-end">
+                    @include('livewire.partials.orders.payment-status-badge', ['status' => $paymentStatus])
+                </div>
+            </div>
+
+            <div class="space-y-0.5">
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300 font-sans">Cashier</p>
+                <p class="font-semibold text-zinc-900 dark:text-zinc-100 font-sans">{{ $sourceOrder?->staff?->name ?? __('Staff') }}</p>
+            </div>
+            <div class="space-y-0.5 text-right">
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300 font-sans">Courier</p>
+                <p class="font-semibold text-zinc-900 dark:text-zinc-100 font-sans">{{ $deliveredBy ?? __('N/A') }}</p>
+            </div>
+        </div>
+    </div>
+
+    {{-- Items --}}
+    @if($displayItems && $displayItems->count() > 0)
+        <div class="space-y-2.5 pb-3 border-b border-zinc-800/50 dark:border-gray-200/50">
+            <div class="flex items-end justify-between gap-3">
+                <div>
+                    <p class="text-[13px] uppercase tracking-[0.22em] text-zinc-700 dark:text-zinc-300 font-sans">Orders</p>
+                </div>
+                <p class="text-xs text-zinc-700 dark:text-zinc-300 font-sans">{{ $displayItems->count() }} item(s)</p>
+            </div>
+
+            <div class="overflow-hidden">
+                <div class="grid grid-cols-[1fr_3.25rem_4.5rem_5rem] gap-2 px-3 py-2 text-[13px] uppercase text-zinc-700 dark:text-zinc-300 border-b border-dashed border-gray-500/80 font-sans">
+                    <span class="text-center">Item</span>
+                    <span class="text-center">Qty</span>
+                    <span class="text-center">Price</span>
+                    <span class="text-center">Total</span>
+                </div>
+
+                <div class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @foreach($displayItems as $item)
+                        @php
+                            $refundedQty = (int) ($item->refunded_quantity ?? 0);
+                            $isFullyRefunded = $refundedQty > 0 && $refundedQty >= (int) $item->quantity;
+                            $isPartiallyRefunded = $refundedQty > 0 && $refundedQty < (int) $item->quantity;
+                        @endphp
+                        <div class="grid grid-cols-[1fr_3.25rem_4.5rem_5rem] gap-2 px-3 py-2.5 items-center
+                                    {{ $isFullyRefunded ? 'opacity-50' : '' }}">
+                            <div class="min-w-0 pr-1">
+                                <div class="flex items-center gap-1 min-w-0 flex-wrap">
+                                    <span class="font-semibold text-gray-900 dark:text-gray-100 leading-snug break-words
+                                                {{ $isFullyRefunded ? 'line-through' : '' }}">
+                                        {{ $item->product?->name ?? $item->product_name ?? '#' . $item->product_id }}
+                                    </span>
+                                    @if($isFullyRefunded)
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold
+                                                    bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                                            <i class="fas fa-undo text-[9px]"></i>{{ __('Refunded') }}
+                                        </span>
+                                    @elseif($isPartiallyRefunded)
+                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold
+                                                    bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                                            <i class="fas fa-undo text-[9px]"></i>{{ __('Partial') }} ({{ $refundedQty }} {{ __('returned') }})
+                                        </span>
+                                    @elseif((float) ($item->total_price ?? 0) <= 0 && (int) ($item->quantity ?? 0) > 0)
+                                        <span class="inline-flex items-center rounded bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 dark:text-emerald-300">
+                                            No Charge
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="text-center tabular-nums pt-0.5
+                                        {{ $isFullyRefunded ? 'line-through text-zinc-400' : 'text-zinc-900 dark:text-zinc-100' }}">
+                                {{ (int) ($item->quantity ?? 0) }}
+                            </div>
+                            <div class="text-center font-mono tabular-nums pt-0.5
+                                        {{ $isFullyRefunded ? 'line-through text-zinc-400' : 'text-zinc-900 dark:text-zinc-100' }}">
+                                ₱{{ number_format((float) ($item->unit_price ?? 0), 2) }}
+                            </div>
+                            <div class="text-center font-semibold font-mono tabular-nums pt-0.5
+                                        {{ $isFullyRefunded ? 'line-through text-zinc-400' : 'text-zinc-900 dark:text-zinc-100' }}">
+                                ₱{{ number_format((float) ($item->total_price ?? 0), 2) }}
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </div>
     @endif
 
-    {{-- Items --}}
-    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
-
-        <div class="hidden sm:block bg-white dark:bg-zinc-800">
-            <table class="w-full text-sm">
-                <thead class="bg-zinc-50 dark:bg-zinc-900/60">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                            <div class="gap-1 flex items-center">
-                                    {{ __('Item') }}
-                                <p class="text-xs text-zinc-400 dark:text-zinc-600">({{ $order->orderItems->count() }})</p>
-                            </div>
-                        </th>
-                            <th class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 w-14">{{ __('Qty') }}</th>
-                            <th class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 w-24">{{ __('Price') }}</th>
-                            <th class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 w-28">{{ __('Total') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($order->orderItems as $item)
-                        <tr class="align-top {{ $loop->odd ? 'bg-zinc-50/80 dark:bg-zinc-900/45' : 'bg-white dark:bg-zinc-800' }}">
-                            <td class="px-3 py-2.5 min-w-0">
-                                <p class="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                                    {{ $item->product?->name ?? '#' . $item->product_id }}
-                                </p>
-                                @if($item->product?->category)
-                                    <p class="text-[11px] uppercase tracking-wide text-zinc-400 mt-0.5">
-                                        {{ __(\App\Models\Product::getCategories()[$item->product->category] ?? ucfirst(str_replace('_', ' ', $item->product->category))) }}
-                                    </p>
-                                @endif
-                            </td>
-                            <td class="px-3 py-2.5 text-center font-medium text-zinc-700 dark:text-zinc-300 tabular-nums">{{ $item->quantity }}</td>
-                            <td class="px-3 py-2.5 text-right font-mono text-zinc-700 dark:text-zinc-300 tabular-nums">₱{{ number_format($item->unit_price, 2) }}</td>
-                            <td class="px-3 py-2.5 text-right font-mono font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">₱{{ number_format($item->total_price, 2) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-
-        <div class="sm:hidden bg-white dark:bg-zinc-800">
-            @foreach($order->orderItems as $item)
-                <div class="px-3 py-2.5 space-y-2 {{ $loop->odd ? 'bg-zinc-50/80 dark:bg-zinc-900/45' : 'bg-white dark:bg-zinc-800' }}">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0">
-                            <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                                {{ $item->product?->name ?? '#' . $item->product_id }}
-                            </p>
-                            @if($item->product?->category)
-                                <p class="text-[11px] uppercase tracking-wide text-zinc-400 mt-0.5">{{ __(\App\Models\Product::getCategories()[$item->product->category] ?? ucfirst(str_replace('_', ' ', $item->product->category))) }}</p>
-                            @endif
-                        </div>
-                        <p class="shrink-0 text-right font-mono text-sm font-semibold text-zinc-900 dark:text-zinc-100">₱{{ number_format($item->total_price, 2) }}</p>
+    {{-- Totals --}}
+    <div class="space-y-2">
+        @if($amountReceived !== null || $changeAmount !== null)
+            <div class="pt-2 space-y-1.5">
+                @if($amountReceived !== null)
+                    <div class="flex items-center justify-between gap-3 text-xs font-sans">
+                        <span class="text-zinc-700 dark:text-zinc-300">Amount received</span>
+                        <span class="font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">₱{{ number_format((float) $amountReceived, 2) }}</span>
                     </div>
-                    <div class="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-                            <span>{{ __('Qty') }}: <span class="font-medium text-zinc-700 dark:text-zinc-300 tabular-nums">{{ $item->quantity }}</span></span>
-                            <span>{{ __('Price') }}: <span class="font-medium text-zinc-700 dark:text-zinc-300 tabular-nums">₱{{ number_format($item->unit_price, 2) }}</span></span>
+                @endif
+                @if($changeAmount !== null)
+                    <div class="flex items-center justify-between gap-3 text-xs font-sans">
+                        <span class="text-zinc-700 dark:text-zinc-300">Change</span>
+                        <span class="font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">₱{{ number_format((float) $changeAmount, 2) }}</span>
                     </div>
-                </div>
-            @endforeach
-        </div>
+                @endif
+            </div>
+        @endif
 
-        {{-- Total --}}
-        <div class=" bg-zinc-50 dark:bg-zinc-900/50 p-4">
-            <div class="flex items-center justify-between">
-                    <span class="text-sm font-semibold uppercase tracking-[0.25em] text-zinc-500 dark:text-zinc-400">{{ __('Total Amount') }}</span>
-                <span class="text-2xl font-black font-mono text-zinc-900 dark:text-zinc-100">₱{{ number_format($order->order_total, 2) }}</span>
+        <div class="pt-2">
+            <div class="flex items-end justify-between gap-3">
+                <span class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 uppercase  font-sans">
+                    Total
+                </span>
+                <span class="text-2xl font-black text-zinc-900 dark:text-zinc-100 font-mono tabular-nums leading-none">
+                    ₱{{ number_format((float) $orderTotal, 2) }}
+                </span>
             </div>
         </div>
     </div>
+
+    {{-- Footer --}}
+    @if($showFooter)
+        <div class="pt-4 text-center space-y-2.5">
+            <p class="text-xs uppercase tracking-wider text-zinc-500 font-sans">
+                {{ __('Thank you! Please come again.') }}
+            </p>
+        </div>
+    @endif
+
+    {{-- Payment proof --}}
+    @if($showProofSection && $isGcash)
+        <div class="pt-3 border-t border-gray-200/80 dark:border-gray-700/80">
+            <p class="text-xs uppercase tracking-[0.22em] text-gray-400 dark:text-gray-500 font-sans mb-2">Payment proof</p>
+            @include('livewire.partials.orders.proof-of-payment', [
+                'readOnly'          => true,
+                'allowUploadInView' => in_array($paymentStatus, ['unpaid']),
+                'existingProofUrl'  => $existingProofUrl,
+                'compact'           => true,
+            ])
+        </div>
+    @endif
 </div>

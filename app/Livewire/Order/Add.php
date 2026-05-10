@@ -1,16 +1,7 @@
 <?php
-/**
- * Add.php  (Record Sale)
- * ======================
- * Key changes from original:
- *  1. Uses HasOrderForm trait — removes ~200 lines of duplicated methods.
- *  2. openSaveConfirmation() dispatches 'customer-validation-clear' on success.
- *  3. updatedOrderItems() delegates to trait's handleUpdatedOrderItem().
- *  4. Removed duplicate loadData / selectEmployee / selectProduct / etc.
- */
-
 namespace App\Livewire\Order;
 
+use App\Livewire\Concerns\HasConfirmData;
 use App\Livewire\Concerns\HasOrderForm;
 use App\Models\Customer;
 use App\Models\Order;
@@ -20,47 +11,59 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class Add extends Component
 {
-    use HasOrderForm;
+    use HasOrderForm, HasConfirmData, WithFileUploads;
 
     // ── Form state ─────────────────────────────────────────────────
-    public string  $receiptNumber        = '';
-    public string  $saleDate             = '';
-    public string  $orderType            = 'walk_in';
-    public string  $paymentType          = 'cash';
-    public bool    $isPaid               = true;
-    public string  $status               = 'completed';
-    public ?int    $selectedEmployeeId   = null;
-    public ?int    $selectedCustomerId   = null;
+    public string  $receiptNumber         = '';
+    public string  $saleDate              = '';
+    public string  $orderType             = 'walk_in';
+    public string  $paymentType           = 'cash';
+
+    /**
+     * payment_status: 'unpaid' | 'paid' | 'refunded'
+     * Replaces the old boolean $isPaid.
+     */
+    public string  $paymentStatus         = 'paid';
+
+    public string  $status                = 'completed';
+    public ?int    $selectedEmployeeId    = null;
+    public ?int    $selectedCustomerId    = null;
     public bool    $isCreatingNewCustomer = false;
-    public string  $customerName         = '';
-    public string  $customerUnit         = '';
-    public string  $customerAddress      = '';
-    public string  $customerContact      = '';
-    public string  $customerSearch       = '';
-    public string  $employeeSearch       = '';
-    public string  $productSearch        = '';
-    public array   $orderItems           = [];
-    public array   $errorFields          = [];
-    public bool    $showConfirmModal     = false;
+    public string  $customerName          = '';
+    public string  $customerUnit          = '';
+    public string  $customerAddress       = '';
+    public string  $customerContact       = '';
+    public string  $customerSearch        = '';
+    public string  $employeeSearch        = '';
+    public string  $productSearch         = '';
+    public array   $orderItems            = [];
+    public array   $errorFields           = [];
+    public bool    $showConfirmModal      = false;
+
+    public array $confirmData = [];
+
+    // Proof of payment
+    public $proofOfPayment = null;
 
     // Product form
-    public bool        $showProductForm    = false;
-    public ?int        $productTargetIndex = null;
-    public string      $productName        = '';
-    public string      $productDescription = '';
-    public string      $productCategory    = 'other';
-    public string|int  $productStocks      = 1;
-    public string|float $productPrice      = 0;
+    public bool         $showProductForm    = false;
+    public ?int         $productTargetIndex = null;
+    public string       $productName        = '';
+    public string       $productDescription = '';
+    public string       $productCategory    = 'other';
+    public string|int   $productStocks      = 1;
+    public string|float $productPrice       = 0;
 
     protected $rules = [
         'receiptNumber'              => 'required|string|max:255|unique:orders,receipt_number',
         'saleDate'                   => 'required|date',
         'orderType'                  => 'required|in:deliver,walk_in',
         'paymentType'                => 'required|in:cash,gcash',
-        'isPaid'                     => 'boolean',
+        'paymentStatus'              => 'required|in:unpaid,paid,refunded',
         'status'                     => 'required|in:pending,preparing,in_transit,delivered,completed,cancelled',
         'selectedEmployeeId'         => 'nullable|exists:employees,id',
         'selectedCustomerId'         => 'nullable|exists:customers,id',
@@ -72,6 +75,7 @@ class Add extends Component
         'orderItems.*.product_id'    => 'required|exists:products,id',
         'orderItems.*.quantity'      => 'required|integer|min:1',
         'orderItems.*.price'         => 'required|numeric|min:0',
+        'proofOfPayment'             => 'nullable|image|mimes:png,jpg,jpeg,webp|max:10240',
     ];
 
     public function mount(): void
@@ -82,7 +86,7 @@ class Add extends Component
         $this->addOrderItem();
     }
 
-    // ── Livewire lifecycle ─────────────────────────────────────────
+    // ── Lifecycle ──────────────────────────────────────────────────
 
     public function updatedOrderItems($value, $key): void
     {
@@ -95,13 +99,31 @@ class Add extends Component
             $this->selectedEmployeeId    = null;
             $this->selectedCustomerId    = null;
             $this->isCreatingNewCustomer = false;
-            $this->customerName          = '';
-            $this->customerUnit          = '';
-            $this->customerAddress       = '';
-            $this->customerContact       = '';
+            $this->customerName = $this->customerUnit = $this->customerAddress = $this->customerContact = '';
             $this->resetErrorBag(['selectedEmployeeId', 'selectedCustomerId']);
             $this->dispatch('customer-validation-clear');
         }
+    }
+
+    public function updatedPaymentType(): void
+    {
+        // Clear proof when switching away from GCash
+        if ($this->paymentType !== 'gcash') {
+            $this->proofOfPayment = null;
+        }
+    }
+
+    public function updatedProofOfPayment(): void
+    {
+        $this->validateOnly('proofOfPayment', [
+            'proofOfPayment' => 'nullable|image|mimes:png,jpg,jpeg,webp|max:10240',
+        ]);
+    }
+
+    public function removeProof(): void
+    {
+        $this->proofOfPayment = null;
+        $this->resetErrorBag(['proofOfPayment']);
     }
 
     // ── Modal ──────────────────────────────────────────────────────
@@ -114,6 +136,7 @@ class Add extends Component
         }
 
         $this->dispatch('customer-validation-clear');
+        $this->confirmData = $this->buildConfirmData();
         $this->showConfirmModal = true;
     }
 
@@ -138,9 +161,9 @@ class Add extends Component
             $rules['selectedEmployeeId'] = 'required|exists:employees,id';
 
             if ($this->isCreatingNewCustomer) {
-                $rules['customerName']     = 'required|string|max:255';
-                $rules['customerContact']  = 'nullable|string|max:20';
-                $rules['customerAddress']  = 'required|string|max:255';
+                $rules['customerName']       = 'required|string|max:255';
+                $rules['customerContact']    = 'nullable|string|max:20';
+                $rules['customerAddress']    = 'required|string|max:255';
                 $rules['selectedCustomerId'] = 'nullable';
             } else {
                 $rules['selectedCustomerId'] = 'required|exists:customers,id';
@@ -158,8 +181,7 @@ class Add extends Component
             $this->errorFields = array_keys($e->errors());
             $this->dispatch('form-validation-failed', errorFields: $this->errorFields);
 
-            // If any customer field failed, dispatch the scroll-to event
-            $customerFields = ['selectedCustomerId','customerName','customerAddress'];
+            $customerFields = ['selectedCustomerId', 'customerName', 'customerAddress'];
             if (array_intersect($customerFields, $this->errorFields)) {
                 $this->dispatch('customer-validation-error');
             }
@@ -179,14 +201,12 @@ class Add extends Component
 
         $last = Order::query()
             ->where('receipt_number', 'like', "{$prefix}%")
-            ->orderByDesc('receipt_number')
+            ->latest('id')
             ->value('receipt_number');
 
-        $next = $last
-            ? ((int) substr($last, strlen($prefix)) + 1)
-            : 1;
+        $next = $last ? ((int) substr($last, strlen($prefix)) + 1) : 1;
 
-        return $prefix . str_pad($next, 3, '0', STR_PAD_LEFT);
+        return $prefix . str_pad($next, 4, '0', STR_PAD_LEFT);
     }
 
     // ── Save ───────────────────────────────────────────────────────
@@ -206,19 +226,33 @@ class Add extends Component
             return;
         }
 
-        DB::transaction(function () {
+        // Store proof image
+        $proofPath = null;
+        if ($this->paymentType === 'gcash' && $this->proofOfPayment) {
+            $ext       = strtolower($this->proofOfPayment->getClientOriginalExtension() ?: 'png');
+            $dir       = 'order/' . $this->receiptNumber;
+            $proofPath = $this->proofOfPayment->storeAs($dir, $this->receiptNumber . '.' . $ext, 'public');
+
+            // Auto-upgrade to paid if proof uploaded
+            if ($this->paymentStatus === 'unpaid') {
+                $this->paymentStatus = 'paid';
+            }
+        }
+
+        DB::transaction(function () use ($proofPath) {
             $customerId = $this->persistCustomer();
 
             $order = Order::create([
-                'customer_id'    => $customerId,
-                'created_by'     => Auth::id(),
-                'delivered_by'   => $this->orderType === 'deliver' ? $this->selectedEmployeeId : null,
-                'order_total'    => $this->totalAmount,
-                'order_type'     => $this->orderType,
-                'payment_type'   => $this->paymentType,
-                'status'         => $this->status,
-                'is_paid'        => $this->isPaid,
-                'receipt_number' => $this->receiptNumber,
+                'customer_id'      => $customerId,
+                'created_by'       => Auth::id(),
+                'delivered_by'     => $this->orderType === 'deliver' ? $this->selectedEmployeeId : null,
+                'order_total'      => $this->totalAmount,
+                'order_type'       => $this->orderType,
+                'payment_type'     => $this->paymentType,
+                'payment_status'   => $this->paymentStatus,
+                'status'           => $this->status,
+                'receipt_number'   => $this->receiptNumber,
+                'proof_of_payment' => $proofPath,
             ]);
 
             $saleDate = Carbon::parse($this->saleDate);
@@ -249,23 +283,20 @@ class Add extends Component
 
     private function persistCustomer(): ?int
     {
-        if ($this->orderType !== 'deliver') {
-            return null;
-        }
+        if ($this->orderType !== 'deliver') return null;
 
         if ($this->isCreatingNewCustomer) {
-            $customer = Customer::create([
+            $c = Customer::create([
                 'name'           => ucwords(trim($this->customerName)),
                 'unit'           => ucwords(trim($this->customerUnit)),
                 'address'        => ucwords(trim($this->customerAddress)),
                 'contact_number' => trim($this->customerContact) ?: null,
             ]);
-            return $customer->id;
+            return $c->id;
         }
 
         if ($this->selectedCustomerId) {
-            $customer = Customer::query()->whereKey($this->selectedCustomerId)->first();
-            $customer?->update([
+            Customer::query()->whereKey($this->selectedCustomerId)->first()?->update([
                 'name'           => ucwords(trim($this->customerName)),
                 'unit'           => ucwords(trim($this->customerUnit)),
                 'address'        => ucwords(trim($this->customerAddress)),
@@ -278,25 +309,26 @@ class Add extends Component
 
     protected function resetFormAfterSave(): void
     {
-        $this->receiptNumber        = $this->generateReceiptNumber();
-        $this->saleDate             = now()->format('Y-m-d\TH:i');
-        $this->orderType            = config('storeconfig.default_order_type', 'walk_in');
-        $this->paymentType          = 'cash';
-        $this->isPaid               = true;
-        $this->status               = 'completed';
-        $this->selectedEmployeeId   = null;
-        $this->selectedCustomerId   = null;
+        $this->receiptNumber         = $this->generateReceiptNumber();
+        $this->saleDate              = now()->format('Y-m-d\TH:i');
+        $this->orderType             = config('storeconfig.default_order_type', 'walk_in');
+        $this->paymentType           = 'cash';
+        $this->paymentStatus         = 'paid';
+        $this->status                = 'completed';
+        $this->selectedEmployeeId    = null;
+        $this->selectedCustomerId    = null;
         $this->isCreatingNewCustomer = false;
-        $this->customerName         = '';
-        $this->customerUnit         = '';
-        $this->customerAddress      = '';
-        $this->customerContact      = '';
-        $this->customerSearch       = '';
-        $this->employeeSearch       = '';
-        $this->productSearch        = '';
-        $this->orderItems           = [];
-        $this->showConfirmModal     = false;
-        $this->errorFields          = [];
+        $this->customerName          = '';
+        $this->customerUnit          = '';
+        $this->customerAddress       = '';
+        $this->customerContact       = '';
+        $this->customerSearch        = '';
+        $this->employeeSearch        = '';
+        $this->productSearch         = '';
+        $this->orderItems            = [];
+        $this->showConfirmModal      = false;
+        $this->errorFields           = [];
+        $this->proofOfPayment        = null;
 
         $this->resetProductForm();
         $this->addOrderItem();

@@ -1,17 +1,8 @@
 <?php
-/**
- * Edit.php  (Edit Order)
- * ======================
- * Key changes:
- *  1. Uses HasOrderForm trait — removes duplicated helpers.
- *  2. updatedOrderItems() delegates to trait.
- *  3. selectEmployee() / selectCustomer() now from trait (supports both
- *     $selectedEmployeeId and $delivered_by property names).
- *  4. Customer validation dispatches clear event on success.
- */
 
 namespace App\Livewire\Order;
 
+use App\Livewire\Concerns\HasConfirmData;
 use App\Livewire\Concerns\HasOrderForm;
 use App\Models\Customer;
 use App\Models\Employee;
@@ -19,25 +10,32 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class Edit extends Component
 {
-    use HasOrderForm;
+    use HasOrderForm, HasConfirmData, WithFileUploads;
+
+    protected $listeners = [
+        'order-refunded' => 'handleOrderRefunded',
+    ];
 
     public Order $order;
 
-    // ── Editable fields ────────────────────────────────────────────
-    public string $status       = '';
-    public string $payment_type = '';
-    public bool   $is_paid      = false;
-    public string $order_type   = '';
+    public string $status         = '';
+    public string $payment_type   = '';
+    public string $payment_status = 'unpaid';
+    public string $order_type     = '';
+    public $delivered_by          = null;
+    public $customer_id           = null;
 
-    // Trait resolves selectedEmployee via $delivered_by OR $selectedEmployeeId
-    public $delivered_by        = null;
-    public $customer_id         = null;
+    public $proofOfPayment        = null;
+    public ?string $existingProof = null;
 
-    // HasOrderForm expects these:
+    // HasOrderForm required properties
     public ?int   $selectedEmployeeId    = null;
     public ?int   $selectedCustomerId    = null;
     public bool   $isCreatingNewCustomer = false;
@@ -50,32 +48,38 @@ class Edit extends Component
     public string $productSearch         = '';
     public array  $orderItems            = [];
     public bool   $showConfirmModal      = false;
-    public string $orderType             = '';  // alias for trait's orderType-aware methods
+    public string $orderType             = '';
+    public array  $confirmData           = [];
 
-    // Product form (not used in edit, but trait requires the properties)
-    public bool        $showProductForm    = false;
-    public ?int        $productTargetIndex = null;
-    public string      $productName        = '';
-    public string      $productDescription = '';
-    public string      $productCategory    = 'other';
-    public string|int  $productStocks      = 1;
-    public string|float $productPrice      = 0;
+    // HasOrderForm product-form properties (not used in Edit but trait requires them)
+    public bool         $showProductForm    = false;
+    public ?int         $productTargetIndex = null;
+    public string       $productName        = '';
+    public string       $productDescription = '';
+    public string       $productCategory    = 'other';
+    public string|int   $productStocks      = 1;
+    public string|float $productPrice       = 0;
 
-    private array $originalItemTotals = [];
+    /**
+     * Snapshot of each product's NET quantity (ordered - refunded) at mount time.
+     * Used as the baseline for reconcileInventory() when the user edits quantities.
+     */
+    private array $originalNetTotals = [];
 
     private function lockedStatuses(): array
     {
-        return array_values(array_filter(
-            (array) config('storeconfig.order_edit_lock_status'),
-            fn ($status) => $status !== 'in_transit'
-        ));
+        return (array) config('storeconfig.order_edit_lock_status', [
+            'delivered', 'completed', 'cancelled',
+        ]);
     }
 
     public function mount(Order $order): void
     {
-        $lockedStatuses = $this->lockedStatuses();
+        // Allow editing completed/paid orders so refunds can be processed,
+        // but lock delivered and cancelled.
+        $locked = array_diff($this->lockedStatuses(), ['completed']);
 
-        if (in_array($order->status, $lockedStatuses, true)) {
+        if (in_array($order->status, $locked, true)) {
             session()->flash('error', __('Order #:receipt cannot be edited once it is :status.', [
                 'receipt' => $order->receipt_number,
                 'status'  => $order->status,
@@ -84,23 +88,24 @@ class Edit extends Component
             return;
         }
 
-        $this->order        = $order->load(['customer', 'employee', 'orderItems.product']);
-        $this->status       = $order->status;
-        $this->payment_type = $order->payment_type ?? 'cash';
-        $this->is_paid      = (bool) $order->is_paid;
-        $this->order_type   = $order->order_type;
-        $this->orderType    = $order->order_type;   // keep trait alias in sync
-        $this->delivered_by = $order->delivered_by;
-        $this->customer_id  = $order->customer_id;
+        $this->order          = $order->load(['customer', 'employee', 'orderItems.product']);
+        $this->status         = $order->status;
+        $this->payment_type   = $order->payment_type  ?? 'cash';
+        $this->payment_status = $order->payment_status ?? 'unpaid';
+        $this->order_type     = $order->order_type;
+        $this->orderType      = $order->order_type;
+        $this->delivered_by   = $order->delivered_by;
+        $this->customer_id    = $order->customer_id;
         $this->selectedCustomerId = $order->customer_id;
+        $this->existingProof  = $order->proof_of_payment;
 
         if ($this->customer_id) {
-            $customer = Customer::query()->whereKey($this->customer_id)->first();
-            if ($customer) {
-                $this->customerName    = $customer->name          ?? '';
-                $this->customerUnit    = $customer->unit          ?? '';
-                $this->customerAddress = $customer->address       ?? '';
-                $this->customerContact = $customer->contact_number ?? '';
+            $c = Customer::query()->whereKey($this->customer_id)->first();
+            if ($c) {
+                $this->customerName    = $c->name           ?? '';
+                $this->customerUnit    = $c->unit           ?? '';
+                $this->customerAddress = $c->address        ?? '';
+                $this->customerContact = $c->contact_number ?? '';
             }
         }
 
@@ -125,15 +130,54 @@ class Edit extends Component
         }
     }
 
-    // Override trait's selectEmployee to also set $delivered_by
+    /**
+     * When user tries to set payment_status = 'refunded' via the dropdown,
+     * intercept and open the refund modal instead — the modal handles the DB update.
+     */
+    public function updatedPaymentStatus(string $value): void
+    {
+        if ($value === 'refunded' && $this->order->payment_status !== 'refunded') {
+            $this->payment_status = $this->order->payment_status; // revert
+            $this->dispatch('open-refund', orderId: $this->order->id);
+        }
+    }
+
+    public function updatedPaymentType(): void
+    {
+        if ($this->payment_type !== 'gcash') {
+            $this->proofOfPayment = null;
+        }
+    }
+
+    public function updatedProofOfPayment(): void
+    {
+        $this->validateOnly('proofOfPayment', [
+            'proofOfPayment' => 'nullable|image|mimes:png,jpg,jpeg,webp|max:10240',
+        ]);
+    }
+
+    public function removeProof(): void
+    {
+        $this->proofOfPayment = null;
+        $this->resetErrorBag(['proofOfPayment']);
+    }
+
+    public function deleteExistingProof(): void
+    {
+        if ($this->existingProof) {
+            Storage::disk('public')->delete($this->existingProof);
+        }
+        $this->existingProof = null;
+        Order::query()->where('id', $this->order->id)->update(['proof_of_payment' => null]);
+    }
+
+    // ── Employee / Customer (override trait) ───────────────────────
+
     public function selectEmployee(int $employeeId): void
     {
         $employee = Employee::query()
-            ->where('status',      'active')
-            ->where('is_archived', false)
-            ->whereKey($employeeId)
-            ->first();
-
+            ->where('status', 'active')->where('is_archived', false)
+            ->whereKey($employeeId)->first();
         if (! $employee) return;
 
         $this->delivered_by   = $employee->id;
@@ -141,17 +185,16 @@ class Edit extends Component
         $this->resetErrorBag(['delivered_by']);
     }
 
-    // Override trait's selectCustomer to also set $customer_id
     public function selectCustomer(int $customerId): void
     {
         $customer = Customer::query()->whereKey($customerId)->first();
         if (! $customer) return;
 
-        $this->customer_id         = $customer->id;
-        $this->selectedCustomerId  = $customer->id;
-        $this->customerName        = $customer->name          ?? '';
-        $this->customerUnit        = $customer->unit          ?? '';
-        $this->customerAddress     = $customer->address       ?? '';
+        $this->customer_id        = $customer->id;
+        $this->selectedCustomerId = $customer->id;
+        $this->customerName        = $customer->name           ?? '';
+        $this->customerUnit        = $customer->unit           ?? '';
+        $this->customerAddress     = $customer->address        ?? '';
         $this->customerContact     = $customer->contact_number ?? '';
         $this->isCreatingNewCustomer = false;
         $this->customerSearch      = '';
@@ -164,6 +207,7 @@ class Edit extends Component
     public function openSaveConfirmation(): void
     {
         $this->dispatch('customer-validation-clear');
+        $this->confirmData = $this->buildConfirmData();
         $this->showConfirmModal = true;
     }
 
@@ -178,18 +222,40 @@ class Edit extends Component
         $this->save();
     }
 
+    /**
+     * Called when the Refund component emits 'order-refunded'.
+     * Re-loads the order so payment_status and refunded_quantity are fresh.
+     */
+    public function handleOrderRefunded(int $orderId = 0): void
+    {
+        if ($orderId && $orderId !== $this->order->id) return;
+
+        $this->order = Order::with(['customer', 'employee', 'orderItems.product'])
+            ->find($this->order->id);
+
+        $this->payment_status = $this->order->payment_status;
+        $this->loadOrderItems(); // refreshes originalNetTotals too
+        $this->dispatch('show-success', ['message' => __('Refund processed. Review and save the order if needed.')]);
+    }
+
     // ── Computed ───────────────────────────────────────────────────
 
     public function getIsLockedProperty(): bool
     {
-        $lockedStatuses = $this->lockedStatuses();
-
-        return in_array($this->order->status, $lockedStatuses, true);
+        $locked = array_diff($this->lockedStatuses(), ['completed']);
+        return in_array($this->order->status, $locked, true);
     }
 
     public function getEditedTotalProperty(): float
     {
         return (float) collect($this->orderItems)->sum(fn ($item) => (float) ($item['total'] ?? 0));
+    }
+
+    public function getShowQrProperty(): bool
+    {
+        return $this->order_type    === 'walk_in'
+            && $this->payment_type  === 'gcash'
+            && $this->payment_status === 'unpaid';
     }
 
     // ── Items ──────────────────────────────────────────────────────
@@ -198,29 +264,37 @@ class Edit extends Component
     {
         $this->orderItems = $this->order->orderItems
             ->map(fn ($item) => [
-                'id'             => $item->id,
-                'product_id'     => $item->product_id,
-                'product_name'   => $item->product?->name ?? 'Product #' . $item->product_id,
-                'quantity'       => (int) $item->quantity,
-                'price'          => (float) $item->unit_price,
-                'stocks'         => $item->product?->stocks ?? 0,
-                'original_price' => (float) $item->unit_price,
-                'is_free'        => (float) $item->total_price <= 0,
-                'total'          => (float) $item->total_price,
+                'id'                => $item->id,
+                'product_id'        => $item->product_id,
+                'product_name'      => $item->product?->name ?? 'Product #' . $item->product_id,
+                'quantity'          => (int) $item->quantity,
+                'refunded_quantity' => (int) ($item->refunded_quantity ?? 0),
+                'price'             => (float) $item->unit_price,
+                'stocks'            => $item->product?->stocks ?? 0,
+                'original_price'    => (float) $item->unit_price,
+                'is_free'           => (float) $item->total_price <= 0,
+                'total'             => (float) $item->total_price,
             ])
             ->values()
             ->all();
 
-        $this->originalItemTotals = $this->quantityTotalsByProduct($this->orderItems);
+        // Baseline = net quantity already in use (what was deducted from stock,
+        // excluding units already returned via refund).
+        $this->originalNetTotals = $this->calcNetTotals($this->orderItems);
     }
 
-    private function quantityTotalsByProduct(array $items): array
+    /**
+     * Compute per-product NET quantities: ordered minus already-refunded.
+     * This matches what is currently "consumed" from the inventory.
+     */
+    private function calcNetTotals(array $items): array
     {
         $totals = [];
         foreach ($items as $item) {
-            $id = (int) ($item['product_id'] ?? 0);
+            $id  = (int) ($item['product_id'] ?? 0);
+            $net = max(0, (int) ($item['quantity'] ?? 0) - (int) ($item['refunded_quantity'] ?? 0));
             if ($id > 0) {
-                $totals[$id] = ($totals[$id] ?? 0) + max(1, (int) ($item['quantity'] ?? 0));
+                $totals[$id] = ($totals[$id] ?? 0) + $net;
             }
         }
         ksort($totals);
@@ -237,65 +311,123 @@ class Edit extends Component
         }
 
         $this->validate([
-            'status'       => 'required|in:pending,preparing,in_transit,delivered,completed,cancelled',
-            'payment_type' => 'required|in:cash,gcash',
-            'is_paid'      => 'boolean',
-            'order_type'   => 'required|in:walk_in,deliver',
-            'delivered_by' => 'nullable|exists:employees,id',
-            'customer_id'  => 'nullable|exists:customers,id',
+            'status'         => 'required|in:pending,preparing,in_transit,delivered,completed,cancelled',
+            'payment_type'   => 'required|in:cash,gcash',
+            'payment_status' => 'required|in:unpaid,paid,refunded',
+            'order_type'     => 'required|in:walk_in,deliver',
+            'delivered_by'   => 'nullable|exists:employees,id',
+            'customer_id'    => 'nullable|exists:customers,id',
             'orderItems'              => 'required|array|min:1',
             'orderItems.*.product_id' => 'required|exists:products,id',
             'orderItems.*.quantity'   => 'required|integer|min:1',
             'orderItems.*.price'      => 'required|numeric|min:0',
             'orderItems.*.is_free'    => 'nullable|boolean',
+            'proofOfPayment'          => 'nullable|image|mimes:png,jpg,jpeg,webp|max:10240',
         ]);
 
         foreach (array_keys($this->orderItems) as $index) {
             $this->calculateItemTotal($index);
         }
 
-        DB::transaction(function () {
-            $old      = $this->order->status;
-            $new      = $this->status;
+        // Handle proof upload
+        $proofPath = $this->existingProof;
+        if ($this->payment_type === 'gcash' && $this->proofOfPayment) {
+            if ($this->existingProof) {
+                Storage::disk('public')->delete($this->existingProof);
+            }
+            $ext       = strtolower($this->proofOfPayment->getClientOriginalExtension() ?: 'png');
+            $dir       = 'order/' . $this->order->receipt_number;
+            $proofPath = $this->proofOfPayment->storeAs($dir, $this->order->receipt_number . '.' . $ext, 'public');
+            if ($this->payment_status === 'unpaid') {
+                $this->payment_status = 'paid';
+            }
+        }
+
+        DB::transaction(function () use ($proofPath) {
+            $oldStatus = $this->order->status;
+            $newStatus = $this->status;
+
+            // ── 1. Build the "new net totals" from the edited form items ──────────
+            // Each item's net = new quantity - its existing refunded_quantity.
+            // We must fetch refunded_quantity from DB (not from form state)
+            // because the form carries it read-only and it could be stale.
+            $existingItemsFromDb = OrderItem::where('order_id', $this->order->id)
+                ->get()
+                ->keyBy('id');
+
             $newItems = collect($this->orderItems)
-                ->map(fn ($item) => [
-                    'product_id' => (int) $item['product_id'],
-                    'quantity'   => max(1, (int) $item['quantity']),
-                    'price'      => max(0, (float) $item['price']),
-                    'is_free'    => (bool) ($item['is_free'] ?? false),
-                    'total'      => max(0, (float) ($item['total'] ?? 0)),
-                ])
+                ->map(function ($item) use ($existingItemsFromDb) {
+                    $productId        = (int) $item['product_id'];
+                    $existing         = $existingItemsFromDb->get($productId);
+                    $refundedQty      = (int) ($existing?->refunded_quantity ?? 0);
+                    $newQty           = max(1, (int) $item['quantity']);
+
+                    return [
+                        'product_id'        => $productId,
+                        'quantity'          => $newQty,
+                        'refunded_quantity' => $refundedQty, // carry through — never modified here
+                        'price'             => max(0, (float) $item['price']),
+                        'is_free'           => (bool) ($item['is_free'] ?? false),
+                        'total'             => max(0, (float) ($item['total'] ?? 0)),
+                    ];
+                })
                 ->values()
                 ->all();
 
-            if ($new === 'cancelled' && $old !== 'cancelled') {
-                $this->restoreOriginalInventory();
+            // ── 2. Reconcile inventory ────────────────────────────────────────────
+            if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
+                // Cancellation: restore ALL net quantities back to stock
+                $this->restoreOriginalInventory($existingItemsFromDb);
             } else {
-                $this->reconcileInventory($newItems);
+                // Normal edit: delta = newNet - oldNet per product
+                $this->reconcileInventory($newItems, $existingItemsFromDb);
             }
 
-            $this->order->orderItems()->delete();
+            // ── 3. Upsert order items (preserves refunded_quantity) ───────────────
+            $newProductIds = collect($newItems)->pluck('product_id')->all();
+
+            // Delete rows that were removed from the order
+            OrderItem::where('order_id', $this->order->id)
+                ->whereNotIn('product_id', $newProductIds)
+                ->delete();
 
             foreach ($newItems as $item) {
-                OrderItem::create([
-                    'order_id'    => $this->order->id,
-                    'product_id'  => $item['product_id'],
-                    'quantity'    => $item['quantity'],
-                    'unit_price'  => $item['price'],
-                    'total_price' => $item['total'],
-                ]);
+                $existing = $existingItemsFromDb->get($item['product_id']);
+
+                if ($existing) {
+                    // Update in place — refunded_quantity is intentionally NOT touched
+                    $existing->update([
+                        'quantity'    => $item['quantity'],
+                        'unit_price'  => $item['price'],
+                        'total_price' => $item['total'],
+                    ]);
+                } else {
+                    OrderItem::create([
+                        'order_id'          => $this->order->id,
+                        'product_id'        => $item['product_id'],
+                        'quantity'          => $item['quantity'],
+                        'unit_price'        => $item['price'],
+                        'total_price'       => $item['total'],
+                        'refunded_quantity' => 0,
+                    ]);
+                }
             }
 
+            // ── 4. Update the order ───────────────────────────────────────────────
             $this->order->update([
-                'status'       => $new,
-                'payment_type' => $this->payment_type,
-                'is_paid'      => $this->is_paid,
-                'order_type'   => $this->order_type,
-                'delivered_by' => $this->delivered_by ?: null,
-                'customer_id'  => $this->customer_id  ?: null,
-                'order_total'  => $this->editedTotal,
+                'status'           => $newStatus,
+                'payment_type'     => $this->payment_type,
+                'payment_status'   => $this->payment_status,
+                'order_type'       => $this->order_type,
+                'delivered_by'     => $this->delivered_by ?: null,
+                'customer_id'      => $this->customer_id  ?: null,
+                'order_total'      => $this->editedTotal,
+                'proof_of_payment' => $proofPath,
             ]);
         });
+
+        $this->order->refresh()->load(['orderItems.product']);
+        $this->loadOrderItems();
 
         session()->flash('success', __('Order #:receipt updated.', ['receipt' => $this->order->receipt_number]));
         $this->redirect(route('orders'), navigate: true);
@@ -308,48 +440,124 @@ class Edit extends Component
 
     // ── Inventory helpers ──────────────────────────────────────────
 
-    private function reconcileInventory(array $newItems): void
+    /**
+     * Reconcile stock changes when the user edits quantities.
+     *
+     * Baseline (oldNet): what was originally deducted from stock,
+     * excluding units already returned via refund (from $this->originalNetTotals).
+     *
+     * New net: new_quantity - refunded_quantity (fetched fresh from DB).
+     *
+     * Delta = newNet - oldNet:
+     *   > 0 → user added more units → deduct more stock
+     *   < 0 → user reduced units   → return stock
+     *
+     * @param array             $newItems         From the form (product_id, quantity, refunded_quantity)
+     * @param \Illuminate\Support\Collection $existingItemsFromDb Keyed by product_id
+     */
+    private function reconcileInventory(array $newItems, $existingItemsFromDb): void
     {
-        $newTotals  = $this->quantityTotalsByProduct($newItems);
-        $oldTotals  = $this->originalItemTotals;
-        $productIds = array_unique(array_merge(array_keys($oldTotals), array_keys($newTotals)));
+        // Build new net totals using DB refunded_quantity (authoritative)
+        $newNetTotals = [];
+        foreach ($newItems as $item) {
+            $id          = (int) $item['product_id'];
+            $refundedQty = (int) ($existingItemsFromDb->get($id)?->refunded_quantity ?? 0);
+            $net         = max(0, (int) $item['quantity'] - $refundedQty);
+            $newNetTotals[$id] = ($newNetTotals[$id] ?? 0) + $net;
+        }
+
+        $oldNetTotals = $this->originalNetTotals;
+        $productIds   = array_unique(array_merge(array_keys($oldNetTotals), array_keys($newNetTotals)));
 
         foreach ($productIds as $productId) {
-            $delta   = (int) ($newTotals[$productId] ?? 0) - (int) ($oldTotals[$productId] ?? 0);
+            $oldNet = (int) ($oldNetTotals[$productId] ?? 0);
+            $newNet = (int) ($newNetTotals[$productId] ?? 0);
+            $delta  = $newNet - $oldNet;
+
             if ($delta === 0) continue;
 
             $product = Product::query()->where('id', $productId)->lockForUpdate()->first();
 
             if (! $product) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'orderItems' => "Product ID {$productId} not found.",
                 ]);
             }
 
+            // delta > 0 = ordering more = need to deduct from stock
             if ($delta > 0 && (int) $product->stocks < $delta) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'orderItems' => "Insufficient stock for {$product->name}. Only {$product->stocks} left.",
+                throw ValidationException::withMessages([
+                    'orderItems' => __('Insufficient stock for :product. Only :stock left.', [
+                        'product' => $product->name,
+                        'stock'   => $product->stocks,
+                    ]),
                 ]);
             }
 
-            $product->stocks    = max(0, (int) $product->stocks - $delta);
-            $product->sold      = max(0, (int) ($product->sold ?? 0) + $delta);
+            // Subtract delta (negative delta = stock goes UP = return to inventory)
+            $product->stocks      = max(0, (int) $product->stocks - $delta);
+            $product->sold        = max(0, (int) ($product->sold ?? 0) + $delta);
             $product->is_in_stock = $product->stocks > 0;
             $product->save();
         }
     }
 
-    private function restoreOriginalInventory(): void
+    /**
+     * Called when order is cancelled.
+     * Restores each item's NET quantity (ordered - already_refunded) back to stock.
+     * Units already refunded were already returned by the Refund component — don't double-restore.
+     *
+     * @param \Illuminate\Support\Collection $existingItemsFromDb Keyed by product_id
+     */
+    private function restoreOriginalInventory($existingItemsFromDb): void
     {
-        foreach ($this->originalItemTotals as $productId => $quantity) {
-            $product = Product::query()->where('id', $productId)->lockForUpdate()->first();
+        foreach ($existingItemsFromDb as $item) {
+            $toRestore = max(0, (int) $item->quantity - (int) ($item->refunded_quantity ?? 0));
+            if ($toRestore <= 0) continue;
+
+            $product = Product::query()->where('id', $item->product_id)->lockForUpdate()->first();
             if (! $product) continue;
 
-            $product->stocks      = (int) $product->stocks + (int) $quantity;
-            $product->sold        = max(0, (int) ($product->sold ?? 0) - (int) $quantity);
+            $product->stocks      = (int) $product->stocks + $toRestore;
+            $product->sold        = max(0, (int) ($product->sold ?? 0) - $toRestore);
             $product->is_in_stock = $product->stocks > 0;
             $product->save();
         }
+    }
+
+    // ── Confirm data helper ────────────────────────────────────────
+
+    private function buildConfirmData(): array
+    {
+        $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
+        return [
+            'receiptNumber'      => $this->order->receipt_number,
+            'reviewDateTime'     => $this->order->created_at->locale($loc)->isoFormat('LLLL'),
+            'orderType'          => $this->order_type === 'deliver' ? __('Delivery') : __('Walk-In'),
+            'paymentLabel'       => $this->payment_type === 'cash' ? __('Cash') : __('GCash'),
+            'paymentStatusLabel' => match ($this->payment_status) {
+                'paid'     => __('Paid'),
+                'refunded' => __('Refunded'),
+                default    => __('Unpaid'),
+            },
+            'statusLabel'        => match ($this->status) {
+                'completed'  => __('Completed'),
+                'pending'    => __('Pending'),
+                'preparing'  => __('Preparing'),
+                'in_transit' => __('In transit'),
+                'delivered'  => __('Delivered'),
+                'cancelled'  => __('Cancelled'),
+                default      => ucfirst(str_replace('_', ' ', $this->status)),
+            },
+            'statusKey'          => $this->status,
+            'deliveredBy'        => optional($this->selectedEmployee)->name,
+            'customerName'       => $this->customerName,
+            'customerContact'    => $this->customerContact,
+            'customerUnit'       => $this->customerUnit,
+            'customerAddress'    => $this->customerAddress,
+            'items'              => $this->orderItems,
+            'totalAmount'        => $this->editedTotal,
+        ];
     }
 
     // ── Render ─────────────────────────────────────────────────────

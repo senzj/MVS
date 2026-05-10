@@ -166,86 +166,21 @@
             {{-- Order Items --}}
             <div class="space-y-4">
                 @foreach($orderItems as $index => $item)
-                    <div class="border border-zinc-200 dark:border-zinc-600 rounded-lg p-4">
-
-                        {{-- Item header --}}
-                        <div class="flex items-center justify-between gap-3 mb-3">
-                            <div class="flex items-center gap-2 min-w-0">
-                                <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold">
-                                    {{ $index + 1 }}
-                                </span>
-                                <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                                    {{ $item['product_name'] ?: __('Item Product') }}
-                                </p>
-                            </div>
-
-                            <div class="flex items-center gap-2">
-                                @if(count($orderItems) > 1)
-                                    <button type="button" wire:click="removeOrderItem({{ $index }})"
-                                        class="text-xs font-semibold text-red-500 hover:text-red-600 transition">
-                                        {{ __('Remove') }}
-                                    </button>
-                                @endif
-                            </div>
-                        </div>
-
-                        {{-- Item fields --}}
-                        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-                            {{-- Product --}}
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    {{ __('Product') }}
-                                    <span class="text-red-500 normal-case font-normal">*</span>
-                                </label>
-                                @include('livewire.partials.orders.form.product.dropdown', ['index' => $index, 'item' => $item])
-                            </div>
-
-                            {{-- Quantity --}}
-                            <div class="md:col-span-1">
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    {{ __('Quantity / per kilo') }}
-                                    <span class="text-red-500 normal-case font-normal">*</span>
-                                </label>
-                                <input type="number"
-                                    wire:model.live.debounce.300ms="orderItems.{{ $index }}.quantity"
-                                    data-field="orderItems.{{ $index }}.quantity"
-                                    min="1"
-                                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 transition">
-                            </div>
-
-                            {{-- Unit Price --}}
-                            <div class="md:col-span-1">
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                    {{ __('Unit Price') }}
-                                    <span class="text-gray-500 normal-case font-normal">*</span>
-                                </label>
-                                <input type="number"
-                                    wire:model.blur="orderItems.{{ $index }}.price"
-                                    data-field="orderItems.{{ $index }}.price"
-                                    min="0" step="0.01"
-                                    class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 transition">
-                            </div>
-
-                            {{-- Total + No Charge --}}
-                            <div class="md:col-span-1">
-                                <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">{{ __('Total') }}</label>
-                                <div class="px-3 py-2 bg-zinc-100 dark:bg-zinc-700 border border-zinc-300 dark:border-zinc-600 rounded-lg text-zinc-900 dark:text-zinc-100">
-                                    ₱{{ number_format((float) ($item['total'] ?? 0), 2) }}
-                                </div>
-
-                                {{-- No Charge Toggle --}}
-                                <div class="mt-4 flex items-center gap-2">
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" class="sr-only peer"
-                                            :checked="$wire.orderItems.{{ $index }}.is_free"
-                                            @change="$wire.set('orderItems.{{ $index }}.is_free', $event.target.checked)">
-                                        <div class="relative w-12 h-6 bg-zinc-500 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 transition-colors duration-300"></div>
-                                    </label>
-                                    <span class="text-xs font-medium text-zinc-700 dark:text-zinc-300">{{ __('No Charge') }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    @php
+                        // Collect product IDs from all other items to exclude from this item's dropdown
+                        $excludeIds = [];
+                        foreach ($orderItems as $otherIndex => $otherItem) {
+                            if ($otherIndex !== $index && !empty($otherItem['product_id'])) {
+                                $excludeIds[] = $otherItem['product_id'];
+                            }
+                        }
+                    @endphp
+                    @include('livewire.partials.orders.form.itemrow', [
+                        'index' => $index,
+                        'item' => $item,
+                        'count' => count($orderItems),
+                        'excludeProductIds' => $excludeIds,
+                    ])
                 @endforeach
             </div>
 
@@ -272,27 +207,9 @@
         </div>
     </form>
 
-
-    {{-- Payment modal for walkin --}}
-    @include('livewire.partials.orders.modal.payment')
-
     {{-- Confirm Order Modal --}}
     @include('livewire.partials.orders.modal.order', [
-        'confirmData' => [
-            'receiptNumber' => $orderNumber,
-            'reviewDateTime' => now()->locale(app()->getLocale())->isoFormat('LLLL'),
-            'orderType' => $orderType === 'deliver' ? __('Delivery') : __('Walk-In'),
-            'paymentLabel' => $paymentType === 'cash' ? __('Cash') : __('GCash'),
-            'paymentStatusLabel' => __('Unpaid'),
-            'statusLabel' => $orderType === 'deliver' ? __('Pending') : __('Completed'),
-            'deliveredBy' => optional($this->selectedEmployee)->name,
-            'customerName' => $customerName,
-            'customerContact' => $customerContact,
-            'customerUnit' => $customerUnit,
-            'customerAddress' => $customerAddress,
-            'items' => $orderItems,
-            'totalAmount' => $this->totalAmount,
-        ],
+        'confirmData' => $confirmData,
     ])
 
     @include('livewire.partials.loading-overlay', ['wireTarget' => 'createOrder,createProduct,selectProduct,selectCustomer,selectEmployee,addOrderItem,removeOrderItem,processPayment,openProductForm,closeProductForm,forceSelectEmployee'])

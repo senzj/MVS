@@ -1,19 +1,8 @@
 {{--
     Order Item Row  (fixed)
     =======================
-    Props: $index, $item, $count
+    Props: $index, $item, $count, $excludeProductIds (optional)
 
-    Quantity-reset bug fix
-    ──────────────────────
-    The previous version used wire:model.live on the qty input, which
-    triggered a Livewire round-trip on every keystroke. The server-side
-    clamp (max 1, stock limit) raced with the user's typing and reset the
-    field mid-entry.
-
-    Fix: Alpine holds the qty in local state (x-model.number="qty").
-    Livewire only receives the final committed value on blur OR Enter.
-    The server-side handleUpdatedOrderItem() then clamps safely without
-    ever clobbering an in-progress keystroke.
 --}}
 
 <div wire:key="order-item-row-{{ $index }}"
@@ -49,7 +38,11 @@
             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 {{ __('Product Name') }} <span class="text-red-500">*</span>
             </label>
-            @include('livewire.partials.orders.form.product.dropdown', ['index' => $index, 'item' => $item])
+            @include('livewire.partials.orders.form.product.dropdown', [
+                'index' => $index,
+                'item' => $item,
+                'excludeProductIds' => $excludeProductIds ?? []
+            ])
         </div>
 
         {{--
@@ -77,7 +70,7 @@
                 }
              }"
              x-init="
-                $watch('$wire.orderItems.{{ $index }}.quantity', v => {
+                $watch(() => $wire.orderItems[{{ $index }}].quantity, v => {
                     if (v !== null && v !== undefined && v !== '' && !document.activeElement?.matches('input[data-qty-idx=\'{{ $index }}\']')) {
                         qty = parseInt(v) || 1;
                     }
@@ -99,11 +92,6 @@
                 class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg
                        bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100
                        focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-            @if(isset($item['stocks']) && $item['stocks'] > 0)
-                <p class="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
-                    {{ $item['stocks'] }} in stock
-                </p>
-            @endif
         </div>
 
         {{-- Unit price --}}
@@ -134,18 +122,26 @@
             {{-- No Charge toggle --}}
             <div class="mt-3 flex items-center gap-2">
                 <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" class="sr-only peer"
-                        :checked="$wire.orderItems.{{ $index }}.is_free"
-                        @change="$wire.set('orderItems.{{ $index }}.is_free', $event.target.checked)">
+                    <input
+                        type="checkbox"
+                        class="sr-only peer"
+                        :checked="$wire.orderItems[{{ $index }}]?.is_free"
+                        @change="$wire.set('orderItems.{{ $index }}.is_free', $event.target.checked)"
+                    >
+
                     <div class="relative w-11 h-6 bg-zinc-400 rounded-full
                                 peer peer-checked:bg-green-600
                                 after:content-[''] after:absolute after:top-[2px] after:left-[2px]
                                 after:bg-white after:border after:border-zinc-500 after:rounded-full
                                 after:h-5 after:w-5 after:transition-all
                                 peer-checked:after:translate-x-5 peer-checked:after:border-white
-                                transition-colors duration-200"></div>
+                                transition-colors duration-200">
+                    </div>
                 </label>
-                <span class="text-xs font-medium text-zinc-600 dark:text-zinc-300">{{ __('No Charge') }}</span>
+
+                <span class="text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                    {{ __('No Charge') }}
+                </span>
             </div>
         </div>
     </div>

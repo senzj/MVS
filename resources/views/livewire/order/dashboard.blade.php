@@ -1,7 +1,8 @@
 @section('title', __('Orders Dashboard'))
 
 <div class="w-full max-w-full overflow-hidden"
-    x-data="{ activeTab: 'ongoing' }">
+    x-data="{ activeTab: 'ongoing' }"
+    wire:poll.60s="pollBatchTimers">
 
     {{-- HEADER --}}
     <div class="flex flex-col gap-3 mb-5 pt-2 sm:pt-0">
@@ -68,7 +69,7 @@
                     </label>
                     <div class="relative">
                         <input type="text"
-                               wire:model.live.debounce.300ms="search"
+                               wire:model.defer.300ms="search"
                                placeholder="{{ __('Order number, customer, delivered by') }}"
                                class="w-full pl-3 pr-9 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
                                       bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
@@ -95,6 +96,7 @@
                         <option value="all">{{ __('All Payments') }}</option>
                         <option value="paid">{{ __('Paid') }}</option>
                         <option value="unpaid">{{ __('Unpaid') }}</option>
+                        <option value="refunded">{{ __('Refunded') }}</option>
                     </select>
                 </div>
 
@@ -199,8 +201,15 @@
     {{-- MODALS --}}
     @include('livewire.partials.orders.modal.order', [
         'modalMode' => 'view',
+        'selectedOrder' => $selectedOrder,
     ])
     @include('livewire.partials.orders.modal.delete')
+
+    {{-- Refund component — MUST be a Livewire component tag, not @include --}}
+    <livewire:partials.orders.modal.refund />
+
+    {{-- Payment modal component (opens via event) --}}
+    <livewire:partials.orders.modal.payment />
 
     {{-- SHARED UTILITY CSS --}}
     <style>

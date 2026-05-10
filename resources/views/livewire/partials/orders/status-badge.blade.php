@@ -36,3 +36,5 @@
     <i class="fas {{ $meta['icon'] }}"></i>
     {{ $meta['label'] }}
 </span>
+
+@include('livewire.partials.orders.payment-status-badge', ['status' => $order->payment_status])

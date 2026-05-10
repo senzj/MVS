@@ -1,20 +1,8 @@
 <?php
-/**
- * Create.php  (Create Order)
- * ==========================
- * Key changes:
- *  1. Uses HasOrderForm trait.
- *  2. Walk-in flow merged: openSaveConfirmation() sets $modalMode = 'walkin'
- *     and opens the universal modal — no separate payment modal needed.
- *     The modal handles both review + cash/gcash input in one step.
- *  3. Customer validation dispatches 'customer-validation-clear' on success.
- *  4. updatedOrderItems() delegates to trait.
- *  5. Removed PaymentImageHelper, payment modal, and duplicate methods.
- */
-
 namespace App\Livewire\Order;
 
 use App\Helpers\PaymentImageHelper;
+use App\Livewire\Concerns\HasConfirmData;
 use App\Livewire\Concerns\HasOrderForm;
 use App\Models\Customer;
 use App\Models\Order;
@@ -24,12 +12,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class Create extends Component
 {
-    use HasOrderForm;
+    use HasOrderForm, HasConfirmData, WithFileUploads;
 
-    // ── Form state ─────────────────────────────────────────────────
     public string  $orderNumber          = '';
     public string  $orderType            = 'walk_in';
     public string  $paymentType          = 'cash';
@@ -46,49 +34,49 @@ class Create extends Component
     public array   $orderItems           = [];
     public array   $errorFields          = [];
     public bool    $showConfirmModal     = false;
-
-    /**
-     * Modal mode: 'confirm' (delivery) | 'walkin' (walk-in with payment step)
-     * Passed to the universal modal partial.
-     */
     public string  $modalMode            = 'confirm';
+    public array $confirmData = [];
 
     // Walk-in payment
-    public ?float  $amountReceived       = null;
-    public float   $changeAmount         = 0;
-    public bool    $processingPayment    = false;
-    public ?string $currentImage         = null;
+    public ?float  $amountReceived    = null;
+    public float   $changeAmount      = 0;
+    public bool    $processingPayment = false;
+    public ?string $currentImage      = null;
+
+    // Proof of payment (GCash)
+    public $proofOfPayment = null;
 
     // Product form
-    public bool        $showProductForm    = false;
-    public ?int        $productTargetIndex = null;
-    public string      $productName        = '';
-    public string      $productDescription = '';
-    public string      $productCategory    = 'other';
-    public string|int  $productStocks      = 1;
-    public string|float $productPrice      = 0;
+    public bool         $showProductForm    = false;
+    public ?int         $productTargetIndex = null;
+    public string       $productName        = '';
+    public string       $productDescription = '';
+    public string       $productCategory    = 'other';
+    public string|int   $productStocks      = 1;
+    public string|float $productPrice       = 0;
 
     protected $rules = [
-        'orderType'                  => 'required|in:deliver,walk_in',
-        'paymentType'                => 'required|in:cash,gcash',
-        'selectedEmployeeId'         => 'nullable|exists:employees,id',
-        'selectedCustomerId'         => 'nullable|exists:customers,id',
-        'customerName'               => 'nullable|string|max:255',
-        'customerUnit'               => 'nullable|string|max:255',
-        'customerAddress'            => 'nullable|string|max:255',
-        'customerContact'            => 'nullable|string|max:20',
-        'orderItems'                 => 'required|array|min:1',
-        'orderItems.*.product_id'    => 'required|exists:products,id',
-        'orderItems.*.quantity'      => 'required|integer|min:1',
-        'orderItems.*.price'         => 'nullable|numeric|min:0',
-        'orderItems.*.is_free'       => 'nullable|boolean',
+        'orderType'               => 'required|in:deliver,walk_in',
+        'paymentType'             => 'required|in:cash,gcash',
+        'selectedEmployeeId'      => 'nullable|exists:employees,id',
+        'selectedCustomerId'      => 'nullable|exists:customers,id',
+        'customerName'            => 'nullable|string|max:255',
+        'customerUnit'            => 'nullable|string|max:255',
+        'customerAddress'         => 'nullable|string|max:255',
+        'customerContact'         => 'nullable|string|max:20',
+        'orderItems'              => 'required|array|min:1',
+        'orderItems.*.product_id' => 'required|exists:products,id',
+        'orderItems.*.quantity'   => 'required|integer|min:1',
+        'orderItems.*.price'      => 'nullable|numeric|min:0',
+        'orderItems.*.is_free'    => 'nullable|boolean',
+        'proofOfPayment'          => 'nullable|image|mimes:png,jpg,jpeg,webp|max:10240',
     ];
 
     public function mount(): void
     {
-        $this->orderType   = config('storeconfig.default_order_type', 'walk_in');
+        $this->orderType   = config('storeconfig.default_order_type',   'walk_in');
         $this->paymentType = config('storeconfig.default_payment_type', 'cash');
-        $this->orderNumber = $this->generateOrderNumber();
+        $this->orderNumber = $this->generateReceiptNumber();
         $this->addOrderItem();
     }
 
@@ -105,13 +93,30 @@ class Create extends Component
             $this->selectedEmployeeId    = null;
             $this->selectedCustomerId    = null;
             $this->isCreatingNewCustomer = false;
-            $this->customerName          = '';
-            $this->customerUnit          = '';
-            $this->customerAddress       = '';
-            $this->customerContact       = '';
+            $this->customerName = $this->customerUnit = $this->customerAddress = $this->customerContact = '';
             $this->dispatch('customer-validation-clear');
         }
         $this->resetErrorBag();
+    }
+
+    public function updatedPaymentType(): void
+    {
+        if ($this->paymentType !== 'gcash') {
+            $this->proofOfPayment = null;
+        }
+    }
+
+    public function updatedProofOfPayment(): void
+    {
+        $this->validateOnly('proofOfPayment', [
+            'proofOfPayment' => 'nullable|image|mimes:png,jpg,jpeg,webp|max:10240',
+        ]);
+    }
+
+    public function removeProof(): void
+    {
+        $this->proofOfPayment = null;
+        $this->resetErrorBag(['proofOfPayment']);
     }
 
     public function updatedAmountReceived(): void
@@ -132,10 +137,6 @@ class Create extends Component
 
     // ── Modal ──────────────────────────────────────────────────────
 
-    /**
-     * Walk-in: open the universal modal in 'walkin' mode (review + payment combined).
-     * Delivery: open in 'confirm' mode (review only, payment not needed upfront).
-     */
     public function openSaveConfirmation(): void
     {
         if (! $this->validateSubmissionRequirements()) {
@@ -154,29 +155,26 @@ class Create extends Component
             $this->modalMode = 'confirm';
         }
 
+        $this->confirmData = $this->buildConfirmData();
         $this->showConfirmModal = true;
     }
 
     public function closeSaveConfirmation(): void
     {
-        $this->showConfirmModal   = false;
-        $this->processingPayment  = false;
-        $this->amountReceived     = null;
-        $this->changeAmount       = 0;
+        $this->showConfirmModal  = false;
+        $this->processingPayment = false;
+        $this->amountReceived    = null;
+        $this->changeAmount      = 0;
     }
 
-    /**
-     * Called by the modal's "Confirm & Save" button (delivery mode).
-     */
+    /** Delivery: confirm & save */
     public function saveSalesRecord(): void
     {
         $this->showConfirmModal = false;
         $this->createOrder();
     }
 
-    /**
-     * Called by the modal's "Complete Order" button (walk-in mode).
-     */
+    /** Walk-in: validate cash / gcash then save */
     public function processPayment(): void
     {
         $this->processingPayment = true;
@@ -184,18 +182,18 @@ class Create extends Component
         if ($this->paymentType === 'cash' && (float) $this->totalAmount > 0) {
             $this->validate([
                 'amountReceived' => [
-                    'required',
-                    'numeric',
-                    'min:' . $this->totalAmount,
+                    'required', 'numeric', 'min:' . $this->totalAmount,
                 ],
             ], [
                 'amountReceived.required' => __('Please enter the amount received.'),
-                'amountReceived.numeric'  => __('Amount must be a valid number.'),
                 'amountReceived.min'      => __('Amount received must be at least ₱') . number_format($this->totalAmount, 2),
             ]);
-        } elseif ($this->paymentType === 'cash') {
-            $this->amountReceived = 0;
-            $this->changeAmount = 0;
+        }
+
+        if ($this->paymentType === 'gcash') {
+            $this->validateOnly('proofOfPayment', [
+                'proofOfPayment' => 'nullable|image|mimes:png,jpg,jpeg,webp|max:10240',
+            ]);
         }
 
         $this->showConfirmModal = false;
@@ -232,7 +230,7 @@ class Create extends Component
             $this->errorFields = array_keys($e->errors());
             $this->dispatch('form-validation-failed', errorFields: $this->errorFields);
 
-            $customerFields = ['selectedCustomerId','customerName','customerAddress'];
+            $customerFields = ['selectedCustomerId', 'customerName', 'customerAddress'];
             if (array_intersect($customerFields, $this->errorFields)) {
                 $this->dispatch('customer-validation-error');
             }
@@ -243,48 +241,61 @@ class Create extends Component
         return true;
     }
 
-    // ── Order number ───────────────────────────────────────────────
+    // ── Receipt number ─────────────────────────────────────────────
 
-    public function generateOrderNumber(): string
+    public function generateReceiptNumber(): string
     {
         $datePart = now()->format('ymd');
         $prefix   = "OR{$datePart}";
 
         $last = Order::query()
             ->where('receipt_number', 'like', "{$prefix}%")
-            ->orderByDesc('receipt_number')
+            ->latest('id')
             ->value('receipt_number');
 
-        $next = $last
-            ? ((int) substr($last, strlen($prefix)) + 1)
-            : 1;
+        $next = $last ? ((int) substr($last, strlen($prefix)) + 1) : 1;
 
-        return $prefix . str_pad($next, 3, '0', STR_PAD_LEFT);
+        return $prefix . str_pad($next, 4, '0', STR_PAD_LEFT);
     }
 
     // ── Save ───────────────────────────────────────────────────────
 
     public function createOrder(): void
     {
-        // Pre-validate stock levels before transaction
-        foreach ($this->orderItems as $i => $item) {
+        // Stock pre-check
+        foreach ($this->orderItems as $index => $item) {
             if (! ($item['product_id'] ?? null)) {
-                $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$i}.product_id"]);
+                $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$index}.product_id"]);
                 return;
             }
-            $product = Product::query()->whereKey($item['product_id'])->first();
+            $product  = Product::find($item['product_id']);
+            $quantity = (int) ($item['quantity'] ?? 0);
+
             if (! $product || ! $product->is_in_stock || $product->stocks <= 0) {
-                $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$i}.product_id"]);
+                $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$index}.product_id"]);
                 return;
             }
-            $qty = (int) ($item['quantity'] ?? 0);
-            if ($qty < 1 || $qty > (int) $product->stocks) {
-                $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$i}.quantity"]);
+            if ($quantity < 1 || $quantity > (int) $product->stocks) {
+                $this->dispatch('form-validation-failed', errorFields: ["orderItems.{$index}.quantity"]);
                 return;
             }
         }
 
-        DB::transaction(function () {
+        // Store proof image (if any)
+        $proofPath     = null;
+        $paymentStatus = 'unpaid';
+
+        if ($this->paymentType === 'cash') {
+            // Cash walk-in is always paid at POS
+            $paymentStatus = $this->orderType === 'walk_in' ? 'paid' : 'unpaid';
+        } elseif ($this->paymentType === 'gcash' && $this->proofOfPayment) {
+            $ext          = strtolower($this->proofOfPayment->getClientOriginalExtension() ?: 'png');
+            $dir          = 'order/' . $this->orderNumber;
+            $proofPath    = $this->proofOfPayment->storeAs($dir, $this->orderNumber . '.' . $ext, 'public');
+            $paymentStatus = 'paid';
+        }
+
+        DB::transaction(function () use ($proofPath, $paymentStatus) {
             $customerId = $this->persistCustomer();
             $isWalkIn   = $this->orderType === 'walk_in';
 
@@ -295,22 +306,19 @@ class Create extends Component
                 'order_total'     => $this->totalAmount,
                 'order_type'      => $this->orderType,
                 'payment_type'    => $this->paymentType,
+                'payment_status'  => $paymentStatus,
                 'status'          => $isWalkIn ? 'completed' : 'pending',
-                'is_paid'         => $isWalkIn,
                 'receipt_number'  => $this->orderNumber,
                 'amount_received' => $isWalkIn ? $this->amountReceived : null,
                 'change_amount'   => $isWalkIn ? $this->changeAmount   : null,
+                'proof_of_payment'=> $proofPath,
             ]);
 
             foreach ($this->orderItems as $item) {
                 if (! ($item['product_id'] ?? null)) continue;
 
-                $product = Product::query()
-                    ->where('id', $item['product_id'])
-                    ->lockForUpdate()
-                    ->first();
-
-                $qty = (int) $item['quantity'];
+                $product  = Product::query()->where('id', $item['product_id'])->lockForUpdate()->first();
+                $qty      = (int) $item['quantity'];
 
                 if (! $product || $product->stocks < $qty) {
                     throw ValidationException::withMessages([
@@ -329,8 +337,8 @@ class Create extends Component
                     'total_price' => $qty * $unitPrice,
                 ]);
 
-                $product->stocks    = max(0, (int) $product->stocks - $qty);
-                $product->sold      = (int) ($product->sold ?? 0) + $qty;
+                $product->stocks      = max(0, (int) $product->stocks - $qty);
+                $product->sold        = (int) ($product->sold ?? 0) + $qty;
                 $product->is_in_stock = $product->stocks > 0;
                 $product->save();
             }
@@ -342,9 +350,7 @@ class Create extends Component
 
     private function persistCustomer(): ?int
     {
-        if ($this->orderType !== 'deliver') {
-            return null;
-        }
+        if ($this->orderType !== 'deliver') return null;
 
         if ($this->isCreatingNewCustomer) {
             $c = Customer::create([
