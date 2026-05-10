@@ -94,8 +94,8 @@
                                     {{ __('Order Information') }}
                                 @elseif($modalMode === 'walkin')
                                     {{ __('Review & Payment') }}
-                                @else
-                                    {{ __('Review Order') }}
+                                @else {{-- create/edit --}}
+                                    {{ __('Review Orders') }}
                                 @endif
                             </h3>
                         </div>

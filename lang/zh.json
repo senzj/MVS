@@ -111,6 +111,7 @@
     "Yes": "是",
     "Stop": "停止",
     "Confirm & Save": "确认并保存",
+    "Review Orders": "审核订单",
 
     "QR Code Option": "二维码选项",
     "QR Code Payment Settings": "二维码支付设置",
@@ -584,5 +585,12 @@
     "Please fill in all required fields.": "请填写所有必填字段。",
     "Not Provided": "未提供",
 
-    "Logs": "日志"
+    "Logs": "日志",
+
+    "Order #:receipt created": "订单#:receipt已创建",
+    "Order #:receipt updated": "订单#:receipt已更新",
+    "Order #:receipt cancelled": "订单#:receipt已取消",
+    "Refund processed for order #:receipt": "订单#:receipt的退款已处理",
+    "Manual adjustment for order #:receipt": "订单#:receipt的手动调整",
+    "Stock restored for order #:receipt": "订单#:receipt的库存已恢复"
 }

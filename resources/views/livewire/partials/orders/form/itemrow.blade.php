@@ -25,7 +25,7 @@
             <button type="button"
                 wire:click="removeOrderItem({{ $index }})"
                 class="shrink-0 text-xs font-semibold text-red-500 hover:text-red-600 transition">
-                <i class="fas fa-times mr-1"></i>Remove
+                <i class="fas fa-times mr-1"></i>{{ __('Remove') }}
             </button>
         @endif
     </div>

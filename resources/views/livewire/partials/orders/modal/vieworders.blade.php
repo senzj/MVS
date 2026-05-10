@@ -13,7 +13,7 @@
     $showFooter = $showFooter ?? true;
 
     $sourceOrder = $order ?? null;
-    $statusKey = $sourceOrder?->status ?? ($reviewStatusKey ?? null);
+    $statusKey = $sourceOrder?->status ?? ($reviewStatusKey ?? null) ?: 'pending';
     $paymentType = strtolower($sourceOrder->payment_type ?? ($reviewPaymentLabel ?? ''));
     $isGcash = $paymentType === 'gcash';
     $isDelivery = $sourceOrder?->order_type === 'deliver' || in_array($reviewOrderType ?? '', [__('Delivery'), 'Delivery', 'deliver']);
@@ -130,7 +130,7 @@
             <div class="space-y-0.5">
                 <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300">{{ __('Order Status') }}</p>
                 <div class="inline-flex justify-start">
-                    @include('livewire.partials.orders.status.order-badge', ['order' => $sourceOrder])
+                    @include('livewire.partials.orders.status.order-badge', ['order' => $sourceOrder, 'statusKey' => $statusKey])
                 </div>
             </div>
 

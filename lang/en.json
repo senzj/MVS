@@ -67,6 +67,7 @@
     "Units Sold": "Units Sold",
     "Today": "Today",
     "No data": "No data",
+    "Old Order": "Old Order",
     "Unknown product": "Unknown product",
     "Uncategorized": "Uncategorized",
     "units": "units",
@@ -250,5 +251,12 @@
     ":name has been marked as unavailable!": ":name has been marked as unavailable!",
     "Cannot permanently delete product with order history!": "Cannot permanently delete product with order history!",
     "Product :name permanently deleted!": "Product :name permanently deleted!",
-    "Check logs for category debug info": "Check logs for category debug info"
+    "Check logs for category debug info": "Check logs for category debug info",
+
+    "Order #:receipt created": "Order #:receipt created",
+    "Order #:receipt updated": "Order #:receipt updated",
+    "Order #:receipt cancelled": "Order #:receipt cancelled",
+    "Refund processed for order #:receipt": "Refund processed for order #:receipt",
+    "Manual adjustment for order #:receipt": "Manual adjustment for order #:receipt",
+    "Stock restored for order #:receipt": "Stock restored for order #:receipt"
 }

@@ -42,7 +42,7 @@
     <td class="px-4 py-3 whitespace-nowrap text-sm text-zinc-800 dark:text-zinc-200">
         @if($order->order_type === 'walk_in')
             <span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                <i class="fas fa-walking"></i> Walk-In
+                <i class="fas fa-walking"></i> {{ __('Walk-In') }}
             </span>
         @else
             <i class="fas fa-user-tie mr-1 text-zinc-400"></i>{{ $order->employee->name ?? __('N/A') }}

@@ -94,6 +94,15 @@
                 <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
                     @forelse($movements as $movement)
                         @php
+                            $typeLabels = [
+                                'order_created' => __('Order Created'),
+                                'order_updated' => __('Order Updated'),
+                                'order_cancelled' => __('Order Cancelled'),
+                                'refund' => __('Refund'),
+                                'manual_adjustment' => __('Manual Adjustment'),
+                                'restock' => __('Restock'),
+                            ];
+
                             $typeColor = match ($movement->type) {
                                 'order_created', 'order_updated' => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
                                 'order_cancelled', 'refund', 'restock' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
@@ -101,16 +110,40 @@
                             };
 
                             $referenceLabel = match (class_basename((string) $movement->reference_type)) {
-                                'Order' => $movement->reference?->receipt_number ? 'Order #' . $movement->reference->receipt_number : 'Order #' . ($movement->reference_id ?? '-'),
+                                'Order' => $movement->reference?->receipt_number ? '#' . $movement->reference->receipt_number : 'Order #' . ($movement->reference_id ?? '-'),
                                 default => $movement->reference_type ? class_basename($movement->reference_type) . ' #' . ($movement->reference_id ?? '-') : __('N/A'),
+                            };
+
+                            $remarks = match ($movement->type) {
+                                'order_created' => $movement->reference?->receipt_number
+                                    ? __('Order #:receipt created', ['receipt' => $movement->reference->receipt_number])
+                                    : $movement->remarks,
+                                'order_updated' => $movement->reference?->receipt_number
+                                    ? __('Order #:receipt updated', ['receipt' => $movement->reference->receipt_number])
+                                    : $movement->remarks,
+                                'order_cancelled' => $movement->reference?->receipt_number
+                                    ? __('Order #:receipt cancelled', ['receipt' => $movement->reference->receipt_number])
+                                    : $movement->remarks,
+                                'refund' => $movement->reference?->receipt_number
+                                    ? __('Refund processed for order #:receipt', ['receipt' => $movement->reference->receipt_number])
+                                    : $movement->remarks,
+                                'manual_adjustment' => $movement->reference?->receipt_number
+                                    ? __('Manual adjustment for order #:receipt', ['receipt' => $movement->reference->receipt_number])
+                                    : $movement->remarks,
+                                'restock' => $movement->reference?->receipt_number
+                                    ? __('Stock restored for order #:receipt', ['receipt' => $movement->reference->receipt_number])
+                                    : $movement->remarks,
+                                default => $movement->remarks,
                             };
                         @endphp
                         <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-700/40">
 
                             {{-- Order Number and Date --}}
                             <td class="px-4 py-3 text-center text-sm text-zinc-500 whitespace-nowrap">
-                                <div class="font-medium">{{ $referenceLabel ?: 'N/A' }}</div>
-                                {{ $movement->created_at->format('M d, Y h:i:s A') }}
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $referenceLabel ?: 'N/A' }}</span>
+                                    <span class="text-xs text-zinc-500">{{ $movement->created_at->format('M d, Y h:i:s A') }}</span>
+                                </div>
                             </td>
 
                             {{-- Product --}}
@@ -121,7 +154,7 @@
                             {{-- Type --}}
                             <td class="px-4 py-3 text-center">
                                 <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold {{ $typeColor }}">
-                                    {{ ucfirst(str_replace('_', ' ', $movement->type)) }}
+                                    {{ $typeLabels[$movement->type] ?? ucfirst(str_replace('_', ' ', $movement->type)) }}
                                 </span>
                             </td>
 
@@ -160,12 +193,12 @@
 
                             {{-- User --}}
                             <td class="px-4 py-3 text-sm text-zinc-500">
-                                {{ $movement->user?->name ?? __('System') }}
+                                <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $movement->user?->name ?? __('System') }}</span>
                             </td>
 
                             {{-- Remarks --}}
                             <td class="px-4 py-3 text-sm text-zinc-500 max-w-xs truncate">
-                                {{ $movement->remarks ?? __('N/A') }}
+                                <span class="font-medium text-zinc-700 dark:text-zinc-300">{{ $remarks ?? __('N/A') }}</span>
                             </td>
                         </tr>
                     @empty
