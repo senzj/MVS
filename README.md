@@ -16,47 +16,74 @@ This project is mainly tailored for:
 
 Before installing, make sure you have the following:
 
-- XAMPP installed as the default local web server stack
+- A local web server stack: **XAMPP** or **Laragon** (see below for which to choose)
 - PHP 8.2 or newer
 - Composer
 - Node.js and npm
 - Laravel dependencies installed through Composer
 
-If you prefer another local stack, you can use it, but XAMPP is the recommended default for this project.
+### Choosing Between XAMPP and Laragon
+
+**XAMPP** (Recommended for beginners)
+- Easier to understand and set up
+- More widely used with more online tutorials available
+- Slower and requires more manual configuration
+- Better if you're just starting out
+
+**Laragon** (Recommended for easier workflow)
+- Faster and more modern
+- Automatically handles many configurations
+- Cleaner interface and easier to manage multiple projects
+- Better if you want less headaches and faster setup
+
+Both work great for MVS. Choose based on your preference—the installation steps for each are provided below.
 
 ## Installation
 
-1. Copy or clone this project into your web server directory.
-   - Example: `C:/xampp/htdocs/MVS`
+### Step 1: Copy the Project to Your Web Server
 
-2. Open a terminal in the project folder.
+**If using XAMPP:**
+- Copy or clone this project into: `C:/xampp/htdocs/MVS`
 
-3. Run the setup command:
+**If using Laragon:**
+- Copy or clone this project into: `C:/laragon/www/MVS`
+
+### Step 2: Set Up the Project
+
+1. Open a terminal in the project folder (the MVS folder you just created).
+
+2. Run the setup command:
 
 ```bash
 composer run setup
 ```
 
-This command will:
-
+This command will automatically:
 - Install PHP dependencies
-- Create the `.env` file if it does not exist
+- Create the `.env` file if it doesn't exist
 - Generate the application key
-- Run database migrations
-- Create the storage link
-- Install frontend dependencies
-- Build the frontend assets
+- Set up the database
+- Create necessary storage folders
+- Install and build frontend assets
 
-4. Start your local server.
-   - If you are using XAMPP, start Apache and MySQL from the XAMPP Control Panel.
+### Step 3: Start Your Server
 
-5. Run XAMPP with Administrator permission.
-	- Right-click `xampp-control.exe` and select the "Compatibility" tab then check **Run as administrator**.
-    - Click Apply then OK then Close
-	- This helps Apache and MySQL start correctly, especially when editing hosts files, binding to port 80, or updating Apache config.
+**If using XAMPP:**
+1. Open the XAMPP Control Panel
+2. Click **Start** next to Apache
+3. Click **Start** next to MySQL
+4. Right-click `xampp-control.exe` and select "Run as administrator" for best results
 
-6. Open the application in your browser.
-   - If you are using the default XAMPP setup, you can usually access it through your configured virtual host or local domain.
+**If using Laragon:**
+1. Open Laragon
+2. Click **Start All**
+3. Laragon handles everything automatically
+
+### Step 4: Access Your Application
+
+1. Open your web browser
+2. Go to `http://localhost` or the address shown in your server control panel
+3. You should see the MVS application load
 
 ## Basic Usage
 
@@ -122,90 +149,257 @@ From `.env.example`, these values control business defaults:
 php artisan migrate --force
 ```
 
-## LAN Hosting Guide
+## LAN Hosting Guide (Accessing MVS from Other Devices on Your Network)
 
-If you want to host MVS on your local network, configure Apache virtual hosts in XAMPP.
+Once you have MVS running on your computer, you might want to access it from other devices on your local network (like a tablet or another computer). This guide covers both XAMPP and Laragon.
 
-### 1. Open Apache Configuration
+### What is LAN?
+**LAN** means "Local Area Network"—it's the Wi-Fi or wired network in your home or office. Hosting on LAN lets you access your application from phones, tablets, or other computers connected to the same network.
 
-Navigate to:
+---
 
-```text
-C:\xampp\apache\conf\httpd.conf
-```
+## Option 1: LAN Hosting with XAMPP
 
-Search for:
+### Step 1: Find Your LAN IP Address
 
-```text
-Listen 80
-```
+1. Open **Command Prompt** (search for "cmd" in Windows)
+2. Type: `ipconfig`
+3. Look for **IPv4 Address** under your network connection
+4. You should see something like: `192.168.1.20` — **write this down**
 
-Add this line directly below it:
+### Step 2: Configure Apache
 
-```text
-NameVirtualHost *:80
-```
+1. Open this file with Notepad:
+   ```
+   C:\xampp\apache\conf\httpd.conf
+   ```
 
-### 2. Add Virtual Hosts
+2. Search for the line: `Listen 80`
 
-Open:
+3. Add a new line directly below it:
+   ```
+   NameVirtualHost *:80
+   ```
 
-```text
-C:\xampp\apache\conf\extra\httpd-vhosts.conf
-```
+4. Search for this line:
+   ```
+   Require local
+   ```
 
-Add the following configuration and update the project path and LAN IP address to match your machine:
+5. Replace it with:
+   ```
+   Require all granted
+   ```
+   *(This allows other devices to connect)*
+
+6. Save the file
+
+### Step 3: Configure Virtual Hosts
+
+1. Open this file with Notepad:
+   ```
+   C:\xampp\apache\conf\extra\httpd-vhosts.conf
+   ```
+
+2. Add this configuration at the end (replace `192.168.1.20` with your actual IP from Step 1):
 
 ```apache
+# MVS LAN Server
 <VirtualHost *:80>
-	ServerName mgm.store
-	DocumentRoot "C:/xampp/htdocs/MVS/public"
+    ServerName mgm.store
+    DocumentRoot "C:/xampp/htdocs/MVS/public"
 
-	<Directory "C:/xampp/htdocs/MVS/public">
-		AllowOverride All
-		Require all granted
-	</Directory>
+    <Directory "C:/xampp/htdocs/MVS/public">
+        AllowOverride All
+        Require all granted
+    </Directory>
 </VirtualHost>
 
 <VirtualHost *:80>
-	ServerName localhost
-	DocumentRoot "C:/xampp/htdocs"
+    ServerName localhost
+    DocumentRoot "C:/xampp/htdocs"
 
-	<Directory "C:/xampp/htdocs">
-		AllowOverride All
-		Require all granted
-	</Directory>
+    <Directory "C:/xampp/htdocs">
+        AllowOverride All
+        Require all granted
+    </Directory>
 </VirtualHost>
 
 <VirtualHost *:80>
-	ServerName 192.168.1.20
-	DocumentRoot "C:/xampp/htdocs/MVS/public"
+    ServerName 192.168.1.20
+    DocumentRoot "C:/xampp/htdocs/MVS/public"
 
-	<Directory "C:/xampp/htdocs/MVS/public">
-		AllowOverride All
-		Require all granted
-	</Directory>
+    <Directory "C:/xampp/htdocs/MVS/public">
+        AllowOverride All
+        Require all granted
+    </Directory>
 </VirtualHost>
 ```
 
-### 3. Make Sure Apache Can Read Virtual Hosts
+3. Save the file
 
-In `httpd.conf`, make sure this line is enabled:
+### Step 4: Enable Firewall Access
 
-```text
-Include conf/extra/httpd-vhosts.conf
+1. Open **Windows Defender Firewall**
+2. Click **Allow an app through firewall**
+3. Find and check the boxes next to:
+   - Apache HTTP Server
+   - Anything related to XAMPP
+4. Make sure **Private Network** is checked
+
+### Step 5: Update Your Environment File
+
+1. Open the `.env` file in your MVS project
+2. Find the line: `APP_URL=http://localhost`
+3. Change it to: `APP_URL=http://192.168.1.20` (use your actual IP)
+
+### Step 6: Restart XAMPP
+
+1. Open XAMPP Control Panel
+2. Click **Stop** next to Apache
+3. Wait a few seconds
+4. Click **Start** next to Apache
+
+### Step 7: Test Access
+
+**On your computer:**
+- Open browser and go to: `http://192.168.1.20`
+
+**On another device (phone, tablet, another computer):**
+- Make sure it's on the same Wi-Fi
+- Open browser and go to: `http://192.168.1.20`
+- MVS should load!
+
+---
+
+## Option 2: LAN Hosting with Laragon
+
+Laragon makes this much simpler! Here's how:
+
+### Step 1: Find Your LAN IP Address
+
+1. Open **Command Prompt** (search for "cmd" in Windows)
+2. Type: `ipconfig`
+3. Look for **IPv4 Address** — write this down (e.g., `192.168.1.20`)
+
+### Step 2: Configure Virtual Hosts
+
+1. Right-click the **Laragon** icon in the system tray (bottom right)
+2. Click **Menu** → **Apache** → **httpd-vhosts.conf**
+3. A text editor will open
+
+4. Add this configuration at the end (replace `192.168.1.20` with your IP from Step 1):
+
+```apache
+# MVS LAN Server
+<VirtualHost *:80>
+    ServerName mgm.store
+    DocumentRoot "C:/laragon/www/MVS/public"
+
+    <Directory "C:/laragon/www/MVS/public">
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+
+<VirtualHost *:80>
+    ServerName localhost
+    DocumentRoot "C:/laragon/www"
+
+    <Directory "C:/laragon/www">
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+
+<VirtualHost *:80>
+    ServerName 192.168.1.20
+    DocumentRoot "C:/laragon/www/MVS/public"
+
+    <Directory "C:/laragon/www/MVS/public">
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
 ```
 
-### 4. Restart XAMPP
+5. Save and close the file
 
-Restart Apache from the XAMPP Control Panel after saving the configuration.
+### Step 3: Configure Apache Main Config
 
-### 5. Access the App Over LAN
+1. Right-click **Laragon** → **Menu** → **Apache** → **httpd.conf**
+2. Search for: `Listen 80`
+3. Add below it: `NameVirtualHost *:80`
+4. Save and close
 
-- From the host PC, open `http://mgm.store` or the configured local address.
-- From another device on the same network, use the LAN IP address shown on your PC, such as `http://192.168.1.20`.
+### Step 4: Update Your Environment File
 
-If you want to use `mgm.store` on other devices, add a hosts entry or configure local DNS so the domain points to your server PC.
+1. Open the `.env` file in your MVS project
+2. Find: `APP_URL=http://localhost`
+3. Change to: `APP_URL=http://192.168.1.20` (use your actual IP)
+
+### Step 5: Restart Laragon
+
+1. Right-click **Laragon** in the system tray
+2. Click **Stop All**
+3. Wait a moment
+4. Click **Start All**
+
+### Step 6: Allow Through Windows Firewall
+
+1. Open **Windows Defender Firewall**
+2. Click **Allow an app through firewall**
+3. Check boxes for:
+   - Apache HTTP Server
+   - Laragon
+4. Make sure **Private Network** is checked
+
+### Step 7: Test Access
+
+**On your computer:**
+- Open browser → go to: `http://192.168.1.20`
+
+**On another device:**
+- Same Wi-Fi network required
+- Open browser → go to: `http://192.168.1.20`
+- MVS should load!
+
+### Optional: Auto-Start Laragon on Boot
+
+1. Right-click **Laragon**
+2. Click **Preferences**
+3. Check:
+   - "Start Laragon when Windows starts"
+   - "Start All when Laragon starts"
+4. Click **Save**
+
+---
+
+## Using a Custom Domain Name (Optional)
+
+If you don't want to use IP addresses, you can use `mgm.store` instead:
+
+### On Your Main Computer:
+
+1. Open Notepad as Administrator (right-click → Run as administrator)
+2. Go to **File** → **Open**
+3. Navigate to: `C:\Windows\System32\drivers\etc\`
+4. Open the file: `hosts` (no extension)
+5. Add this line at the end:
+   ```
+   192.168.1.20    mgm.store
+   ```
+   *(Replace `192.168.1.20` with your actual IP)*
+6. Save and close
+
+### On Other Devices (More Complex):
+
+This requires DNS setup on your network. For now, using the IP address is simpler.
+
+### Access:
+
+- On your computer: `http://mgm.store`
+- On other devices: Still use `http://192.168.1.20`
 
 ## Notes
 
