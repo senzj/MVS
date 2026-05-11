@@ -81,54 +81,6 @@
         </div>
     </div>
 
-    {{-- Operational Snapshot --}}
-    <div class="grid grid-cols-1 gap-3 mb-3 md:grid-cols-2 xl:grid-cols-4">
-
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Pending Orders') }}</p>
-            <div class="flex items-end justify-between mt-2">
-                <div>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['pending'] ?? 0 }}</p>
-                    <p class="text-sm text-amber-600 dark:text-amber-400">{{ __('Needs attention') }}</p>
-                </div>
-                <i class="fas fa-clock text-amber-500 text-xl"></i>
-            </div>
-        </div>
-
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Completed Orders') }}</p>
-            <div class="flex items-end justify-between mt-2">
-                <div>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['completed'] ?? 0 }}</p>
-                    <p class="text-sm text-green-600 dark:text-green-400">{{ __('Ready / done') }}</p>
-                </div>
-                <i class="fas fa-circle-check text-green-500 text-xl"></i>
-            </div>
-        </div>
-
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Paid Orders') }}</p>
-            <div class="flex items-end justify-between mt-2">
-                <div>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['paid'] ?? 0 }}</p>
-                    <p class="text-sm text-emerald-600 dark:text-emerald-400">{{ __('Cash-in secured') }}</p>
-                </div>
-                <i class="fas fa-wallet text-emerald-500 text-xl"></i>
-            </div>
-        </div>
-
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Unpaid Orders') }}</p>
-            <div class="flex items-end justify-between mt-2">
-                <div>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['unpaid'] ?? 0 }}</p>
-                    <p class="text-sm text-rose-600 dark:text-rose-400">{{ __('Open balance') }}</p>
-                </div>
-                <i class="fas fa-receipt text-rose-500 text-xl"></i>
-            </div>
-        </div>
-    </div>
-
     {{-- Product Loss + Inventory Movement --}}
     <div class="grid grid-cols-1 gap-3 mb-6 md:grid-cols-2 xl:grid-cols-4">
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
@@ -409,51 +361,115 @@
         </div>
     </div>
 
-    {{-- Charts Section --}}
-    <div class="grid grid-cols-1 gap-3 mb-8 lg:grid-cols-2">
+    {{-- Actionable Analytics Chart Section --}}
+    <div>
 
-        {{-- Sales vs Profit Chart --}}
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                <i class="mr-2 text-blue-500 fas fa-chart-line"></i>{{ __('Sales & Profit (Last 30 Days)') }}
-            </h3>
-            <div class="h-80" wire:ignore>
-                <canvas id="salesVsProfitChart"></canvas>
-            </div>
-        </div>
-
-        {{-- Orders by Day Chart --}}
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                <i class="mr-2 text-green-500 fas fa-calendar-alt"></i>{{ __('Orders by Day (Current vs Previous Week)') }}
-            </h3>
-            <div class="h-80" wire:ignore>
-                <canvas id="ordersByDayChart"></canvas>
-            </div>
-        </div>
     </div>
 
-    {{-- Statistical Charts --}}
-    <div class="grid grid-cols-1 gap-3 mb-8 lg:grid-cols-2">
+    {{-- Descriptive Analytics Chart Section --}}
+    <div>
+        <div class="grid grid-cols-1 gap-3 mb-8 lg:grid-cols-2">
 
-        {{-- Monthly Trends --}}
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                <i class="mr-2 text-purple-500 fas fa-chart-area"></i>{{ __('Monthly Trends (Last 6 Months)') }}
-            </h3>
-            <div class="h-80" wire:ignore>
-                <canvas id="monthlyTrendsChart"></canvas>
+            {{-- Sales vs Profit Chart --}}
+            <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                    <i class="mr-2 text-blue-500 fas fa-chart-line"></i>{{ __('Sales & Profit (Last 30 Days)') }}
+                </h3>
+                <div class="h-80" wire:ignore>
+                    <canvas id="salesVsProfitChart"></canvas>
+                </div>
+            </div>
+
+            {{-- Orders by Day Chart --}}
+            <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                    <i class="mr-2 text-green-500 fas fa-calendar-alt"></i>{{ __('Orders by Day (Current vs Previous Week)') }}
+                </h3>
+                <div class="h-80" wire:ignore>
+                    <canvas id="ordersByDayChart"></canvas>
+                </div>
             </div>
         </div>
 
-        {{-- Category Breakdown --}}
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                <i class="mr-2 text-orange-500 fas fa-chart-pie"></i>{{ __('Sales by Category (Last 30 Days)') }}
-            </h3>
-            <div class="h-80" wire:ignore>
-                <canvas id="categoryBreakdownChart"></canvas>
+        {{-- Busiest / Most Profitable (Year / Month / Weekday / Hour) --}}
+        <div class="mb-8">
+            <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                <div class="flex flex-col gap-4 mb-4 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                        <i class="mr-2 text-indigo-500 fas fa-chart-column"></i>{{ __('Busiest & Most Profitable Time') }}
+                    </h3>
+
+                    <div id="busiest-metrics-toggle" class="inline-flex p-1 rounded-lg bg-zinc-100 dark:bg-zinc-700/60">
+                        <button type="button" data-busiest-target="year" aria-pressed="true" class="px-3 py-1.5 text-sm font-medium transition rounded-md bg-indigo-600 text-white dark:bg-indigo-500">
+                            {{ __('Year') }}
+                        </button>
+                        <button type="button" data-busiest-target="month" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">
+                            {{ __('Month') }}
+                        </button>
+                        <button type="button" data-busiest-target="weekday" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">
+                            {{ __('Weekday') }}
+                        </button>
+                        <button type="button" data-busiest-target="hour" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">
+                            {{ __('Hour') }}
+                        </button>
+                    </div>
+                </div>
+
+                <div data-busiest-panel="year">
+                    <div class="h-48" wire:ignore>
+                        <canvas id="busiestByYearChart"></canvas>
+                    </div>
+                    <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                        <div id="year-summary-most-orders"></div>
+                        <div id="year-summary-most-profit"></div>
+                    </div>
+                </div>
+
+                <div data-busiest-panel="month" class="hidden">
+                    <div class="h-48" wire:ignore>
+                        <canvas id="busiestByMonthChart"></canvas>
+                    </div>
+                    <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                        <div id="month-summary-most-orders"></div>
+                        <div id="month-summary-most-profit"></div>
+                    </div>
+                </div>
+
+                <div data-busiest-panel="weekday" class="hidden">
+                    <div class="h-48" wire:ignore>
+                        <canvas id="busiestByWeekdayChart"></canvas>
+                    </div>
+                    <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                        <div id="weekday-summary-most-orders"></div>
+                        <div id="weekday-summary-most-profit"></div>
+                    </div>
+                </div>
+
+                <div data-busiest-panel="hour" class="hidden">
+                    <div class="h-48" wire:ignore>
+                        <canvas id="busiestByHourChart"></canvas>
+                    </div>
+                    <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                        <div id="hour-summary-most-orders"></div>
+                        <div id="hour-summary-most-profit"></div>
+                    </div>
+                </div>
             </div>
+        </div>
+
+        {{-- Statistical Charts --}}
+        <div class="grid grid-cols-1 gap-3 mb-8 lg:grid-cols-1">
+
+            {{-- Category Breakdown (replaced Monthly Trends) --}}
+            <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                    <i class="mr-2 text-orange-500 fas fa-chart-bar"></i>{{ __('Sales by Category (Last 30 Days)') }}
+                </h3>
+                <div class="h-80" wire:ignore>
+                    <canvas id="categoryBreakdownChart"></canvas>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -470,6 +486,8 @@
       amount_currency:       "{{ __('Amount (₱)') }}",
       num_orders:            "{{ __('Number of Orders') }}",
       sales_amount_currency: "{{ __('Sales Amount (₱)') }}",
+      most_busy: "{{ __('Most busy') }}",
+      most_profitable: "{{ __('Most profitable') }}",
   };
 
   // Pass current locale to JavaScript

@@ -55,8 +55,8 @@
         {{-- Info grid --}}
         <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
             <div class="text-zinc-500 dark:text-zinc-400">
-                <i class="fas fa-{{ $order->is_paid ? 'check-circle text-green-500' : 'exclamation-triangle text-red-500' }} mr-1"></i>
-                {{ $order->is_paid ? __('Paid') : __('Unpaid') }}
+                <i class="fas fa-{{ $order->payment_status === 'paid' ? 'check-circle text-green-500' : 'exclamation-triangle text-red-500' }} mr-1"></i>
+                {{ $order->payment_status === 'paid' ? __('Paid') : __('Unpaid') }}
             </div>
             <div class="text-zinc-500 dark:text-zinc-400 truncate">
                 @if($order->order_type === 'walk_in')

@@ -839,6 +839,20 @@ class Dashboard extends Component
 
         $customers = Customer::query()->orderBy('name')->get(['id', 'name']);
 
+        // Build order status counts for KPI (total counts across matching scope)
+        $counts = Order::select('status', DB::raw('count(*) as cnt'))
+            ->groupBy('status')
+            ->pluck('cnt', 'status')
+            ->toArray();
+
+        $orderStatusCounts = [
+            'pending' => (int) ($counts['pending'] ?? 0),
+            'preparing' => (int) ($counts['preparing'] ?? 0),
+            'in_transit' => (int) ($counts['in_transit'] ?? 0),
+            'delivered' => (int) ($counts['delivered'] ?? 0),
+            'completed_cancelled' => (int) (($counts['completed'] ?? 0) + ($counts['cancelled'] ?? 0)),
+        ];
+
         return view('livewire.order.dashboard', [
             'today' => now()->toFormattedDateString(),
             'ongoing' => $ongoing,
@@ -847,6 +861,7 @@ class Dashboard extends Component
             'completedCount' => $completed->count(),
             'customers' => $customers,
             'selectedOrder'  => $selectedOrder,
+            'orderStatusCounts' => $orderStatusCounts,
         ]);
     }
 }

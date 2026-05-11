@@ -39,7 +39,7 @@
             <div class="flex items-center gap-2">
                 <a href="{{ route('orders.add') }}" wire:navigate>
                     <button type="button"
-                        class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold
+                        class="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-600 text-white text-sm font-semibold
                                hover:bg-green-700 active:scale-95 transition-all shadow-md shadow-green-500/20">
                         <i class="fas fa-file-invoice"></i>
                         <span class="inline">{{ __('Record Sales') }}</span>
@@ -48,7 +48,7 @@
 
                 <a href="{{ route('orders.create') }}" wire:navigate>
                     <button type="button"
-                        class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold
+                        class="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold
                                hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/20">
                         <i class="fas fa-plus"></i>
                         <span class="inline">{{ __('Create Order') }}</span>
@@ -122,12 +122,57 @@
                      wire:loading.remove wire:target="search,paymentFilter,statusFilter,clearFilters">
                     <button type="button"
                         wire:click="clearFilters"
-                        class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-700 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition">
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-700 text-sm font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-600 transition">
                         <i class="fas fa-times-circle text-sm"></i>
                         {{ __('Clear filters') }}
                     </button>
                 </div>
             @endif
+
+        {{-- Order Status KPIs --}}
+        <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 mt-3">
+            @php $s = $orderStatusCounts ?? ['pending'=>0,'preparing'=>0,'in_transit'=>0,'delivered'=>0,'completed_cancelled'=>0]; @endphp
+
+            <div class="p-3 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Pending') }}</p>
+                <div class="mt-2 flex items-center justify-between">
+                    <p class="text-xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($s['pending'] ?? 0) }}</p>
+                    <i class="fas fa-clock text-amber-500"></i>
+                </div>
+            </div>
+
+            <div class="p-3 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Preparing') }}</p>
+                <div class="mt-2 flex items-center justify-between">
+                    <p class="text-xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($s['preparing'] ?? 0) }}</p>
+                    <i class="fas fa-utensils text-yellow-500"></i>
+                </div>
+            </div>
+
+            <div class="p-3 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('In Transit') }}</p>
+                <div class="mt-2 flex items-center justify-between">
+                    <p class="text-xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($s['in_transit'] ?? 0) }}</p>
+                    <i class="fas fa-truck-fast text-indigo-500"></i>
+                </div>
+            </div>
+
+            <div class="p-3 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Delivered') }}</p>
+                <div class="mt-2 flex items-center justify-between">
+                    <p class="text-xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($s['delivered'] ?? 0) }}</p>
+                    <i class="fas fa-box-open text-purple-500"></i>
+                </div>
+            </div>
+
+            <div class="p-3 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Completed / Cancelled') }}</p>
+                <div class="mt-2 flex items-center justify-between">
+                    <p class="text-xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($s['completed_cancelled'] ?? 0) }}</p>
+                    <i class="fas fa-check-circle text-zinc-500"></i>
+                </div>
+            </div>
+        </div>
         </div>
 
         {{-- Tab Bar --}}

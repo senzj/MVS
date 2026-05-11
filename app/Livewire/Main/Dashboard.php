@@ -40,13 +40,166 @@ class Dashboard extends Component
         $this->businessInsights = $this->getBusinessInsights($orders, $orderItems, $products, $inventoryMovements);
 
         // Dispatch data to the browser so JS can render charts after Livewire mounts
+        $busiestMetrics = $this->getBusiestMetrics($orders);
+
         $this->dispatch('dashboard-charts-data', data: [
             'salesVsProfitData' => $this->salesVsProfitData,
             'ordersByDayData' => $this->ordersByDayData,
             'monthlyTrendsData' => $this->monthlyTrendsData,
             'categoryBreakdownData' => $this->categoryBreakdownData,
             'businessInsights' => $this->businessInsights,
+            'busiestMetrics' => $busiestMetrics,
         ]);
+    }
+
+    /**
+     * Compute busiest/least busy metrics for various time dimensions.
+     * Returns structured arrays suitable for charting and short summaries.
+     */
+    private function getBusiestMetrics(Collection $orders): array
+    {
+        $orders = $orders->filter(fn ($o) => $o && ($o->status ?? '') !== 'cancelled');
+
+        // BY YEAR (all years present)
+        $byYearGrouped = $orders->groupBy(fn ($o) => Carbon::parse($o->created_at)->format('Y'))
+            ->map(function (Collection $group) {
+                $sales = round((float) $group->sum('order_total'), 2);
+                $ordersCount = $group->count();
+                $profit = round($sales * self::ESTIMATED_PROFIT_MARGIN, 2);
+
+                return [
+                    'orders' => $ordersCount,
+                    'sales' => $sales,
+                    'profit' => $profit,
+                ];
+            })->toArray();
+
+        $yearLabels = array_keys($byYearGrouped);
+        sort($yearLabels);
+        $yearOrders = array_map(fn ($y) => $byYearGrouped[$y]['orders'] ?? 0, $yearLabels);
+        $yearRevenue = array_map(fn ($y) => $byYearGrouped[$y]['sales'] ?? 0, $yearLabels);
+        $yearProfit = array_map(fn ($y) => $byYearGrouped[$y]['profit'] ?? 0, $yearLabels);
+
+        // BY MONTH (last 12 months)
+        $monthLabels = [];
+        $monthOrders = [];
+        $monthProfit = [];
+        $monthRevenue = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $date = Carbon::now()->subMonths($i)->startOfMonth();
+            $label = $date->format('M Y');
+            $start = $date->copy()->startOfMonth();
+            $end = $date->copy()->endOfMonth();
+            $periodOrders = $this->filterOrders($orders, $start, $end);
+            $sales = round((float) $periodOrders->sum('order_total'), 2);
+            $monthLabels[] = $label;
+            $monthOrders[] = $periodOrders->count();
+            $monthRevenue[] = $sales;
+            $monthProfit[] = round($sales * self::ESTIMATED_PROFIT_MARGIN, 2);
+        }
+
+        // BY WEEKDAY (last 90 days)
+        $weekdayRangeStart = Carbon::now()->subDays(89)->startOfDay();
+        $orders90 = $this->filterOrders($orders, $weekdayRangeStart);
+        $weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        $weekdayOrders = [];
+        $weekdayProfit = [];
+        $weekdayRevenue = [];
+        foreach ($weekDays as $d) {
+            $group = $orders90->filter(function ($o) use ($d) {
+                return Carbon::parse($o->created_at)->format('D') === $d;
+            });
+            $sales = round((float) $group->sum('order_total'), 2);
+            $weekdayOrders[] = $group->count();
+            $weekdayRevenue[] = $sales;
+            $weekdayProfit[] = round($sales * self::ESTIMATED_PROFIT_MARGIN, 2);
+        }
+
+        // BY HOUR (last 30 days) — labels as human-friendly hour labels
+        $hourRangeStart = Carbon::now()->subDays(29)->startOfDay();
+        $orders30 = $this->filterOrders($orders, $hourRangeStart);
+        $hourLabels = [];
+        $hourOrders = [];
+        $hourProfit = [];
+        $hourRevenue = [];
+        for ($h = 0; $h < 24; $h++) {
+            $label = Carbon::createFromTime($h, 0, 0)->format('g A');
+            $group = $orders30->filter(function ($o) use ($h) {
+                return (int) Carbon::parse($o->created_at)->format('G') === $h;
+            });
+            $sales = round((float) $group->sum('order_total'), 2);
+            $hourLabels[] = $label;
+            $hourOrders[] = $group->count();
+            $hourRevenue[] = $sales;
+            $hourProfit[] = round($sales * self::ESTIMATED_PROFIT_MARGIN, 2);
+        }
+
+        // Summaries (most/least busy and profitable) helper
+        $makeSummary = function ($labels, $valuesOrders, $valuesProfit) {
+            $summary = [
+                'most_orders' => null,
+                'least_orders' => null,
+                'most_profit' => null,
+                'least_profit' => null,
+            ];
+
+            if (!empty($labels)) {
+                $maxOrders = max($valuesOrders);
+                $minOrders = min($valuesOrders);
+                $maxProfit = max($valuesProfit);
+                $minProfit = min($valuesProfit);
+
+                $summary['most_orders'] = [
+                    'label' => $labels[array_search($maxOrders, $valuesOrders)],
+                    'value' => $maxOrders,
+                ];
+                $summary['least_orders'] = [
+                    'label' => $labels[array_search($minOrders, $valuesOrders)],
+                    'value' => $minOrders,
+                ];
+                $summary['most_profit'] = [
+                    'label' => $labels[array_search($maxProfit, $valuesProfit)],
+                    'value' => $maxProfit,
+                ];
+                $summary['least_profit'] = [
+                    'label' => $labels[array_search($minProfit, $valuesProfit)],
+                    'value' => $minProfit,
+                ];
+            }
+
+            return $summary;
+        };
+
+        return [
+            'by_year' => [
+                'labels' => $yearLabels,
+                'orders' => $yearOrders,
+                'revenue' => $yearRevenue,
+                'profit' => $yearProfit,
+                'summary' => $makeSummary($yearLabels, $yearOrders, $yearProfit),
+            ],
+            'by_month' => [
+                'labels' => $monthLabels,
+                'orders' => $monthOrders,
+                'revenue' => $monthRevenue,
+                'profit' => $monthProfit,
+                'summary' => $makeSummary($monthLabels, $monthOrders, $monthProfit),
+            ],
+            'by_weekday' => [
+                'labels' => $weekDays,
+                'orders' => $weekdayOrders,
+                'revenue' => $weekdayRevenue,
+                'profit' => $weekdayProfit,
+                'summary' => $makeSummary($weekDays, $weekdayOrders, $weekdayProfit),
+            ],
+            'by_hour' => [
+                'labels' => $hourLabels,
+                'orders' => $hourOrders,
+                'revenue' => $hourRevenue,
+                'profit' => $hourProfit,
+                'summary' => $makeSummary($hourLabels, $hourOrders, $hourProfit),
+            ],
+        ];
     }
 
     private function dateInRange($date, Carbon $start, ?Carbon $end = null): bool
@@ -195,10 +348,6 @@ class Dashboard extends Component
             'profit' => $profit,
             'orders' => $todayOrderCount,
             'avg_order' => $todayOrderCount > 0 ? round($todaySales / $todayOrderCount, 2) : 0,
-            'pending' => $todayOrders->whereIn('status', ['pending', 'preparing', 'in_transit'])->count(),
-            'completed' => $todayOrders->whereIn('status', ['delivered', 'completed'])->count(),
-            'paid' => $todayOrders->where('payment_status', 'paid')->count(),
-            'unpaid' => $orders->filter(fn (Order $order) => ($order->payment_status ?? 'unpaid') === 'unpaid' && ! in_array($order->status, ['completed', 'cancelled'], true))->count(),
             'units_sold' => (int) $todayItems->sum('quantity'),
             'free_items' => $todayNoCharge['items'],
             'free_units' => $todayNoCharge['units'],
