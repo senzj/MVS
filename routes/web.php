@@ -38,6 +38,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Products route
     Volt::route('products', 'product.dashboard')->name('products');
+    Volt::route('inventory-audit', 'product.inventoryaudit')->name('inventory.audit');
 
     // Customers route
     Volt::route('customers', 'customer.dashboard')->name('customers');
@@ -47,7 +48,6 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('employees/archived', 'employee.archive')->name('employees.archived');
 
     // Logs and Audits
-    Volt::route('inventory-audit', 'logs.inventoryaudit')->name('inventory.audit');
     Volt::route('System logs', 'logs.log')->name('logs');
 
     Route::get('payment-qr/{path}', function (string $path) {

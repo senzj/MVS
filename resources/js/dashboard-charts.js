@@ -133,7 +133,7 @@ export function initDashboardCharts(payload) {
   const i18n = window.__dashboardI18n || {};
 
   const {
-    salesVsProfitData = { labels: [], sales: [], profit: [], orders: [] },
+    salesVsProfitData = { labels: [], sales: [], profit: [], orders: [], new_customers: [] },
     ordersByDayData = { labels: [], current_week: [], previous_week: [] },
     monthlyTrendsData = { labels: [], sales: [], orders: [] },
     categoryBreakdownData = { labels: [], data: [], colors: [] },
@@ -150,13 +150,14 @@ export function initDashboardCharts(payload) {
           { label: i18n.sales || 'Sales (₱)', data: salesVsProfitData.sales, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,.1)', tension: 0.4, yAxisID: 'y' },
           { label: i18n.estimated_profit || 'Estimated Profit (₱)', data: salesVsProfitData.profit, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.1)', tension: 0.4, yAxisID: 'y' },
           { label: i18n.orders || 'Orders', data: salesVsProfitData.orders, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,.1)', tension: 0.4, yAxisID: 'y1' },
+          { label: i18n.new_customers || 'New Customers', data: salesVsProfitData.new_customers, borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,.1)', tension: 0.4, yAxisID: 'y1' },
         ],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         scales: {
           y: { type: 'linear', position: 'left', title: { display: true, text: i18n.amount_currency || 'Amount (₱)' } },
-          y1:{ type: 'linear', position: 'right', title: { display: true, text: i18n.num_orders || 'Number of Orders' }, grid: { drawOnChartArea: false } },
+          y1:{ type: 'linear', position: 'right', title: { display: true, text: i18n.count_axis || 'Orders / Customers' }, grid: { drawOnChartArea: false } },
         },
       },
     });
@@ -220,12 +221,33 @@ export function initDashboardCharts(payload) {
           data: {
             labels: byHour.labels,
             datasets: [
-              { label: i18n.orders || 'Orders', data: byHour.orders, backgroundColor: 'rgba(148,163,184,.85)', borderColor: '#94a3b8', xAxisID: 'x1' },
-              { label: i18n.sales || 'Sales (₱)', data: byHour.revenue, backgroundColor: 'rgba(99,102,241,.6)', borderColor: '#6366f1', xAxisID: 'x' },
-              { label: i18n.estimated_profit || 'Estimated Profit (₱)', data: byHour.profit, backgroundColor: 'rgba(34,197,94,.6)', borderColor: '#22c55e', xAxisID: 'x' },
+              { label: i18n.orders || 'Orders', data: byHour.orders, backgroundColor: 'rgba(148,163,184,.85)', borderColor: '#94a3b8', yAxisID: 'y' },
+              { label: i18n.sales || 'Sales (₱)', data: byHour.revenue, backgroundColor: 'rgba(99,102,241,.6)', borderColor: '#6366f1', yAxisID: 'y1' },
+              { label: i18n.estimated_profit || 'Estimated Profit (₱)', data: byHour.profit, backgroundColor: 'rgba(34,197,94,.6)', borderColor: '#22c55e', yAxisID: 'y1' },
             ],
           },
-          options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', scales: { x: { beginAtZero: true, position: 'bottom', title: { display: true, text: i18n.amount_currency || 'Amount (₱)' }, ticks: { callback: (v)=> ('₱' + Number(v).toLocaleString()) } }, x1: { beginAtZero: true, position: 'top', grid: { drawOnChartArea: false }, title: { display: true, text: i18n.num_orders || 'Number of Orders' }, ticks: { callback: (v)=> Number(v).toLocaleString() } } } },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                ticks: { maxRotation: 45, minRotation: 45, autoSkip: true },
+              },
+              y: {
+                beginAtZero: true,
+                position: 'left',
+                title: { display: true, text: i18n.num_orders || 'Number of Orders' },
+                ticks: { callback: (v)=> Number(v).toLocaleString() },
+              },
+              y1: {
+                beginAtZero: true,
+                position: 'right',
+                grid: { drawOnChartArea: false },
+                title: { display: true, text: i18n.amount_currency || 'Amount (₱)' },
+                ticks: { callback: (v)=> ('₱' + Number(v).toLocaleString()) },
+              },
+            },
+          },
         });
       }
     } catch (e) {

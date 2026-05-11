@@ -98,9 +98,7 @@
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════════
-         FILTERS & SEARCH
-    ════════════════════════════════════════════════ --}}
+    {{-- FILTERS & SEARCH --}}
     <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 mb-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 

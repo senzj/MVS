@@ -85,7 +85,7 @@ new class extends Component {
                              class="absolute z-20 left-0 mt-2 min-w-[14rem] w-max rounded-lg bg-white p-2 shadow-xl
                                     dark:bg-neutral-900">
                             <input type="text"
-                                   placeholder="{{ __('Search language...') }}"
+                                   placeholder="{{ __('Search languages') }}"
                                    class="mb-2 w-full rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-800 shadow-inner outline-none focus:ring-2 focus:ring-blue-500
                                           dark:bg-neutral-800 dark:text-neutral-200 placeholder:text-gray-400 dark:placeholder:text-neutral-500"
                                    wire:model.live="search" />

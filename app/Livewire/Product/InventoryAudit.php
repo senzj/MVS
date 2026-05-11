@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Logs;
+namespace App\Livewire\Product;
 
 use App\Models\InventoryMovement;
 use App\Models\Order;
@@ -84,7 +84,7 @@ class InventoryAudit extends Component
             'restored' => (clone $query)->whereIn('type', ['order_cancelled', 'refund', 'restock', 'manual_adjustment'])->sum('quantity'),
         ];
 
-        return view('livewire.logs.inventoryaudit', [
+        return view('livewire.product.inventoryaudit', [
             'movements' => $query->latest()->paginate($this->perPage),
             'products' => Product::all()->sortBy('name')->mapWithKeys(fn ($product) => [$product->id => $product->name]),
             'movementTypes' => [

@@ -30,8 +30,8 @@
 
     <div class="rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 mb-5 space-y-4">
         <div class="grid grid-cols-1 gap-3 lg:grid-cols-5">
-            <div class="lg:col-span-2">
-                <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Search') }}</label>
+            <div class="col-span-1">
+                <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Search product') }}</label>
                 <input type="text" wire:model.live.debounce.300ms="search" placeholder="{{ __('Search movements...') }}" class="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
             </div>
 

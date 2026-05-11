@@ -12,123 +12,121 @@
         @include('livewire.partials.clock')
     </div>
 
-    {{-- Quick Stats Cards --}}
-    <div class="grid grid-cols-1 gap-3 mb-3 md:grid-cols-2 xl:grid-cols-4">
-
-        {{-- Today's Revenue --}}
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Today\'s Revenue') }}</p>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($todayStats['income'] ?? 0, 2) }}</p>
-                    @if(isset($todayStats['sales_growth']) && $todayStats['sales_growth'] != 0)
-                        <p class="text-sm {{ $todayStats['sales_growth'] > 0 ? 'text-green-600' : 'text-red-600' }}">
-                            {{ $todayStats['sales_growth'] > 0 ? '+' : '' }}{{ number_format($todayStats['sales_growth'], 1) }}% {{ __('from yesterday') }}
-                        </p>
-                    @endif
+    {{-- KPI Overview --}}
+    <div class="mb-6 space-y-4">
+        <div>
+            <h3 class="mb-2 text-sm font-semibold tracking-wide uppercase text-zinc-600 dark:text-zinc-300">{{ __('Sales KPIs') }}</h3>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($todayStats['income'] ?? 0, 2) }}</p>
+                            <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Revenue Today') }}</p>
+                            @php $revTodayTrend = (float) ($todayStats['sales_growth'] ?? 0); @endphp
+                            <p class="mt-2 text-xs {{ $revTodayTrend >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
+                                {{ $revTodayTrend >= 0 ? '+' : '' }}{{ number_format($revTodayTrend, 1) }}% {{ __('from yesterday') }}
+                            </p>
+                        </div>
+                        <i class="text-lg fas fa-coins {{ $revTodayTrend >= 0 ? 'text-emerald-500' : 'text-rose-500' }}"></i>
+                    </div>
                 </div>
-                <div class="p-3 bg-green-100 rounded-2xl dark:bg-green-900/20">
-                    <i class="text-green-600 fas fa-dollar-sign dark:text-green-400 text-xl pt-0.5"></i>
+
+                <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['month_sales'] ?? 0, 2) }}</p>
+                            <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Revenue This Month') }}</p>
+                            @php $revMonthTrend = (float) ($businessInsights['month_sales_growth'] ?? 0); @endphp
+                            <p class="mt-2 text-xs {{ $revMonthTrend >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
+                                {{ $revMonthTrend >= 0 ? '+' : '' }}{{ number_format($revMonthTrend, 1) }}% {{ __('from previous period') }}
+                            </p>
+                        </div>
+                        <i class="text-lg fas fa-chart-line {{ $revMonthTrend >= 0 ? 'text-emerald-500' : 'text-rose-500' }}"></i>
+                    </div>
+                </div>
+
+                <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($todayStats['orders'] ?? 0) }}</p>
+                            <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Orders Today') }}</p>
+                            @php $ordersTrend = (float) ($todayStats['orders_growth'] ?? 0); @endphp
+                            <p class="mt-2 text-xs {{ $ordersTrend >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
+                                {{ $ordersTrend >= 0 ? '+' : '' }}{{ number_format($ordersTrend, 1) }}% {{ __('from yesterday') }}
+                            </p>
+                        </div>
+                        <i class="text-lg fas fa-basket-shopping {{ $ordersTrend >= 0 ? 'text-emerald-500' : 'text-rose-500' }}"></i>
+                    </div>
+                </div>
+
+                <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($todayStats['avg_order'] ?? 0, 2) }}</p>
+                            <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Average Order Value') }}</p>
+                            @php $aovTrend = (float) ($todayStats['avg_order_growth'] ?? 0); @endphp
+                            <p class="mt-2 text-xs {{ $aovTrend >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
+                                {{ $aovTrend >= 0 ? '+' : '' }}{{ number_format($aovTrend, 1) }}% {{ __('from yesterday') }}
+                            </p>
+                        </div>
+                        <i class="text-lg fas fa-receipt {{ $aovTrend >= 0 ? 'text-emerald-500' : 'text-rose-500' }}"></i>
+                    </div>
                 </div>
             </div>
         </div>
 
-        {{-- Estimated Profit --}}
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Estimated Profit') }}</p>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($todayStats['profit'] ?? 0, 2) }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ number_format($todayStats['profit_margin'] ?? 0, 1) }}% {{ __('margin') }}</p>
+        <div>
+            <h3 class="mb-2 text-sm font-semibold tracking-wide uppercase text-zinc-600 dark:text-zinc-300">{{ __('Operational KPIs') }}</h3>
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['pending_orders'] ?? 0) }}</p>
+                            <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Pending Orders') }}</p>
+                            @php $pendingTrend = (float) ($businessInsights['pending_orders_growth'] ?? 0); @endphp
+                            <p class="mt-2 text-xs {{ $pendingTrend <= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
+                                {{ $pendingTrend >= 0 ? '+' : '' }}{{ number_format($pendingTrend, 1) }}% {{ __('from previous period') }}
+                            </p>
+                        </div>
+                        <i class="text-lg fas fa-hourglass-half {{ $pendingTrend <= 0 ? 'text-emerald-500' : 'text-rose-500' }}"></i>
+                    </div>
                 </div>
-                <div class="p-3 bg-emerald-100 rounded-2xl dark:bg-emerald-900/20">
-                    <i class="text-emerald-600 fas fa-coins dark:text-emerald-400 text-xl pt-0.5"></i>
-                </div>
-            </div>
-        </div>
 
-        {{-- Orders Today --}}
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Orders Today') }}</p>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['orders'] ?? 0 }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Avg') }}: ₱{{ number_format($todayStats['avg_order'] ?? 0, 2) }}</p>
+                <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['low_stock_products'] ?? 0) }}</p>
+                            <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Low Stock Products') }}</p>
+                            <p class="mt-2 text-xs text-amber-600 dark:text-amber-400">{{ number_format($businessInsights['low_stock_rate'] ?? 0, 1) }}% {{ __('of products') }}</p>
+                        </div>
+                        <i class="text-lg text-amber-500 fas fa-triangle-exclamation"></i>
+                    </div>
                 </div>
-                <div class="p-3 bg-blue-100 rounded-2xl dark:bg-blue-900/20">
-                    <i class="text-blue-600 fas fa-shopping-cart dark:text-blue-400 text-xl pt-0.5"></i>
-                </div>
-            </div>
-        </div>
 
-        {{-- Today's Best Seller --}}
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Today\'s Best Seller') }}</p>
-                    @php $todayBestSeller = $topSellingProducts['today'][0] ?? null; @endphp
-                    @if($todayBestSeller)
-                        <p class="text-lg font-bold text-zinc-900 dark:text-zinc-100">{{ Str::limit($todayBestSeller['name'] ?? '', 20) }}</p>
-                        <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ number_format($todayBestSeller['total_sold'] ?? 0) }} {{ __('units sold') }}</p>
-                    @else
-                        <p class="text-lg font-medium text-zinc-500 dark:text-zinc-400">{{ __('No sales yet') }}</p>
-                    @endif
+                <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['out_of_stock_products'] ?? 0) }}</p>
+                            <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Out of Stock Products') }}</p>
+                            <p class="mt-2 text-xs text-rose-600 dark:text-rose-400">{{ number_format($businessInsights['out_of_stock_rate'] ?? 0, 1) }}% {{ __('of products') }}</p>
+                        </div>
+                        <i class="text-lg text-rose-500 fas fa-box-open"></i>
+                    </div>
                 </div>
-                <div class="p-3 bg-purple-100 rounded-2xl dark:bg-purple-900/20">
-                    <i class="text-purple-600 fas fa-star dark:text-purple-400 text-xl pt-0.5"></i>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    {{-- Product Loss + Inventory Movement --}}
-    <div class="grid grid-cols-1 gap-3 mb-6 md:grid-cols-2 xl:grid-cols-4">
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Product Losses Today') }}</p>
-            <div class="flex items-end justify-between mt-2">
-                <div>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ $todayStats['free_items'] ?? 0 }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        {{ number_format($todayStats['free_units'] ?? 0) }} {{ __('units') }} · {{ number_format($todayStats['free_orders'] ?? 0) }} {{ __('orders') }}
-                    </p>
+                <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['active_customers'] ?? 0) }}</p>
+                            <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Active Customers') }}</p>
+                            @php $activeCustomersTrend = (float) ($businessInsights['active_customers_growth'] ?? 0); @endphp
+                            <p class="mt-2 text-xs {{ $activeCustomersTrend >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
+                                {{ $activeCustomersTrend >= 0 ? '+' : '' }}{{ number_format($activeCustomersTrend, 1) }}% {{ __('from previous period') }}
+                            </p>
+                        </div>
+                        <i class="text-lg {{ $activeCustomersTrend >= 0 ? 'text-emerald-500' : 'text-rose-500' }} fas fa-users"></i>
+                    </div>
                 </div>
-                <i class="fas fa-triangle-exclamation text-rose-500 text-xl"></i>
-            </div>
-        </div>
-
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Stock Outflow Today') }}</p>
-            <div class="flex items-end justify-between mt-2">
-                <div>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['inventory_out_today'] ?? 0) }}</p>
-                    <p class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ __('Today') }} · {{ __('Stock Out') }}</p>
-                </div>
-                <i class="fas fa-arrow-trend-down text-rose-500 text-xl"></i>
-            </div>
-        </div>
-
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Stock Restored Today') }}</p>
-            <div class="flex items-end justify-between mt-2">
-                <div>
-                    <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['inventory_in_today'] ?? 0) }}</p>
-                    <p class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ __('Today') }} · <span>{{ __('Restored') }} / {{ __('Restocked') }}</span></p>
-                </div>
-                <i class="fas fa-arrow-trend-up text-emerald-500 text-xl"></i>
-            </div>
-        </div>
-
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <p class="text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Net Stock Change Today') }}</p>
-            <div class="flex items-end justify-between mt-2">
-                <div>
-                    @php $net = (int) ($businessInsights['inventory_net_today'] ?? 0); @endphp
-                    <p class="text-2xl font-bold {{ $net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">{{ $net >= 0 ? '+' : '' }}{{ number_format($net) }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                        {{ number_format($businessInsights['inventory_events_today'] ?? 0) }} {{ __('movements') }} · {{ Str::limit($businessInsights['inventory_top_product_name'] ?? 'No data', 14) }}
-                    </p>
-                </div>
-                <i class="fas fa-scale-balanced text-amber-500 text-xl"></i>
             </div>
         </div>
     </div>
@@ -361,115 +359,101 @@
         </div>
     </div>
 
-    {{-- Actionable Analytics Chart Section --}}
-    <div>
-
-    </div>
-
     {{-- Descriptive Analytics Chart Section --}}
-    <div>
-        <div class="grid grid-cols-1 gap-3 mb-8 lg:grid-cols-2">
+    <div class="grid grid-cols-1 gap-3 mb-8 lg:grid-cols-2">
 
-            {{-- Sales vs Profit Chart --}}
-            <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                    <i class="mr-2 text-blue-500 fas fa-chart-line"></i>{{ __('Sales & Profit (Last 30 Days)') }}
-                </h3>
-                <div class="h-80" wire:ignore>
-                    <canvas id="salesVsProfitChart"></canvas>
-                </div>
+        {{-- Store Trend --}}
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                <i class="mr-2 text-blue-500 fas fa-chart-line"></i>{{ __('Store Trend (Last 30 Days)') }}
+            </h3>
+            <div class="h-80" wire:ignore>
+                <canvas id="salesVsProfitChart"></canvas>
             </div>
+        </div>
 
-            {{-- Orders by Day Chart --}}
-            <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                    <i class="mr-2 text-green-500 fas fa-calendar-alt"></i>{{ __('Orders by Day (Current vs Previous Week)') }}
-                </h3>
-                <div class="h-80" wire:ignore>
-                    <canvas id="ordersByDayChart"></canvas>
-                </div>
+        {{-- Orders by Day Chart --}}
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                <i class="mr-2 text-green-500 fas fa-calendar-alt"></i>{{ __('Orders by Day (Current vs Previous Week)') }}
+            </h3>
+            <div class="h-80" wire:ignore>
+                <canvas id="ordersByDayChart"></canvas>
             </div>
         </div>
 
         {{-- Busiest / Most Profitable (Year / Month / Weekday / Hour) --}}
-        <div class="mb-8">
-            <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-                <div class="flex flex-col gap-4 mb-4 sm:flex-row sm:items-center sm:justify-between">
-                    <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                        <i class="mr-2 text-indigo-500 fas fa-chart-column"></i>{{ __('Busiest & Most Profitable Time') }}
-                    </h3>
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+            <div class="flex flex-col gap-4 mb-4 sm:flex-row sm:items-center sm:justify-between">
+                <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                    <i class="mr-2 text-indigo-500 fas fa-chart-column"></i>{{ __('Peak Analytics') }}
+                </h3>
 
-                    <div id="busiest-metrics-toggle" class="inline-flex p-1 rounded-lg bg-zinc-100 dark:bg-zinc-700/60">
-                        <button type="button" data-busiest-target="year" aria-pressed="true" class="px-3 py-1.5 text-sm font-medium transition rounded-md bg-indigo-600 text-white dark:bg-indigo-500">
-                            {{ __('Year') }}
-                        </button>
-                        <button type="button" data-busiest-target="month" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">
-                            {{ __('Month') }}
-                        </button>
-                        <button type="button" data-busiest-target="weekday" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">
-                            {{ __('Weekday') }}
-                        </button>
-                        <button type="button" data-busiest-target="hour" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">
-                            {{ __('Hour') }}
-                        </button>
-                    </div>
+                <div id="busiest-metrics-toggle" class="inline-flex p-1 rounded-lg bg-zinc-100 dark:bg-zinc-700/60">
+                    <button type="button" data-busiest-target="year" aria-pressed="true" class="px-3 py-1.5 text-sm font-medium transition rounded-md bg-indigo-600 text-white dark:bg-indigo-500">
+                        {{ __('Year') }}
+                    </button>
+                    <button type="button" data-busiest-target="month" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">
+                        {{ __('Month') }}
+                    </button>
+                    <button type="button" data-busiest-target="weekday" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">
+                        {{ __('Weekday') }}
+                    </button>
+                    <button type="button" data-busiest-target="hour" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">
+                        {{ __('Hour') }}
+                    </button>
                 </div>
+            </div>
 
-                <div data-busiest-panel="year">
-                    <div class="h-48" wire:ignore>
-                        <canvas id="busiestByYearChart"></canvas>
-                    </div>
-                    <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-                        <div id="year-summary-most-orders"></div>
-                        <div id="year-summary-most-profit"></div>
-                    </div>
+            <div data-busiest-panel="year">
+                <div class="h-80" wire:ignore>
+                    <canvas id="busiestByYearChart"></canvas>
                 </div>
-
-                <div data-busiest-panel="month" class="hidden">
-                    <div class="h-48" wire:ignore>
-                        <canvas id="busiestByMonthChart"></canvas>
-                    </div>
-                    <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-                        <div id="month-summary-most-orders"></div>
-                        <div id="month-summary-most-profit"></div>
-                    </div>
+                <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                    <div id="year-summary-most-orders"></div>
+                    <div id="year-summary-most-profit"></div>
                 </div>
+            </div>
 
-                <div data-busiest-panel="weekday" class="hidden">
-                    <div class="h-48" wire:ignore>
-                        <canvas id="busiestByWeekdayChart"></canvas>
-                    </div>
-                    <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-                        <div id="weekday-summary-most-orders"></div>
-                        <div id="weekday-summary-most-profit"></div>
-                    </div>
+            <div data-busiest-panel="month" class="hidden">
+                <div class="h-80" wire:ignore>
+                    <canvas id="busiestByMonthChart"></canvas>
                 </div>
+                <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                    <div id="month-summary-most-orders"></div>
+                    <div id="month-summary-most-profit"></div>
+                </div>
+            </div>
 
-                <div data-busiest-panel="hour" class="hidden">
-                    <div class="h-48" wire:ignore>
-                        <canvas id="busiestByHourChart"></canvas>
-                    </div>
-                    <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-                        <div id="hour-summary-most-orders"></div>
-                        <div id="hour-summary-most-profit"></div>
-                    </div>
+            <div data-busiest-panel="weekday" class="hidden">
+                <div class="h-80" wire:ignore>
+                    <canvas id="busiestByWeekdayChart"></canvas>
+                </div>
+                <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                    <div id="weekday-summary-most-orders"></div>
+                    <div id="weekday-summary-most-profit"></div>
+                </div>
+            </div>
+
+            <div data-busiest-panel="hour" class="hidden">
+                <div class="h-80" wire:ignore>
+                    <canvas id="busiestByHourChart"></canvas>
+                </div>
+                <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                    <div id="hour-summary-most-orders"></div>
+                    <div id="hour-summary-most-profit"></div>
                 </div>
             </div>
         </div>
 
-        {{-- Statistical Charts --}}
-        <div class="grid grid-cols-1 gap-3 mb-8 lg:grid-cols-1">
-
-            {{-- Category Breakdown (replaced Monthly Trends) --}}
-            <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                    <i class="mr-2 text-orange-500 fas fa-chart-bar"></i>{{ __('Sales by Category (Last 30 Days)') }}
-                </h3>
-                <div class="h-80" wire:ignore>
-                    <canvas id="categoryBreakdownChart"></canvas>
-                </div>
+        {{-- Category Breakdown --}}
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                <i class="mr-2 text-orange-500 fas fa-chart-bar"></i>{{ __('Sales by Category (Last 30 Days)') }}
+            </h3>
+            <div class="h-80" wire:ignore>
+                <canvas id="categoryBreakdownChart"></canvas>
             </div>
-
         </div>
     </div>
 
@@ -485,9 +469,11 @@
       monthly_orders:        "{{ __('Monthly Orders') }}",
       amount_currency:       "{{ __('Amount (₱)') }}",
       num_orders:            "{{ __('Number of Orders') }}",
+      new_customers:         "{{ __('New Customers') }}",
+      count_axis:            "{{ __('Orders / Customers') }}",
       sales_amount_currency: "{{ __('Sales Amount (₱)') }}",
-      most_busy: "{{ __('Most busy') }}",
-      most_profitable: "{{ __('Most profitable') }}",
+      most_busy: "{{ __('Peak Activity') }}",
+      most_profitable: "{{ __('Peak Profit') }}",
   };
 
   // Pass current locale to JavaScript

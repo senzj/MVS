@@ -5,6 +5,7 @@ namespace App\Livewire\Main;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Customer;
 use App\Models\InventoryMovement;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -26,6 +27,7 @@ class Dashboard extends Component
     public function mount(): void
     {
         $orders = Order::all();
+        $customers = Customer::all();
         $orderItems = OrderItem::all();
         $orderItems->load(['order', 'product']);
         $products = Product::all();
@@ -33,7 +35,7 @@ class Dashboard extends Component
 
         $this->todayStats = $this->getTodayStats($orders, $orderItems);
         $this->topSellingProducts = $this->getTopSellingProducts($orderItems);
-        $this->salesVsProfitData = $this->getSalesVsProfitData($orders);
+        $this->salesVsProfitData = $this->getSalesVsProfitData($orders, $customers);
         $this->ordersByDayData = $this->getOrdersByDayData($orders);
         $this->monthlyTrendsData = $this->getMonthlyTrendsData($orders);
         $this->categoryBreakdownData = $this->getCategoryBreakdownData($orderItems);
@@ -98,31 +100,55 @@ class Dashboard extends Component
             $monthProfit[] = round($sales * self::ESTIMATED_PROFIT_MARGIN, 2);
         }
 
-        // BY WEEKDAY (last 90 days)
+        // BY WEEKDAY (last 90 days) — respect configured store open days
         $weekdayRangeStart = Carbon::now()->subDays(89)->startOfDay();
         $orders90 = $this->filterOrders($orders, $weekdayRangeStart);
-        $weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        $weekdayLabelsMap = [
+            1 => 'Mon',
+            2 => 'Tue',
+            3 => 'Wed',
+            4 => 'Thu',
+            5 => 'Fri',
+            6 => 'Sat',
+            7 => 'Sun',
+        ];
+        $openDays = array_values(array_unique(array_map(
+            fn ($day) => (int) $day,
+            config('storeconfig.store_open_days', [1, 2, 3, 4, 5, 6])
+        )));
+        sort($openDays);
+
+        $weekDays = [];
         $weekdayOrders = [];
         $weekdayProfit = [];
         $weekdayRevenue = [];
-        foreach ($weekDays as $d) {
-            $group = $orders90->filter(function ($o) use ($d) {
-                return Carbon::parse($o->created_at)->format('D') === $d;
+        foreach ($openDays as $dayIso) {
+            $label = $weekdayLabelsMap[$dayIso] ?? (string) $dayIso;
+            $group = $orders90->filter(function ($o) use ($dayIso) {
+                return Carbon::parse($o->created_at)->dayOfWeekIso === $dayIso;
             });
             $sales = round((float) $group->sum('order_total'), 2);
+            $weekDays[] = $label;
             $weekdayOrders[] = $group->count();
             $weekdayRevenue[] = $sales;
             $weekdayProfit[] = round($sales * self::ESTIMATED_PROFIT_MARGIN, 2);
         }
 
-        // BY HOUR (last 30 days) — labels as human-friendly hour labels
+        // BY HOUR (last 30 days) — default to store hours, but extend to later data if needed
         $hourRangeStart = Carbon::now()->subDays(29)->startOfDay();
         $orders30 = $this->filterOrders($orders, $hourRangeStart);
         $hourLabels = [];
         $hourOrders = [];
         $hourProfit = [];
         $hourRevenue = [];
-        for ($h = 0; $h < 24; $h++) {
+        $storeStartHour = config('storeconfig.store_open_hour', 7);
+        $storeEndHour = config('storeconfig.store_close_hour', 20);
+        $latestHourWithData = $orders30->map(function ($order) {
+            return (int) Carbon::parse($order->created_at)->format('G');
+        })->max();
+        $endHour = max($storeEndHour, is_null($latestHourWithData) ? $storeEndHour : (int) $latestHourWithData);
+
+        for ($h = $storeStartHour; $h <= $endHour; $h++) {
             $label = Carbon::createFromTime($h, 0, 0)->format('g A');
             $group = $orders30->filter(function ($o) use ($h) {
                 return (int) Carbon::parse($o->created_at)->format('G') === $h;
@@ -339,7 +365,12 @@ class Dashboard extends Component
         $todaySales = round((float) $todayOrders->sum('order_total'), 2);
         $todayOrderCount = $todayOrders->count();
         $yesterdaySales = round((float) $yesterdayOrders->sum('order_total'), 2);
+        $yesterdayOrderCount = $yesterdayOrders->count();
+        $yesterdayAvgOrder = $yesterdayOrderCount > 0 ? round($yesterdaySales / $yesterdayOrderCount, 2) : 0;
+        $todayAvgOrder = $todayOrderCount > 0 ? round($todaySales / $todayOrderCount, 2) : 0;
         $salesGrowth = $yesterdaySales > 0 ? (($todaySales - $yesterdaySales) / $yesterdaySales) * 100 : 0;
+        $ordersGrowth = $yesterdayOrderCount > 0 ? (($todayOrderCount - $yesterdayOrderCount) / $yesterdayOrderCount) * 100 : 0;
+        $avgOrderGrowth = $yesterdayAvgOrder > 0 ? (($todayAvgOrder - $yesterdayAvgOrder) / $yesterdayAvgOrder) * 100 : 0;
         $profit = round($todaySales * self::ESTIMATED_PROFIT_MARGIN, 2);
 
         return [
@@ -347,12 +378,14 @@ class Dashboard extends Component
             'income' => $todaySales,
             'profit' => $profit,
             'orders' => $todayOrderCount,
-            'avg_order' => $todayOrderCount > 0 ? round($todaySales / $todayOrderCount, 2) : 0,
+            'avg_order' => $todayAvgOrder,
             'units_sold' => (int) $todayItems->sum('quantity'),
             'free_items' => $todayNoCharge['items'],
             'free_units' => $todayNoCharge['units'],
             'free_orders' => $todayNoCharge['orders'],
             'sales_growth' => round($salesGrowth, 1),
+            'orders_growth' => round($ordersGrowth, 1),
+            'avg_order_growth' => round($avgOrderGrowth, 1),
             'profit_margin' => self::ESTIMATED_PROFIT_MARGIN * 100,
             'raw_sales' => $todaySales,
         ];
@@ -374,7 +407,7 @@ class Dashboard extends Component
         ];
     }
 
-    private function getSalesVsProfitData(Collection $orders): array
+    private function getSalesVsProfitData(Collection $orders, Collection $customers): array
     {
         try {
             $last30Days = Carbon::now()->subDays(29)->startOfDay();
@@ -383,24 +416,30 @@ class Dashboard extends Component
             $salesData = [];
             $ordersData = [];
             $profitData = [];
+            $newCustomersData = [];
 
             for ($i = 29; $i >= 0; $i--) {
                 $date = Carbon::now()->subDays($i)->startOfDay();
                 $dayOrders = $this->filterOrders($orders, $date, $date->copy()->endOfDay());
                 $salesValue = round((float) $dayOrders->sum('order_total'), 2);
                 $ordersValue = $dayOrders->count();
+                $newCustomersValue = $customers->filter(function (Customer $customer) use ($date) {
+                    return $this->dateInRange($customer->created_at, $date, $date->copy()->endOfDay());
+                })->count();
 
                 $labels[] = $date->format('M d');
                 $salesData[] = $salesValue;
                 $ordersData[] = $ordersValue;
                 $profitData[] = round($salesValue * self::ESTIMATED_PROFIT_MARGIN, 2);
+                $newCustomersData[] = $newCustomersValue;
             }
 
             return [
                 'labels' => $labels,
                 'sales' => $salesData,
                 'orders' => $ordersData,
-                'profit' => $profitData
+                'profit' => $profitData,
+                'new_customers' => $newCustomersData,
             ];
         } catch (\Exception $e) {
             Log::error('Error in getSalesVsProfitData: ' . $e->getMessage());
@@ -408,7 +447,8 @@ class Dashboard extends Component
                 'labels' => [],
                 'sales' => [],
                 'orders' => [],
-                'profit' => []
+                'profit' => [],
+                'new_customers' => [],
             ];
         }
     }
@@ -537,22 +577,39 @@ class Dashboard extends Component
     private function getBusinessInsights(Collection $orders, Collection $orderItems, Collection $products, Collection $inventoryMovements): array
     {
         $last30Days = Carbon::now()->subDays(29)->startOfDay();
+        $previousPeriodStart = Carbon::now()->subDays(59)->startOfDay();
+        $previousPeriodEnd = Carbon::now()->subDays(30)->endOfDay();
         $today = Carbon::today();
         $todayEnd = $today->copy()->endOfDay();
 
         $monthOrders = $this->filterOrders($orders, $last30Days);
+        $previousPeriodOrders = $this->filterOrders($orders, $previousPeriodStart, $previousPeriodEnd);
         $monthItems = $this->filterOrderItems($orderItems, $last30Days);
         $monthNoCharge = $this->summarizeNoChargeItems($orderItems, $last30Days);
         $monthSales = round((float) $monthOrders->sum('order_total'), 2);
+        $previousPeriodSales = round((float) $previousPeriodOrders->sum('order_total'), 2);
         $monthProfit = round($monthSales * self::ESTIMATED_PROFIT_MARGIN, 2);
         $monthOrdersCount = $monthOrders->count();
         $completedOrders = $monthOrders->whereIn('status', ['delivered', 'completed'])->count();
         $paidOrders = $monthOrders->where('payment_status', 'paid')->count();
         $refundedOrders = $monthOrders->where('payment_status', 'refunded')->count();
+        $pendingOrders = $monthOrders->whereIn('status', ['pending', 'preparing'])->count();
+        $previousPendingOrders = $previousPeriodOrders->whereIn('status', ['pending', 'preparing'])->count();
+        $activeCustomers = $monthOrders->pluck('customer_id')->filter()->unique()->count();
+        $previousActiveCustomers = $previousPeriodOrders->pluck('customer_id')->filter()->unique()->count();
         $unitsSold = (int) $monthItems->sum('quantity');
         $activeProducts = $products->filter(fn (Product $product) => (int) $product->stocks > 0)->count();
         $lowStockProducts = $products->filter(fn (Product $product) => (int) $product->stocks > 0 && (int) $product->stocks < 10)->count();
         $outOfStockProducts = $products->filter(fn (Product $product) => (int) $product->stocks <= 0)->count();
+        $totalProducts = max(1, $products->count());
+
+        $growthPercent = function (float|int $current, float|int $previous): float {
+            if ($previous > 0) {
+                return round((($current - $previous) / $previous) * 100, 1);
+            }
+
+            return $current > 0 ? 100.0 : 0.0;
+        };
 
         $todayMovements = $inventoryMovements->filter(function (InventoryMovement $movement) use ($today, $todayEnd) {
             return $this->dateInRange($movement->created_at, $today, $todayEnd);
@@ -602,8 +659,13 @@ class Dashboard extends Component
 
         return [
             'month_sales' => $monthSales,
+            'month_sales_growth' => $growthPercent($monthSales, $previousPeriodSales),
             'month_profit' => $monthProfit,
             'month_orders' => $monthOrdersCount,
+            'pending_orders' => $pendingOrders,
+            'pending_orders_growth' => $growthPercent($pendingOrders, $previousPendingOrders),
+            'active_customers' => $activeCustomers,
+            'active_customers_growth' => $growthPercent($activeCustomers, $previousActiveCustomers),
             'month_units_sold' => $unitsSold,
             'free_items' => $monthNoCharge['items'],
             'free_units' => $monthNoCharge['units'],
@@ -616,7 +678,9 @@ class Dashboard extends Component
             'refund_rate' => $monthOrdersCount > 0 ? round(($refundedOrders / $monthOrdersCount) * 100, 1) : 0,
             'active_products' => $activeProducts,
             'low_stock_products' => $lowStockProducts,
+            'low_stock_rate' => round(($lowStockProducts / $totalProducts) * 100, 1),
             'out_of_stock_products' => $outOfStockProducts,
+            'out_of_stock_rate' => round(($outOfStockProducts / $totalProducts) * 100, 1),
             'top_category' => $categorySummary['label'] ?? __('No category data'),
             'top_category_sales' => $categorySummary['sales'] ?? 0,
             'top_category_key' => $categorySummary['category'] ?? null,

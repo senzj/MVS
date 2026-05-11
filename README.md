@@ -135,14 +135,19 @@ From `.env.example`, these values control business defaults:
 - `STORE_ADDRESS`: Store address shown in the system
 - `STORE_DEFAULT_ORDER_TYPE`: Default order type (`walk_in` or `deliver`)
 - `STORE_DEFAULT_PAYMENT_TYPE`: Default payment type (`cash` or `gcash`)
+- `STORE_OPEN_HOUR`: Store opening hour used by the dashboard hour chart
+- `STORE_CLOSE_HOUR`: Store closing hour used by the dashboard hour chart
+- `STORE_OPEN_DAYS`: Comma-separated open days (`1` = Monday, `7` = Sunday)
 - `ORDER_EDIT_LOCK_STATUS`: Comma-separated order statuses where editing should be locked
 	- Example: `in_transit,delivered,completed,cancelled`
+
+The dashboard weekday analytics chart uses `STORE_OPEN_DAYS`, so it only shows the days your store is actually open.
 
 ### Recommended First `.env` Edits
 
 1. Set `APP_URL` to your virtual host or LAN URL.
 2. Set `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` to your local DB credentials.
-3. Set `STORE_NAME`, `STORE_NAME_ALT`, and `STORE_ADDRESS` to your actual store values.
+3. Set `STORE_NAME`, `STORE_NAME_ALT`, `STORE_ADDRESS`, and the store hour/day settings to your actual store values.
 4. Re-run migrations if needed:
 
 ```bash
