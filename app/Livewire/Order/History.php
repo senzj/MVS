@@ -13,7 +13,7 @@ class History extends Component
     public $selectedOrder = null;
     public bool $showDeleteModal = false;
     public ?string $deleteReceipt = null;
-    private ?int $deleteOrderId = null;
+    public ?int $deleteOrderId = null;
 
 
     // Search and Filter properties

@@ -8,7 +8,7 @@
         $overlayTip = $tip ?? null;
     @endphp
 
-    <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
+    <div class="bg-white/70 dark:bg-zinc-800/70 border border-zinc-200/50 dark:border-zinc-700/50 rounded-xl p-4 flex flex-col items-center gap-4 max-w-sm mx-4">
         {{-- Spinner --}}
         <div class="relative w-12 h-12 flex items-center justify-center">
             <div class="absolute inset-0 rounded-full border-4 border-blue-200 dark:border-blue-900"></div>

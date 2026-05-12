@@ -269,7 +269,6 @@
                             @if(!empty($showDelete) && $showDelete && isset($order))
                                 <button
                                     wire:click="confirmDelete({{ $order->id }})"
-                                    wire:confirm="{{ __('Delete this order permanently? This cannot be undone.') }}"
                                     class="cursor-pointer inline-flex items-center px-4 py-2.5 text-sm font-medium rounded-lg
                                         text-red-600 dark:text-red-400
                                         bg-red-50 dark:bg-red-900/20

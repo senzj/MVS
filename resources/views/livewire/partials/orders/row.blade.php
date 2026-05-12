@@ -33,6 +33,7 @@
     {{-- Status --}}
     <td class="px-4 py-3 whitespace-nowrap text-center">
         <div class="flex flex-col items-center gap-1">
+            @include('livewire.partials.orders.status.oldorder-badge', ['created_at' => $order->created_at])
             @include('livewire.partials.orders.status.order-badge', ['order' => $order])
             @include('livewire.partials.orders.status.payment-badge', ['status' => $order->payment_status])
         </div>

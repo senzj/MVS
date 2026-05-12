@@ -16,6 +16,14 @@
         'cancelled'  => 'bg-red-500',
     ];
     $strip = $stripColors[$order->status] ?? 'bg-zinc-400';
+
+    $pay_type = [
+        'cash' => 'text-green-500 bg-green-500/50',
+        'gcash' => 'text-blue-500 bg-blue-500/50',
+    ];
+
+    $payment_type_status = $pay_type[$order->payment_type]
+        ?? 'text-gray-500 bg-gray-500/50';
 @endphp
 
 <div wire:key="grid-order-{{ $order->id }}"
@@ -26,38 +34,58 @@
 
     <button
         wire:click="openOrder({{ $order->id }})"
-        class="cursor-pointer text-left w-full p-4"
+        class="cursor-pointer text-left w-full p-4 space-y-3"
         title="{{ __('View order') }}">
 
         <div class="flex items-start justify-between">
-            <div>
-                <div class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Receipt #') }}</div>
-                <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $order->receipt_number ?? '—' }}</div>
+            <div class="flex items-center">
+                <i class="fas fa-receipt mr-1"></i>
+
+                <div class="flex gap-2 items-center">
+                    <div class="font-mono font-semibold text-lg text-zinc-900 dark:text-zinc-100">
+                        {{ $order->receipt_number ?? '—' }}
+                    </div>
+
+                    <div class="text-[10px] font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wide {{ $payment_type_status }} p-1 rounded-full">
+                        {{ $order->payment_type ?? __('N/A') }}
+                    </div>
+                </div>
             </div>
+
+            <div class="text-xs text-zinc-500 dark:text-zinc-400">
+                <i class="fas fa-clock mr-1"></i>{{ $timeLabel }}
+                <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                    {{ $order->created_at->timezone($tz)->locale($loc)->isoFormat('ll') }}
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 text-sm justify-between">
+            <div class="">
+                <div class="text-zinc-600 dark:text-zinc-300">
+                    <i class="fas fa-user mr-1 text-zinc-400"></i>{{ $order->customer->name ?? __('Walk-In') }}
+                </div>
+            </div>
+
             @include('livewire.partials.orders.status.order-badge', ['order' => $order])
         </div>
 
-        <div class="mt-3 flex items-center gap-3 text-sm">
-            <div class="text-zinc-600 dark:text-zinc-300">
-                <i class="fas fa-user mr-1 text-zinc-400"></i>{{ $order->customer->name ?? __('Walk-In') }}
-            </div>
-            <div class="text-zinc-600 dark:text-zinc-300">
-                <i class="fas fa-user-tie mr-1 text-zinc-400"></i>{{ $order->employee->name ?? __('Unassigned') }}
-            </div>
-            <div class="ml-auto text-zinc-500 dark:text-zinc-400">
-                <i class="fas fa-clock mr-1 text-zinc-400"></i>{{ $timeLabel }}
-            </div>
-        </div>
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1">
+                @include('livewire.partials.orders.status.payment-badge', [
+                    'status' => $order->payment_status,
+                    'size'   => 'sm',
+                ])
 
-        <div class="mt-2 flex items-center justify-between">
-            <div class="text-sm text-zinc-600 dark:text-zinc-300">
+                <div class="text-xs text-zinc-900 dark:text-zinc-100 rounded-full bg-gray-500/50 p-1">
+                    <i class="fas fa-user-tie mr-1"></i>{{ $order->employee->name ?? __('Unassigned') }}
+                </div>
+            </div>
+
+            <div class="text-sm text-zinc-900 dark:text-zinc-100">
                 <i class="fas fa-money-bill mr-1 text-zinc-400"></i>
                 ₱{{ number_format($order->order_total, 2) }}
             </div>
-            @include('livewire.partials.orders.status.payment-badge', [
-                'status' => $order->payment_status,
-                'size'   => 'sm',
-            ])
         </div>
 
     </button>

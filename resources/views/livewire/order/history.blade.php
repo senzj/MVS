@@ -4,7 +4,7 @@
     class="container mx-auto max-w-7xl relative"
     x-data="{
         showOrderModal: false,
-        viewMode: 'list',
+        viewMode: 'list', //list or grid
         showFilters: false,
         currentYear: '',
         currentDay: '',
@@ -208,9 +208,7 @@
                                     class="cursor-pointer flex items-center justify-center p-2 rounded-md transition-all duration-200"
                                     title="List View"
                                 >
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 16a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"/>
-                                    </svg>
+                                    <i class="fas fa-list text-xs"></i>
                                 </button>
 
                                 <button
@@ -219,9 +217,7 @@
                                     class="cursor-pointer flex items-center justify-center p-2 rounded-md transition-all duration-200"
                                     title="Grid View"
                                 >
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-                                    </svg>
+                                    <i class="fas fa-th text-xs"></i>
                                 </button>
                             </div>
                         </div>
@@ -414,14 +410,14 @@
 
         <div class="relative">
             {{-- Date indicator box --}}
-            <div class="bg-white/40 dark:bg-zinc-800/40 border border-zinc-200/50 dark:border-zinc-700/50 rounded-xl p-3 min-w-[140px]">
+            <div class="bg-white/30 dark:bg-zinc-800/30 border border-zinc-200/50 dark:border-zinc-700/50 rounded-xl p-3 min-w-[140px]">
                 <div class="text-center">
 
                     {{-- year --}}
                     <div class="text-sm font-bold text-zinc-900 dark:text-zinc-100 mt-0.5"
                          x-text="currentYear || i18n.allYears"></div>
 
-                    {{-- Day --}}
+                    {{-- Month + Day --}}
                     <div class="text-xs font-medium text-zinc-600 dark:text-zinc-400 uppercase tracking-wide"
                          x-text="currentDay || i18n.allDays"></div>
 
@@ -481,12 +477,11 @@
                     <div class="mt-2">
 
                         {{-- Grid View --}}
-                        <div x-cloak x-show="viewMode === 'grid'" class="mb-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div x-cloak x-show="viewMode === 'grid'" class="mb-10 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                             @foreach($orders as $o)
                                 @include('livewire.partials.orders.history.card', ['order' => $o])
                             @endforeach
                         </div>
-
 
                         {{-- List View --}}
                         <ul x-show="viewMode === 'list'" role="list" class="mb-10 space-y-3">
