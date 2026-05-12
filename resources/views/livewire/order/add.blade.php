@@ -1,6 +1,6 @@
 @section('title', __('Record Sales'))
 
-<div class="container">
+<div class="w-full max-w-full overflow-hidden px-2 sm:px-4 pb-8">
 
     {{-- HEADER --}}
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-5 gap-3">

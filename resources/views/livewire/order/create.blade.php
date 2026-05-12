@@ -1,5 +1,5 @@
 @section('title', __('Create Order'))
-<div class="container"
+<div class="w-full max-w-full overflow-hidden px-2 sm:px-4 pb-8"
     x-data="{
     showCustomerModal: false,
     showEmployeeModal: false,

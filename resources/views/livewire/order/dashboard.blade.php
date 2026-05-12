@@ -1,6 +1,6 @@
 @section('title', __('Orders Dashboard'))
 
-<div class="w-full max-w-full overflow-hidden"
+<div class="w-full max-w-full overflow-hidden px-2 sm:px-4 pb-8"
     x-data="{ activeTab: 'ongoing' }"
     wire:poll.60s="pollBatchTimers">
 

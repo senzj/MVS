@@ -1,7 +1,38 @@
 @section('title', __('Orders Records'))
 
+@push('scripts')
+    <script>
+        // Store data on window immediately — charts.js recovery path reads this
+        // even if the event dispatch below is missed due to listener timing.
+        window.__pendingPaymentStatusChartData   = @json($paymentStatusChart ?? ['labels' => [], 'datasets' => []]);
+        window.__pendingPaymentMethodsChartData   = @json($paymentMethodsChart ?? ['labels' => [], 'datasets' => []]);
+
+        // Dispatch helper — retries until listeners are confirmed attached
+        (function dispatchChartData() {
+            const fire = () => {
+                window.dispatchEvent(new CustomEvent('payment-status-chart-data', {
+                    detail: { data: window.__pendingPaymentStatusChartData }
+                }));
+                window.dispatchEvent(new CustomEvent('payment-methods-chart-data', {
+                    detail: { data: window.__pendingPaymentMethodsChartData }
+                }));
+            };
+
+            // If Livewire already booted, fire immediately + small delay as safety net
+            if (window.__ordersChartsReady) {
+                fire();
+            } else {
+                // Wait for our listeners to be ready
+                window.addEventListener('orders-charts-ready', fire, { once: true });
+                // Hard fallback: fire after 300ms regardless
+                setTimeout(fire, 300);
+            }
+        })();
+    </script>
+@endpush
+
 <div id="order-history-content"
-    class="container mx-auto max-w-7xl relative"
+    class="w-full max-w-full overflow-x-hidden px-2 sm:px-4 pb-8"
     x-data="{
         showOrderModal: false,
         viewMode: 'list', //list or grid
@@ -153,223 +184,244 @@
     ">
 
     {{-- css --}}
-    <style>
-        [x-cloak] { display: none !important; }
+    @push('styles')
+        <style>
+            [x-cloak] { 
+                display: none !important; 
+            }
 
-        /* Date indicator styling */
-        .date-indicator {
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-        }
+            /* Date indicator styling */
+            .date-indicator {
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+            }
 
-        /* Quick actions panel styling */
-        .quick-actions-panel {
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
+            /* Quick actions panel styling */
+            .quick-actions-panel {
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+            }
 
-        /* Floating button styling */
-        .floating-search-btn {
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-        }
-    </style>
+            /* Floating button styling */
+            .floating-search-btn {
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+            }
+        </style>
+    @endpush
 
-    {{-- Header --}}
-    <div id="static-header" class="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700">
-        <div class="container mx-auto p-4 max-w-7xl">
-            <div class="mb-3">
-                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    {{-- Header --}}
-                    <div>
-                        <h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ __('Orders History') }}</h2>
-                        <p class="text-sm text-zinc-600 dark:text-zinc-400">
-                            {{ __('Browse and search orders by various criteria.') }}
-                            @if($totalOrders > 0)
-                                <span class="font-medium">
-                                    {{ number_format($loadedOrders) }} {{ __('of') }} {{ number_format($totalOrders) }} {{ __('orders loaded') }}
-                                    @if($hasMorePages)
-                                        <span class="text-xs text-zinc-500">({{ __('scroll for more') }})</span>
-                                    @endif
-                                </span>
-                            @endif
-                        </p>
-                    </div>
+    {{-- HEADER --}}
+    <div class="flex items-start justify-between gap-3 py-2 mb-5">
+        <div>
+            <h2 class="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <i class="fas fa-timeline text-blue-500"></i>
+                {{ __('Order Records') }}
+            </h2>
+            @include('livewire.partials.clock')
+        </div>
+        
+        {{-- View Toggle and Controls --}}
+        <div class="flex items-center gap-3">
+            {{-- View Toggle --}}
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-zinc-600 dark:text-zinc-400">{{ __('Layout') }}:</span>
+                <div class="flex items-center bg-zinc-100 dark:bg-zinc-700 rounded-lg p-1">
+                    <button
+                        @click="viewMode = 'list'"
+                        :class="viewMode === 'list' ? 'bg-white dark:bg-zinc-600 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'"
+                        class="cursor-pointer flex items-center justify-center p-2 rounded-md transition-all duration-200"
+                        title="List View"
+                    >
+                        <i class="fas fa-list text-xs"></i>
+                    </button>
 
-                    {{-- View Toggle and Controls --}}
-                    <div class="flex items-center gap-3">
-                        {{-- View Toggle --}}
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm text-zinc-600 dark:text-zinc-400">{{ __('Layout') }}:</span>
-                            <div class="flex items-center bg-zinc-100 dark:bg-zinc-700 rounded-lg p-1">
-                                <button
-                                    @click="viewMode = 'list'"
-                                    :class="viewMode === 'list' ? 'bg-white dark:bg-zinc-600 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'"
-                                    class="cursor-pointer flex items-center justify-center p-2 rounded-md transition-all duration-200"
-                                    title="List View"
-                                >
-                                    <i class="fas fa-list text-xs"></i>
-                                </button>
-
-                                <button
-                                    @click="viewMode = 'grid'"
-                                    :class="viewMode === 'grid' ? 'bg-white dark:bg-zinc-600 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'"
-                                    class="cursor-pointer flex items-center justify-center p-2 rounded-md transition-all duration-200"
-                                    title="Grid View"
-                                >
-                                    <i class="fas fa-th text-xs"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <button
+                        @click="viewMode = 'grid'"
+                        :class="viewMode === 'grid' ? 'bg-white dark:bg-zinc-600 shadow-sm text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'"
+                        class="cursor-pointer flex items-center justify-center p-2 rounded-md transition-all duration-200"
+                        title="Grid View"
+                    >
+                        <i class="fas fa-th text-xs"></i>
+                    </button>
                 </div>
             </div>
+        </div>
+    </div>
 
-            {{-- Search and Filters Section --}}
-            <div class="bg-white/60 dark:bg-zinc-800/60 rounded-lg shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 mb-0.5"
-                 style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
-                <div class="p-4">
-                    {{-- Search Bar --}}
-                    <div class="flex flex-col sm:flex-row gap-4">
-                        <div class="relative flex-1">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-search text-zinc-400"></i>
-                            </div>
-                            <input
-                                wire:model.live.debounce.300ms="search"
-                                id="order-search"
-                                type="text"
-                                placeholder="{{ __('Search by receipt number or customer name') }}"
-                                class="w-full pl-10 pr-4 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 dark:placeholder-zinc-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
-                            >
-                            @if($search)
-                                <button
-                                    wire:click="$set('search', '')"
-                                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors duration-200"
-                                >
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            @endif
+    {{-- Charts and Analytics --}}
+    <div class="w-full my-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200/50 dark:border-zinc-700/50 p-3">
+            <div class="text-sm text-zinc-500 dark:text-zinc-400 mb-2">{{ __('Payment Status') }}</div>
+            <canvas id="paymentStatusChart" class="w-full" style="max-height: 192px;"></canvas>
+        </div>
+
+        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200/50 dark:border-zinc-700/50 p-3">
+            <div class="text-sm text-zinc-500 dark:text-zinc-400 mb-2">{{ __('Payment Methods') }}</div>
+            <canvas id="paymentMethodsChart" class="w-full" style="max-height: 192px;"></canvas>
+        </div>
+    </div>
+
+    {{-- Search and Filters Section --}}
+    <div class="bg-white/60 dark:bg-zinc-800/60 rounded-lg shadow-sm border border-zinc-200/50 dark:border-zinc-700/50 mb-0.5"
+            style="backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+        <div class="p-4">
+            <div class="">
+
+                {{-- Search & filter --}}
+                <div class="flex flex-col sm:flex-row gap-4">
+                    {{-- search bar --}}
+                    <div class="relative flex-1">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-zinc-400"></i>
                         </div>
-
-                        {{-- Filter Toggle Button --}}
-                        <button
-                            @click="showFilters = !showFilters"
-                            :class="showFilters ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'"
-                            class="px-4 py-2.5 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-all duration-200 flex items-center gap-2"
+                        <input
+                            wire:model.live.debounce.300ms="search"
+                            id="order-search"
+                            type="text"
+                            placeholder="{{ __('Search by receipt number or customer name') }}"
+                            class="w-full pl-10 pr-4 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 dark:placeholder-zinc-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
                         >
-                            <i class="fas fa-filter"></i>
-                            <span>{{ __('Filter') }}</span>
-                            <i class="fas fa-chevron-down transition-transform duration-200" :class="showFilters ? 'rotate-180' : ''"></i>
-                        </button>
+                        @if($search)
+                            <button
+                                wire:click="$set('search', '')"
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors duration-200"
+                            >
+                                <i class="fas fa-times"></i>
+                            </button>
+                        @endif
                     </div>
 
-                    {{-- Filters Panel --}}
-                    <div x-cloak
-                        x-show="showFilters"
-                        x-transition:enter="transition-all duration-300 ease-out"
-                        x-transition:enter-start="opacity-0 max-h-0"
-                        x-transition:enter-end="opacity-100 max-h-96"
-                        x-transition:leave="transition-all duration-300 ease-in"
-                        x-transition:leave-start="opacity-100 max-h-96"
-                        x-transition:leave-end="opacity-0 max-h-0"
-                        class="absolute top-full left-0 right-0 z-[60] bg-white/95 dark:bg-zinc-800/95 rounded-lg shadow-xl border border-zinc-200/50 dark:border-zinc-700/50 mt-2 backdrop-blur-md overflow-hidden">
-                        <div class="p-4">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                                {{-- Status Filter --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingStatusFilter">{{ __('Order Status') }}</label>
-                                    <select wire:model.live="statusFilter" id="floatingStatusFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200">
-                                        <option value="">{{ __('All Statuses') }}</option>
-                                        <option value="pending">{{ __('Pending') }}</option>
-                                        <option value="in_transit">{{ __('In transit') }}</option>
-                                        <option value="delivered">{{ __('Delivered') }}</option>
-                                        <option value="completed">{{ __('Completed') }}</option>
-                                        <option value="cancelled">{{ __('Cancelled') }}</option>
-                                    </select>
-                                </div>
+                    {{-- Filter Toggle Button --}}
+                    <button
+                        @click="showFilters = !showFilters"
+                        :class="showFilters ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300' : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'"
+                        class="px-4 py-2.5 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-all duration-200 flex items-center gap-2"
+                    >
+                        <i class="fas fa-filter"></i>
+                        <span>{{ __('Filter') }}</span>
+                        <i class="fas fa-chevron-down transition-transform duration-200" :class="showFilters ? 'rotate-180' : ''"></i>
+                    </button>
 
-                                {{-- Payment Filter --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingPaymentFilter">{{ __('Payment Status') }}</label>
-                                    <select wire:model.live="paymentFilter" id="floatingPaymentFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200">
-                                        <option value="">{{ __('All Payments') }}</option>
-                                        <option value="paid">{{ __('Paid') }}</option>
-                                        <option value="unpaid">{{ __('Unpaid') }}</option>
-                                        <option value="refunded">{{ __('Refunded') }}</option>
-                                    </select>
-                                </div>
+                </div>
 
-                                {{-- Year Filter --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingYearFilter">{{ __('Year') }}</label>
-                                    <select wire:model.live="yearFilter" id="floatingYearFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200">
-                                        <option value="">{{ __('All Years') }}</option>
-                                        @foreach($availableYears as $year)
-                                            <option value="{{ $year }}">{{ $year }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
+                {{-- Description and Loaded Count --}}
+                <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                    {{ __('Browse and search orders by various criteria.') }}
+                    @if($totalOrders > 0)
+                        <span class="font-medium">
+                            {{ number_format($loadedOrders) }} {{ __('of') }} {{ number_format($totalOrders) }} {{ __('orders loaded') }}
+                            @if($hasMorePages)
+                                <span class="text-xs text-zinc-500">({{ __('scroll for more') }})</span>
+                            @endif
+                        </span>
+                    @endif
+                </p>
+            </div>
 
-                                {{-- Month Filter --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingMonthFilter">{{ __('Month') }}</label>
-                                    <select wire:model.live="monthFilter" id="floatingMonthFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200{{ !$yearFilter ? ' opacity-50 cursor-not-allowed' : '' }}" @if(!$yearFilter) disabled title="Select a year first" @endif>
-                                        <option value="">{{ __('All Months') }}</option>
-                                        @if($yearFilter)
-                                            @foreach($availableMonths as $month)
-                                                <option value="{{ $month['value'] }}">{{ $month['label'] }}</option>
-                                            @endforeach
-                                        @endif
-                                    </select>
-                                </div>
-
-                                {{-- Day Filter --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingDayFilter">{{ __('Day') }}</label>
-                                    <select wire:model.live="dayFilter" id="floatingDayFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200{{ !$monthFilter ? ' opacity-50 cursor-not-allowed' : '' }}" @if(!$monthFilter) disabled title="Select year then month first" @endif>
-                                        <option value="">All Days</option>
-                                        @if($monthFilter)
-                                            @foreach($availableDays as $day)
-                                                <option value="{{ $day }}">{{ $day }}</option>
-                                            @endforeach
-                                        @endif
-                                    </select>
-                                </div>
-
-                                {{-- Sort Options --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingSortbyFilter">{{ __('Sort by') }}</label>
-                                    <select wire:model.live="sortBy" id="floatingSortbyFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200">
-                                        <option value="created_at">{{ __('Date created') }}</option>
-                                        <option value="receipt_number">{{ __('Receipt Number') }}</option>
-                                        <option value="order_total">{{ __('Total Amount') }}</option>
-                                        <option value="status">{{ __('Order Status') }}</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            {{-- Filter Actions --}}
-                            <div class="flex items-center justify-between mt-4 pt-4 border-t border-zinc-200/50 dark:border-zinc-700/50">
-                                <div class="flex items-center gap-2">
-                                    <button
-                                        wire:click="toggleSortDirection"
-                                        class="px-3 py-1.5 text-sm bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-all duration-200 flex items-center gap-2"
-                                    >
-                                        <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }}"></i>
-                                        <span>{{ $sortDirection === 'asc' ? __('Ascending') : __('Descending') }}</span>
-                                    </button>
-                                </div>
-
-                                <button
-                                    wire:click="clearFilters"
-                                    class="px-4 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-all duration-200 flex items-center gap-2"
-                                >
-                                    <i class="fas fa-trash-alt"></i>
-                                    <span>{{ __('Clear All') }}</span>
-                                </button>
-                            </div>
+            {{-- Filters Panel --}}
+            <div x-cloak
+                x-show="showFilters"
+                x-transition:enter="transition-all duration-300 ease-out"
+                x-transition:enter-start="opacity-0 max-h-0"
+                x-transition:enter-end="opacity-100 max-h-96"
+                x-transition:leave="transition-all duration-300 ease-in"
+                x-transition:leave-start="opacity-100 max-h-96"
+                x-transition:leave-end="opacity-0 max-h-0"
+                class="absolute top-full left-0 right-0 z-[60] bg-white/95 dark:bg-zinc-800/95 rounded-lg shadow-xl border border-zinc-200/50 dark:border-zinc-700/50 mt-2 backdrop-blur-md overflow-hidden">
+                <div class="p-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                        {{-- Status Filter --}}
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingStatusFilter">{{ __('Order Status') }}</label>
+                            <select wire:model.live="statusFilter" id="floatingStatusFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200">
+                                <option value="">{{ __('All Statuses') }}</option>
+                                <option value="pending">{{ __('Pending') }}</option>
+                                <option value="in_transit">{{ __('In transit') }}</option>
+                                <option value="delivered">{{ __('Delivered') }}</option>
+                                <option value="completed">{{ __('Completed') }}</option>
+                                <option value="cancelled">{{ __('Cancelled') }}</option>
+                            </select>
                         </div>
+
+                        {{-- Payment Filter --}}
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingPaymentFilter">{{ __('Payment Status') }}</label>
+                            <select wire:model.live="paymentFilter" id="floatingPaymentFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200">
+                                <option value="">{{ __('All Payments') }}</option>
+                                <option value="paid">{{ __('Paid') }}</option>
+                                <option value="unpaid">{{ __('Unpaid') }}</option>
+                                <option value="refunded">{{ __('Refunded') }}</option>
+                            </select>
+                        </div>
+
+                        {{-- Year Filter --}}
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingYearFilter">{{ __('Year') }}</label>
+                            <select wire:model.live="yearFilter" id="floatingYearFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200">
+                                <option value="">{{ __('All Years') }}</option>
+                                @foreach($availableYears as $year)
+                                    <option value="{{ $year }}">{{ $year }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Month Filter --}}
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingMonthFilter">{{ __('Month') }}</label>
+                            <select wire:model.live="monthFilter" id="floatingMonthFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200{{ !$yearFilter ? ' opacity-50 cursor-not-allowed' : '' }}" @if(!$yearFilter) disabled title="Select a year first" @endif>
+                                <option value="">{{ __('All Months') }}</option>
+                                @if($yearFilter)
+                                    @foreach($availableMonths as $month)
+                                        <option value="{{ $month['value'] }}">{{ $month['label'] }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        {{-- Day Filter --}}
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingDayFilter">{{ __('Day') }}</label>
+                            <select wire:model.live="dayFilter" id="floatingDayFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200{{ !$monthFilter ? ' opacity-50 cursor-not-allowed' : '' }}" @if(!$monthFilter) disabled title="Select year then month first" @endif>
+                                <option value="">All Days</option>
+                                @if($monthFilter)
+                                    @foreach($availableDays as $day)
+                                        <option value="{{ $day }}">{{ $day }}</option>
+                                    @endforeach
+                                @endif
+                            </select>
+                        </div>
+
+                        {{-- Sort Options --}}
+                        <div>
+                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingSortbyFilter">{{ __('Sort by') }}</label>
+                            <select wire:model.live="sortBy" id="floatingSortbyFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200">
+                                <option value="created_at">{{ __('Date created') }}</option>
+                                <option value="receipt_number">{{ __('Receipt Number') }}</option>
+                                <option value="order_total">{{ __('Total Amount') }}</option>
+                                <option value="status">{{ __('Order Status') }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Filter Actions --}}
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-zinc-200/50 dark:border-zinc-700/50">
+                        <div class="flex items-center gap-2">
+                            <button
+                                wire:click="toggleSortDirection"
+                                class="px-3 py-1.5 text-sm bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-all duration-200 flex items-center gap-2"
+                            >
+                                <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }}"></i>
+                                <span>{{ $sortDirection === 'asc' ? __('Ascending') : __('Descending') }}</span>
+                            </button>
+                        </div>
+
+                        <button
+                            wire:click="clearFilters"
+                            class="px-4 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-all duration-200 flex items-center gap-2"
+                        >
+                            <i class="fas fa-trash-alt"></i>
+                            <span>{{ __('Clear All') }}</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -441,8 +493,24 @@
         </div>
     </div>
 
-    {{-- Orders Content --}}
-    <div id="orders-content" class="container mx-auto p-4 max-w-7xl">
+    {{-- Orders History Content --}}
+    <div id="orders-content" class="container mx-auto mt-4 max-w-full">
+
+        @php
+            // Defensive guards: ensure variables used by foreach are iterable to avoid runtime errors
+            if (!is_iterable($grouped)) {
+                $grouped = [];
+            }
+            if (!is_iterable($availableYears)) {
+                $availableYears = [];
+            }
+            if (!is_iterable($availableMonths)) {
+                $availableMonths = [];
+            }
+            if (!is_iterable($availableDays)) {
+                $availableDays = [];
+            }
+        @endphp
 
         {{-- Orders List --}}
         <div wire:loading.remove wire:target="updatedSearch,updatedStatusFilter,updatedPaymentFilter,updatedYearFilter,updatedMonthFilter,updatedDayFilter,updatedSortBy,updatedSortDirection,clearFilters">
@@ -459,7 +527,7 @@
                 @endphp
 
                 {{-- Month header --}}
-                <div class="mt-3 item-left" data-month="{{ $monthLabel }}" data-year="{{ $year }}">
+                <div class="mt-4 item-left" data-month="{{ $monthLabel }}" data-year="{{ $year }}">
                     <h2 class="text-2xl font-semibold text-zinc-800 dark:text-zinc-200">{{ $monthLabel }}</h2>
                 </div>
 
@@ -469,7 +537,7 @@
                     @endphp
 
                     {{-- Day header --}}
-                    <div class="mt-1.5 item-left" data-day="{{ $dayLabel }}" data-year="{{ $year }}">
+                    <div class="mt-1.5 ml-1 item-left" data-day="{{ $dayLabel }}" data-year="{{ $year }}">
                         <h5 class="text-base font-medium text-zinc-700 dark:text-zinc-300">{{ $dayLabel }}</h5>
                     </div>
 

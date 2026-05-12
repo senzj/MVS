@@ -3,6 +3,7 @@
     <head>
         <meta charset="utf-8">
         @include('partials.head')
+        @stack('styles')
     </head>
     <body class="min-h-screen bg-gray-50 dark:bg-gray-900">
 
@@ -38,8 +39,8 @@
                     {{-- orders --}}
                     <flux:navlist.item icon="shopping-cart" :href="route('orders')" :current="$ordersCurrent" wire:navigate>{{ __('Orders') }}</flux:navlist.item>
 
-                    {{-- orders history --}}
-                    <flux:navlist.item icon="clock" :href="route('orders.history')" :current="$ordersHistoryCurrent" wire:navigate>{{ __('Orders History') }}</flux:navlist.item>
+                    {{-- orders records --}}
+                    <flux:navlist.item icon="clock" :href="route('orders.history')" :current="$ordersHistoryCurrent" wire:navigate>{{ __('Orders Records') }}</flux:navlist.item>
                 </flux:navlist.group>
 
                 {{-- products nav group --}}
@@ -169,6 +170,8 @@
 
         {{-- scripts --}}
         @include('components.scripts.toastrjs')
+
+        @stack('scripts')
 
         @fluxScripts
     </body>

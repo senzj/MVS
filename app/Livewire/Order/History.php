@@ -5,6 +5,7 @@ namespace App\Livewire\Order;
 use App\Models\Order;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class History extends Component
@@ -327,8 +328,11 @@ class History extends Component
                         });
                     }
                 }
+                unset($dayOrders);
             }
+            unset($days);
         }
+        unset($months); // Unset reference to avoid accidental modifications
 
         // Sort groups by date for display
         if ($this->sortBy === 'created_at') {
@@ -339,7 +343,9 @@ class History extends Component
                     foreach ($months as $m => &$days) {
                         krsort($days);
                     }
+                    unset($days);
                 }
+                unset($months);
             } else {
                 ksort($grouped);
                 foreach ($grouped as $y => &$months) {
@@ -347,7 +353,9 @@ class History extends Component
                     foreach ($months as $m => &$days) {
                         ksort($days);
                     }
+                    unset($days);
                 }
+                unset($months);
             }
         }
 
@@ -406,6 +414,7 @@ class History extends Component
                 ->sort()
                 ->values()
                 ->toArray();
+                
         } elseif ($this->monthFilter) {
             $availableDays = Order::whereMonth('created_at', $this->monthFilter)
                 ->get()
@@ -418,6 +427,86 @@ class History extends Component
                 ->toArray();
         }
 
+        // Build Payment Status chart data
+        $paymentStatusQuery = (clone $baseQuery);
+        $paymentStatusQuery->getQuery()->orders = null;
+        $paymentStatusQuery->getQuery()->limit = null;
+        $paymentStatusQuery->getQuery()->offset = null;
+
+        $paymentStatusData = $paymentStatusQuery
+            ->select('payment_status', DB::raw('COUNT(*) as count'))
+            ->groupBy('payment_status')
+            ->get();
+
+        $paymentStatusLabels = [];
+        $paymentStatusCounts = [];
+        $paymentStatusColors = [];
+
+        $paymentStatusColorMap = [
+            'paid' => '#22c55e',
+            'unpaid' => '#ef4444',
+            'refunded' => '#a855f7',
+            'other' => '#3b82f6',
+        ];
+
+        foreach ($paymentStatusData as $row) {
+            $key = $row->payment_status ?? 'other';
+            $paymentStatusLabels[] = ucfirst($key);
+            $paymentStatusCounts[] = (int) $row->count;
+            $paymentStatusColors[] = $paymentStatusColorMap[$key] ?? $paymentStatusColorMap['other'];
+        }
+
+        $paymentStatusChart = [
+            'labels' => $paymentStatusLabels,
+            'datasets' => [
+                [
+                    'data' => $paymentStatusCounts,
+                    'backgroundColor' => $paymentStatusColors,
+                ],
+            ],
+        ];
+
+        // Build Payment Methods chart data
+        $paymentMethodQuery = (clone $baseQuery);
+        $paymentMethodQuery->getQuery()->orders = null;
+        $paymentMethodQuery->getQuery()->limit = null;
+        $paymentMethodQuery->getQuery()->offset = null;
+
+        $paymentMethodData = $paymentMethodQuery
+            ->select('payment_type', DB::raw('COUNT(*) as count'))
+            ->groupBy('payment_type')
+            ->get();
+
+        $paymentMethodLabels = [];
+        $paymentMethodCounts = [];
+        $paymentMethodColors = [];
+
+        $paymentMethodColorMap = [
+            'cash' => '#22c55e',
+            'gcash' => '#3b82f6',
+            'card' => '#8b5cf6',
+            'check' => '#6366f1',
+            'bank_transfer' => '#06b6d4',
+            'other' => '#6b7280',
+        ];
+
+        foreach ($paymentMethodData as $row) {
+            $key = $row->payment_type ?? 'other';
+            $paymentMethodLabels[] = ucfirst($key);
+            $paymentMethodCounts[] = (int) $row->count;
+            $paymentMethodColors[] = $paymentMethodColorMap[$key] ?? $paymentMethodColorMap['other'];
+        }
+
+        $paymentMethodsChart = [
+            'labels' => $paymentMethodLabels,
+            'datasets' => [
+                [
+                    'data' => $paymentMethodCounts,
+                    'backgroundColor' => $paymentMethodColors,
+                ],
+            ],
+        ];
+
         return view('livewire.order.history', [
             'grouped' => $grouped,
             'tz' => $tz,
@@ -428,6 +517,8 @@ class History extends Component
             'loadedOrders' => count($orders),
             'hasMorePages' => $this->hasMorePages,
             'isLoading' => $this->isLoading,
+            'paymentStatusChart' => $paymentStatusChart,
+            'paymentMethodsChart' => $paymentMethodsChart,
         ]);
     }
 }

@@ -1,6 +1,6 @@
 @section('title', __('Edit Orders'))
 
-<div class="w-full max-w-full overflow-x-hidden">
+<div class="w-full max-w-full overflow-x-hidden px-2 sm:px-4 pb-8">
 
     {{-- HEADER --}}
     <div class="flex items-start justify-between gap-3 py-2 mb-5">

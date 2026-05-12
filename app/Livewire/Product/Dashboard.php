@@ -3,7 +3,9 @@
 namespace App\Livewire\Product;
 
 use App\Models\Product;
-use Illuminate\Support\Facades\Log;
+use App\Services\Products\InventoryService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -171,15 +173,48 @@ class Dashboard extends Component
             return;
         }
 
-        $product->update([
-            'name' => ucwords(trim($this->name)),
-            'description' => trim($this->description),
-            'price' => $this->price,
-            'stocks' => $this->stocks,
-            'category' => $this->category,
-            'sold' => $this->sold,
-            'is_in_stock' => $this->is_in_stock,
-        ]);
+        try {
+            DB::transaction(function () use ($product) {
+                $inventory = app(InventoryService::class);
+
+                $oldStocks = (int) $product->stocks;
+                $newStocks = (int) $this->stocks;
+
+                if ($newStocks > $oldStocks) {
+                    $inventory->restore(
+                        (int) $product->id,
+                        $newStocks - $oldStocks,
+                        'restock',
+                        $product,
+                        __('Manual restock from product dashboard.')
+                    );
+                } elseif ($newStocks < $oldStocks) {
+                    $inventory->deduct(
+                        (int) $product->id,
+                        $oldStocks - $newStocks,
+                        'manual_adjustment',
+                        $product,
+                        __('Manual stock deduction from product dashboard.')
+                    );
+                }
+
+                $product->refresh();
+
+                $product->update([
+                    'name' => ucwords(trim($this->name)),
+                    'description' => trim($this->description),
+                    'price' => $this->price,
+                    'stocks' => $newStocks,
+                    'category' => $this->category,
+                    'sold' => $this->sold,
+                    'is_in_stock' => $this->is_in_stock,
+                ]);
+            });
+        } catch (ValidationException $e) {
+            $message = collect($e->errors())->flatten()->first() ?: __('Unable to update stock.');
+            $this->dispatch('show-error', ['message' => $message]);
+            return;
+        }
 
         $this->dispatch('show-success', ['message' => __('Product :name updated successfully!', ['name' => $this->name])]);
         $this->dispatch('close-edit-modal');

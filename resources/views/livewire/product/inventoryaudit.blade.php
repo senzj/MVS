@@ -60,6 +60,43 @@
         </script>
     </div>
 
+    {{-- Stock Distribution and Movement Type Distribution Charts --}}
+    <div class="grid grid-cols-1 gap-4 mb-5 lg:grid-cols-2">
+        {{-- Stock Distribution by Product (Donut Chart) --}}
+        <div class="rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 p-4 shadow-sm">
+            <div class="mb-3">
+                <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Stock Distribution by Product') }}</div>
+                <div class="text-xs text-zinc-500">{{ __('Top 10 products by current stock quantity') }}</div>
+            </div>
+            <script id="stock-distribution-chart-data" type="application/json">@json($stockChart)</script>
+            <div class="h-64">
+                <canvas id="stockDistributionChart"></canvas>
+            </div>
+            <script>
+                window.dispatchEvent(new CustomEvent('stock-distribution-chart-data', {
+                    detail: { data: @json($stockChart) }
+                }));
+            </script>
+        </div>
+
+        {{-- Movement Type Distribution (Donut Chart) --}}
+        <div class="rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 p-4 shadow-sm">
+            <div class="mb-3">
+                <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Movement Type Distribution') }}</div>
+                <div class="text-xs text-zinc-500">{{ __('Breakdown of all inventory movement types') }}</div>
+            </div>
+            <script id="movement-type-chart-data" type="application/json">@json($typeChart)</script>
+            <div class="h-64">
+                <canvas id="movementTypeChart"></canvas>
+            </div>
+            <script>
+                window.dispatchEvent(new CustomEvent('movement-type-chart-data', {
+                    detail: { data: @json($typeChart) }
+                }));
+            </script>
+        </div>
+    </div>
+
     <div class="rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 mb-5 space-y-4">
         <div class="grid grid-cols-1 gap-3 lg:grid-cols-5">
             <div class="col-span-1">

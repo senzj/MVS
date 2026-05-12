@@ -380,7 +380,7 @@
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-orange-500 fas fa-chart-bar"></i>{{ __('Sales by Category (Last 30 Days)') }}
             </h3>
-            <div class="h-80" wire:ignore>
+            <div class="h-94" wire:ignore>
                 <canvas id="categoryBreakdownChart"></canvas>
             </div>
         </div>

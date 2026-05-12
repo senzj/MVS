@@ -113,6 +113,7 @@ class InventoryAudit extends Component
         $labels = [];
         $addedSeries = [];
         $removedSeries = [];
+        $netSeries = [];
 
         $addedTypes = ['order_cancelled', 'refund', 'restock'];
         $removedTypes = ['order_created', 'order_updated'];
@@ -126,6 +127,7 @@ class InventoryAudit extends Component
 
             $addedSeries[] = (int) $dayAdded;
             $removedSeries[] = (int) $dayRemoved;
+            $netSeries[] = (int) ($dayAdded - $dayRemoved);
 
             $period->addDay();
         }
@@ -134,6 +136,45 @@ class InventoryAudit extends Component
             'labels' => $labels,
             'added' => $addedSeries,
             'removed' => $removedSeries,
+            'net' => $netSeries,
+        ];
+
+        // Stock Distribution Chart - Top 10 products by stock quantity
+        $stockDistribution = Product::where('stocks', '>', 0)
+            ->orderByDesc('stocks')
+            ->take(10)
+            ->pluck('stocks', 'name')
+            ->toArray();
+
+        $stockLabels = array_keys($stockDistribution);
+        $stockData = array_values($stockDistribution);
+
+        $stockChart = [
+            'labels' => $stockLabels,
+            'data' => $stockData,
+        ];
+
+        // Movement Type Distribution - breakdown of movement types
+        $typeDistribution = InventoryMovement::select('type', DB::raw('count(*) as count'))
+            ->groupBy('type')
+            ->pluck('count', 'type')
+            ->toArray();
+
+        $typeLabels = array_map(fn ($type) => match ($type) {
+            'order_created' => __('Order Created'),
+            'order_updated' => __('Order Updated'),
+            'order_cancelled' => __('Order Cancelled'),
+            'refund' => __('Refund'),
+            'manual_adjustment' => __('Manual Adjustment'),
+            'restock' => __('Restock'),
+            default => ucfirst(str_replace('_', ' ', $type)),
+        }, array_keys($typeDistribution));
+
+        $typeData = array_values($typeDistribution);
+
+        $typeChart = [
+            'labels' => $typeLabels,
+            'data' => $typeData,
         ];
 
         return view('livewire.product.inventoryaudit', [
@@ -150,6 +191,8 @@ class InventoryAudit extends Component
             ],
             'stats' => $stats,
             'chart' => $chart,
+            'stockChart' => $stockChart,
+            'typeChart' => $typeChart,
         ]);
     }
 }

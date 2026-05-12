@@ -197,9 +197,21 @@ class Dashboard extends Component
         // Get all customers for stats
         $allCustomers = Customer::all();
 
+        // Count customers with multiple orders in current month
+        $thisMonthStart = now()->startOfMonth();
+        $thisMonthEnd = now()->endOfMonth();
+        
+        $repeatedCustomersThisMonth = $allCustomers->filter(function ($customer) use ($thisMonthStart, $thisMonthEnd) {
+            $ordersThisMonth = $customer->orders()
+                ->whereBetween('created_at', [$thisMonthStart, $thisMonthEnd])
+                ->count();
+            return $ordersThisMonth > 1;
+        })->count();
+
         return view('livewire.customer.dashboard', [
             'customers' => $customers,
             'allCustomers' => $allCustomers,
+            'repeatedCustomersThisMonth' => $repeatedCustomersThisMonth,
         ]);
     }
 }

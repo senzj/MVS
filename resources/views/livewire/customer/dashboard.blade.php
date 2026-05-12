@@ -39,9 +39,9 @@
     </div>
 
     {{-- ═══════════════════════════════════════════════
-         QUICK STATS  (single row, 3-col)
+         QUICK STATS  (single row, 4-col)
     ════════════════════════════════════════════════ --}}
-    <div class="grid grid-cols-3 gap-3 mb-4">
+    <div class="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-4">
 
         {{-- Total Customers --}}
         <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 flex items-center gap-3">
@@ -67,6 +67,17 @@
                 @endphp
                 <div class="text-xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{{ $avgOrders }}</div>
                 <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{{ __('Average Orders per Customer') }}</div>
+            </div>
+        </div>
+
+        {{-- Repeated Customers --}}
+        <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+                <i class="fas fa-repeat text-amber-600 dark:text-amber-400"></i>
+            </div>
+            <div class="min-w-0">
+                <div class="text-xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{{ $repeatedCustomersThisMonth }}</div>
+                <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{{ __('Repeat Customers (This Month)') }}</div>
             </div>
         </div>
 

@@ -7,118 +7,189 @@ import './toastr';
 
 // Chartjs import
 import Chart from 'chart.js/auto';
-// import './Chart';
 
 // global variables
 window.$ = window.jQuery = $;
-window.toastr = toastr; // Add this line to make toastr globally available
-window.Chart = Chart; // Add this line to make Chart.js globally available
+window.toastr = toastr;
+window.Chart = Chart;
 
+// Main dashboard page charts
 import initDashboardCharts, { destroyDashboardCharts } from './dashboard-charts';
-import initInventoryAuditChart, { destroyInventoryAuditChart } from './products/inventory-chart';
 
+// product inventory audit charts
+import initInventoryAuditChart, {
+    destroyInventoryAuditChart,
+    initStockDistributionChart,
+    destroyStockDistributionChart,
+    initMovementTypeChart,
+    destroyMovementTypeChart
+} from './products/inventory-chart';
 
-function setNavigationOverlayVisible(isVisible) {
-  const overlay = document.getElementById('app-navigation-overlay');
+// orders history charts — registerOrdersChartListeners handles EVERYTHING internally
+import { registerOrdersChartListeners } from './orders/charts';
 
-  if (!overlay) {
-    return;
-  }
-
-  overlay.classList.toggle('hidden', !isVisible);
-  overlay.classList.toggle('flex', isVisible);
+    function setNavigationOverlayVisible(isVisible) {
+    const overlay = document.getElementById('app-navigation-overlay');
+    if (!overlay) return;
+    overlay.classList.toggle('hidden', !isVisible);
+    overlay.classList.toggle('flex', isVisible);
 }
 
 function registerDashboardChartsListener() {
-  if (window.__dashboardChartsListenerRegistered) return;
-  window.__dashboardChartsListenerRegistered = true;
+    if (window.__dashboardChartsListenerRegistered) return;
+    window.__dashboardChartsListenerRegistered = true;
 
-  window.addEventListener('dashboard-charts-data', (event) => {
-    const payload = event.detail?.data || {};
-    window.__dashboardChartsPayload = payload; // remember last data
-    initDashboardCharts(payload);
-  });
+    window.addEventListener('dashboard-charts-data', (event) => {
+        const payload = event.detail?.data || {};
+        window.__dashboardChartsPayload = payload;
+        initDashboardCharts(payload);
+    });
 
-  // Rebuild charts after any Livewire DOM update (captures language changes)
-  document.addEventListener('livewire:message.processed', () => {
-    if (window.__dashboardChartsPayload) {
-      destroyDashboardCharts();
-      initDashboardCharts(window.__dashboardChartsPayload);
-    }
-  });
+    document.addEventListener('livewire:message.processed', () => {
+        if (window.__dashboardChartsPayload) {
+        destroyDashboardCharts();
+        initDashboardCharts(window.__dashboardChartsPayload);
+        }
+    });
 
-  // Optional: cleanup when navigating away
-  window.addEventListener('livewire:navigating', () => {
-    destroyDashboardCharts();
-  });
+    window.addEventListener('livewire:navigating', () => {
+        destroyDashboardCharts();
+    });
 }
 
 function registerInventoryAuditChartListener() {
-  if (window.__inventoryAuditChartListenerRegistered) return;
-  window.__inventoryAuditChartListenerRegistered = true;
+    if (window.__inventoryAuditChartListenerRegistered) return;
+    window.__inventoryAuditChartListenerRegistered = true;
 
-  const build = (payload = null) => {
-    try {
-      initInventoryAuditChart(payload);
-    } catch (error) {
-      console.error('Failed to initialize inventory audit chart', error);
+    const build = (payload = null) => {
+        try { 
+            initInventoryAuditChart(payload); 
+        } catch (error) { 
+            console.error('Failed to initialize inventory audit chart', error); 
+        }
+    };
+
+    window.addEventListener('inventory-audit-chart-data', (event) => {
+        const payload = event.detail?.data || null;
+        window.__inventoryAuditChartPayload = payload;
+        build(payload);
+    });
+
+    document.addEventListener('livewire:message.processed', () => {
+        build(window.__inventoryAuditChartPayload || null);
+    });
+
+    window.addEventListener('livewire:navigating', () => destroyInventoryAuditChart());
+    window.addEventListener('livewire:navigated', () => build(window.__inventoryAuditChartPayload || null));
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        build(window.__inventoryAuditChartPayload || null);
+
+    } else {
+        document.addEventListener(
+            'DOMContentLoaded', () => build(
+                window.__inventoryAuditChartPayload || null
+            )
+        );
     }
-  };
+}
 
-  window.addEventListener('inventory-audit-chart-data', (event) => {
-    const payload = event.detail?.data || null;
-    window.__inventoryAuditChartPayload = payload;
-    build(payload);
-  });
+function registerStockDistributionChartListener() {
+    if (window.__stockDistributionChartListenerRegistered) return;
+    window.__stockDistributionChartListenerRegistered = true;
 
-  document.addEventListener('livewire:message.processed', () => {
-    build(window.__inventoryAuditChartPayload || null);
-  });
+    const build = (payload = null) => {
+        try { 
+            initStockDistributionChart(payload); 
+        } catch (error) { 
+            console.error('Failed to initialize stock distribution chart', error); 
+        }
+    };
 
-  window.addEventListener('livewire:navigating', () => {
-    destroyInventoryAuditChart();
-  });
+    window.addEventListener('stock-distribution-chart-data', (event) => {
+        const payload = event.detail?.data || null;
+        window.__stockDistributionChartPayload = payload;
+        build(payload);
+    });
 
-  window.addEventListener('livewire:navigated', () => {
-    build(window.__inventoryAuditChartPayload || null);
-  });
+    document.addEventListener('livewire:message.processed', () => {
+        build(window.__stockDistributionChartPayload || null);
+    });
 
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    build(window.__inventoryAuditChartPayload || null);
-  } else {
-    document.addEventListener('DOMContentLoaded', () => build(window.__inventoryAuditChartPayload || null));
-  }
+    window.addEventListener('livewire:navigating', () => destroyStockDistributionChart());
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        build(window.__stockDistributionChartPayload || null);
+
+    } else {
+        document.addEventListener(
+            'DOMContentLoaded', () => build(
+                window.__stockDistributionChartPayload || null)
+            );
+    }
+}
+
+function registerMovementTypeChartListener() {
+    if (window.__movementTypeChartListenerRegistered) return;
+    window.__movementTypeChartListenerRegistered = true;
+
+    const build = (payload = null) => {
+        try { 
+            initMovementTypeChart(payload); 
+
+        } catch (error) { 
+            console.error('Failed to initialize movement type chart', error); 
+        }
+    };
+
+    window.addEventListener('movement-type-chart-data', (event) => {
+        const payload = event.detail?.data || null;
+        window.__movementTypeChartPayload = payload;
+        build(payload);
+    });
+
+    document.addEventListener('livewire:message.processed', () => {
+        build(window.__movementTypeChartPayload || null);
+    });
+
+    window.addEventListener('livewire:navigating', () => destroyMovementTypeChart());
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        build(window.__movementTypeChartPayload || null);
+
+    } else {
+        document.addEventListener(
+            'DOMContentLoaded', () => build(
+                window.__movementTypeChartPayload || null
+            )
+        );
+    }
 }
 
 function registerNavigationOverlayListener() {
-  if (window.__navigationOverlayListenerRegistered) return;
-  window.__navigationOverlayListenerRegistered = true;
+    if (window.__navigationOverlayListenerRegistered) return;
+    window.__navigationOverlayListenerRegistered = true;
 
-  window.addEventListener('livewire:navigating', () => {
-    setNavigationOverlayVisible(true);
-  });
-
-  window.addEventListener('livewire:navigated', () => {
-    setNavigationOverlayVisible(false);
-  });
-
-  window.addEventListener('pageshow', () => {
-    setNavigationOverlayVisible(false);
-  });
+    window.addEventListener('livewire:navigating', () => setNavigationOverlayVisible(true));
+    window.addEventListener('livewire:navigated', () => setNavigationOverlayVisible(false));
+    window.addEventListener('pageshow', () => setNavigationOverlayVisible(false));
 }
 
-// Ensure listener is registered when Livewire and DOM are ready
-window.addEventListener('livewire:init', () => {
-  registerDashboardChartsListener();
-  registerNavigationOverlayListener();
-  registerInventoryAuditChartListener();
-});
+// ─── Bootstrap ───────────────────────────────────────────────────────────────
+
+function bootAll() {
+    registerDashboardChartsListener();
+    registerNavigationOverlayListener();
+    registerInventoryAuditChartListener();
+    registerStockDistributionChartListener();
+    registerMovementTypeChartListener();
+    registerOrdersChartListeners();
+}
+
+window.addEventListener('livewire:init', bootAll);
+
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  registerDashboardChartsListener();
-  registerNavigationOverlayListener();
-  registerInventoryAuditChartListener();
+    bootAll();
 } else {
-  document.addEventListener('DOMContentLoaded', registerDashboardChartsListener);
-  document.addEventListener('DOMContentLoaded', registerNavigationOverlayListener);
-  document.addEventListener('DOMContentLoaded', registerInventoryAuditChartListener);
+    document.addEventListener('DOMContentLoaded', bootAll);
 }
