@@ -21,7 +21,7 @@
                 {{ $overlayTitle }}
             </p>
             <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                {{ $overlayMessage }}...
+                {{ $overlayMessage }}
             </p>
         </div>
 

@@ -39,29 +39,25 @@
 <div class="flex items-center {{ $style === 'table' ? 'justify-center' : '' }} gap-1 {{ $style === 'card' ? 'pt-1 border-t border-zinc-100 dark:border-zinc-700 flex-wrap' : '' }}">
 
     {{-- SLOT 1: View --}}
-    <button wire:click="viewOrderDetails({{ $order->id }})"
-        class="{{ $btn }} text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
+    <button wire:click="viewOrderDetails({{ $order->id }})" class="{{ $btn }} text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
         <i class="fas fa-eye {{ $style === 'table' ? 'text-base' : '' }}"></i>
         <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('View') }}</span>
     </button>
 
     {{-- SLOT 2: Edit --}}
     @if (!$editLocked)
-        <a href="{{ route('orders.edit', $order) }}" wire:navigate
-            class="{{ $btn }} text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700">
+        <a href="{{ route('orders.edit', $order) }}" wire:navigate class="{{ $btn }} text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700">
             <i class="fas fa-edit {{ $style === 'table' ? 'text-base' : '' }}"></i>
             <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Edit') }}</span>
         </a>
     @else
-        <span class="{{ $btn }} text-zinc-300 dark:text-zinc-600 cursor-not-allowed opacity-50"
-            title="{{ __('Cannot edit') }} — {{ $order->status }}">
+        <span class="{{ $btn }} text-zinc-500 cursor-not-allowed opacity-50" title="{{ __('Cannot edit') }} — {{ $order->status }}">
             <i class="fas fa-lock {{ $style === 'table' ? 'text-base' : '' }}"></i>
-            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Edit') }}</span>
+            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Edit Locked') }}</span>
         </span>
     @endif
 
-    {{-- SLOT 3: Primary (state-driven) --}}
-    {{-- Fixed min-width wrapper keeps width constant regardless of content --}}
+    {{-- SLOT 3: Primary --}}
     <div class="inline-flex items-center justify-center min-w-[5.5rem]">
 
         @if ($primarySlot === 'pending:no_person')
@@ -173,25 +169,25 @@
     {{-- SLOT 4: Cancel | Delete --}}
     @if($order->status === 'preparing')
         {{-- When preparing — show Stop (cancel preparation / remove from batch) --}}
-        <button wire:click="cancelPrepare({{ $order->id }})"
-            class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 {{ $style === 'card' ? 'ml-auto' : '' }}">
+        <button wire:click="cancelPrepare({{ $order->id }})" class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 {{ $style === 'card' ? 'ml-auto' : '' }}">
             <i class="fas fa-hand {{ $style === 'table' ? 'text-base' : '' }}"></i>
             <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Stop') }}</span>
         </button>
+
     @elseif (!in_array($order->status, ['cancelled', 'completed', 'preparing', 'delivered'], true))
         {{-- Delivered but unpaid — allow cancel only when not cancelled/completed/preparing --}}
-        <button wire:click="openCancel({{ $order->id }})"
-            class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 {{ $style === 'card' ? 'ml-auto' : '' }}">
+        <button wire:click="openCancel({{ $order->id }})" class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 {{ $style === 'card' ? 'ml-auto' : '' }}">
             <i class="fas fa-ban {{ $style === 'table' ? 'text-base' : '' }}"></i>
             <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Cancel') }}</span>
         </button>
+
     @elseif (in_array($order->status, ['cancelled', 'completed', 'delivered'], true))
         {{-- Show delete when order is not cancelled or completed --}}
-        <button wire:click="confirmDelete({{ $order->id }})"
-            class="{{ $btn }} text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 {{ $style === 'card' ? 'ml-auto' : '' }}">
+        <button wire:click="confirmDelete({{ $order->id }})" class="{{ $btn }} text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 {{ $style === 'card' ? 'ml-auto' : '' }}">
             <i class="fas fa-trash {{ $style === 'table' ? 'text-base' : '' }}"></i>
             <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Delete') }}</span>
         </button>
+
     @else
         {{-- cancelled / completed: empty placeholder preserves column width --}}
         <span class="{{ $btn }} invisible" aria-hidden="true">

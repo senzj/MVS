@@ -9,8 +9,12 @@ use Livewire\Component;
 
 class History extends Component
 {
-    public bool $showOrderModal = false;
+    public bool $showOrderDetailsModal = false;
     public $selectedOrder = null;
+    public bool $showDeleteModal = false;
+    public ?string $deleteReceipt = null;
+    private ?int $deleteOrderId = null;
+
 
     // Search and Filter properties
     public string $search = '';
@@ -41,18 +45,17 @@ class History extends Component
 
     public function openOrder(int $orderId): void
     {
-        $this->selectedOrder = Order::with(['customer','employee','staff','orderItems.product'])
+        $this->selectedOrder = Order::with(['customer', 'employee', 'staff', 'orderItems.product'])
             ->find($orderId);
 
-        if($this->selectedOrder) {
-            $this->showOrderModal = true;
-            $this->dispatch('history-open');
+        if ($this->selectedOrder) {
+            $this->showOrderDetailsModal = true;
         }
     }
 
     public function closeOrder(): void
     {
-        $this->showOrderModal = false;
+        $this->showOrderDetailsModal = false;
         $this->selectedOrder = null;
         $this->dispatch('history-close');
     }
@@ -84,7 +87,7 @@ class History extends Component
 
         $this->isLoading = true;
         $this->page++;
-        
+
         // Re-render the component
         $this->dispatch('orders-loaded');
         $this->isLoading = false;
@@ -146,6 +149,50 @@ class History extends Component
         $this->resetPagination();
     }
 
+    public function closeOrderDetailsModal(): void
+    {
+        $this->showOrderDetailsModal = false;
+        $this->selectedOrder = null;
+    }
+
+    public function confirmDelete(int $orderId): void
+    {
+        $order = Order::find($orderId);
+
+        if (!$order) {
+            session()->flash('error', __('Order not found.'));
+            return;
+        }
+
+        $this->deleteOrderId = $orderId;
+        $this->deleteReceipt = $order->receipt_number;
+        $this->showDeleteModal = true;
+    }
+
+    public function closeDeleteModal(): void
+    {
+        $this->showDeleteModal = false;
+        $this->deleteReceipt = null;
+        $this->deleteOrderId = null;
+    }
+
+    public function deleteOrderConfirmed(): void
+    {
+        $order = Order::find($this->deleteOrderId);
+
+        if (!$order) {
+            session()->flash('error', __('Order not found.'));
+            $this->closeDeleteModal();
+            return;
+        }
+
+        $order->delete();
+        $this->closeDeleteModal();
+        $this->closeOrderDetailsModal();
+        session()->flash('success', __('Order deleted successfully.'));
+        $this->resetPagination();
+    }
+
     public function render()
     {
         $tz = config('app.timezone') ?? 'UTC';
@@ -178,7 +225,7 @@ class History extends Component
 
         // Get total count for pagination
         $totalOrders = $baseQuery->count();
-        
+
         // Calculate pagination
         $totalToLoad = $this->page * $this->perPage;
         $this->hasMorePages = $totalToLoad < $totalOrders;
@@ -213,7 +260,7 @@ class History extends Component
         // Build grouping with complete months
         $grouped = [];
         $monthsWithOrders = [];
-        
+
         // First pass: collect all months that have orders
         foreach ($orders as $o) {
             $dt = $o->created_at->setTimezone($tz);
@@ -226,7 +273,7 @@ class History extends Component
         foreach ($monthsWithOrders as $year => $months) {
             foreach (array_keys($months) as $monthKey) {
                 [$yearStr, $monthStr] = explode('-', $monthKey);
-                
+
                 $monthOrders = Order::with(['customer','employee'])
                     ->whereYear('created_at', $yearStr)
                     ->whereMonth('created_at', $monthStr)
@@ -322,7 +369,7 @@ class History extends Component
                 ->unique()
                 ->sort()
                 ->values();
-            
+
             foreach ($monthsCollection as $monthNumber) {
                 $availableMonths[] = [
                     'value' => $monthNumber,
@@ -337,7 +384,7 @@ class History extends Component
                 ->unique()
                 ->sort()
                 ->values();
-            
+
             foreach ($monthsCollection as $monthNumber) {
                 $availableMonths[] = [
                     'value' => $monthNumber,
