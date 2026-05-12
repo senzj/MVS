@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Products\InventoryService;
 use Illuminate\Database\Seeder;
 
 class OrderSeeder extends Seeder
@@ -17,6 +18,7 @@ class OrderSeeder extends Seeder
      */
     public function run(): void
     {
+        $inventoryService = new InventoryService();
         $userIds = User::query()->pluck('id');
         $customerIds = Customer::query()->pluck('id');
         $employeeIds = Employee::query()->where('status', 'active')->where('is_archived', false)->pluck('id');
@@ -100,14 +102,14 @@ class OrderSeeder extends Seeder
                     'total_price' => $lineTotal,
                 ]);
 
-                $remainingStocks = max(0, (int) $product->stocks - $quantity);
-                $soldCount = (int) ($product->sold ?? 0) + $quantity;
-
-                $product->update([
-                    'stocks' => $remainingStocks,
-                    'sold' => $soldCount,
-                    'is_in_stock' => $remainingStocks > 0,
-                ]);
+                // Use InventoryService to deduct and log the movement
+                $inventoryService->deduct(
+                    $product->id,
+                    $quantity,
+                    'seeder',
+                    $order,
+                    'Order seeding'
+                );
 
                 $orderTotal += $lineTotal;
                 $hasItems = true;
