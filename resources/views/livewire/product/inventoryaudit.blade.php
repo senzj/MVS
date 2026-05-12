@@ -13,26 +13,58 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-5">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-4 mb-5">
         <div class="rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 p-4 shadow-sm">
             <p class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ __('Total Movements') }}</p>
             <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($stats['total'] ?? 0) }}</p>
+            <p class="mt-1 text-xs text-zinc-500">{{ __('Showing total inventory movements') }}</p>
         </div>
+
         <div class="rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 p-4 shadow-sm">
-            <p class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ __('Stock Deducted') }}</p>
-            <p class="mt-2 text-2xl font-bold text-red-600">{{ number_format($stats['deducted'] ?? 0) }}</p>
+            <p class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ __('Added Stocks') }}</p>
+            <p class="mt-2 text-2xl font-bold text-emerald-600">{{ number_format($stats['added'] ?? 0) }}</p>
+            <p class="mt-1 text-xs text-zinc-500">{{ __('Total units added (restock/refund)') }}</p>
         </div>
+
         <div class="rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 p-4 shadow-sm">
-            <p class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ __('Stock Restored') }}</p>
-            <p class="mt-2 text-2xl font-bold text-emerald-600">{{ number_format($stats['restored'] ?? 0) }}</p>
+            <p class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ __('Removed Stocks') }}</p>
+            <p class="mt-2 text-2xl font-bold text-red-600">{{ number_format($stats['removed'] ?? 0) }}</p>
+            <p class="mt-1 text-xs text-zinc-500">{{ __('Total units removed (sales/adjustments)') }}</p>
         </div>
+
+        <div class="rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 p-4 shadow-sm">
+            <p class="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{{ __('Most Adjusted Product') }}</p>
+            <p class="mt-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ $stats['most_adjusted_product'] ?? __('N/A') }}</p>
+            <p class="mt-1 text-xs text-zinc-500">{{ __('Product with highest total adjustments') }}</p>
+        </div>
+    </div>
+
+    {{-- Inventory movements chart (additions vs deductions) --}}
+    <div class="rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 p-4 shadow-sm mb-5">
+        <div class="flex items-center justify-between mb-2">
+            <div>
+                <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Inventory Movements Over Time') }}</div>
+                <div class="text-xs text-zinc-500">{{ __('Shows additions and deductions to help detect unusual activity and supply patterns') }}</div>
+            </div>
+        </div>
+
+        <script id="inventory-audit-chart-data" type="application/json">@json($chart)</script>
+        <div class="h-45">
+            <canvas id="inventoryAuditLineChart"></canvas>
+        </div>
+
+        <script>
+            window.dispatchEvent(new CustomEvent('inventory-audit-chart-data', {
+                detail: { data: @json($chart) }
+            }));
+        </script>
     </div>
 
     <div class="rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 mb-5 space-y-4">
         <div class="grid grid-cols-1 gap-3 lg:grid-cols-5">
             <div class="col-span-1">
-                <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Search product') }}</label>
-                <input type="text" wire:model.live.debounce.300ms="search" placeholder="{{ __('Search movements...') }}" class="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
+                <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">{{ __('Search Order Number') }}</label>
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="{{ __('Search by order or remarks') }}" class="w-full px-3 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
             </div>
 
             <div>
@@ -76,14 +108,117 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm overflow-hidden">
+    {{-- Cards for mobile & tablet (hidden on xl and above) --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:hidden">
+        @forelse($movements as $movement)
+            @php
+                $typeLabels = [
+                    'order_created' => __('Order Created'),
+                    'order_updated' => __('Order Updated'),
+                    'order_cancelled' => __('Order Cancelled'),
+                    'refund' => __('Refund'),
+                    'manual_adjustment' => __('Manual Adjustment'),
+                    'restock' => __('Restock'),
+                ];
+
+                $typeColor = match ($movement->type) {
+                    'order_created', 'order_updated' => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+                    'order_cancelled', 'refund', 'restock' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+                    default => 'bg-zinc-100 text-zinc-700 dark:bg-zinc-700 dark:text-zinc-300',
+                };
+
+                $referenceLabel = match (class_basename((string) $movement->reference_type)) {
+                    'Order' => $movement->reference?->receipt_number ? '#' . $movement->reference->receipt_number : 'Order #' . ($movement->reference_id ?? '-'),
+                    default => $movement->reference_type ? class_basename($movement->reference_type) . ' #' . ($movement->reference_id ?? '-') : __('N/A'),
+                };
+
+                $remarks = match ($movement->type) {
+                    'order_created' => $movement->reference?->receipt_number
+                        ? __('Order #:receipt created', ['receipt' => $movement->reference->receipt_number])
+                        : $movement->remarks,
+                    'order_updated' => $movement->reference?->receipt_number
+                        ? __('Order #:receipt updated', ['receipt' => $movement->reference->receipt_number])
+                        : $movement->remarks,
+                    'order_cancelled' => $movement->reference?->receipt_number
+                        ? __('Order #:receipt cancelled', ['receipt' => $movement->reference->receipt_number])
+                        : $movement->remarks,
+                    'refund' => $movement->reference?->receipt_number
+                        ? __('Refund processed for order #:receipt', ['receipt' => $movement->reference->receipt_number])
+                        : $movement->remarks,
+                    'manual_adjustment' => $movement->reference?->receipt_number
+                        ? __('Manual adjustment for order #:receipt', ['receipt' => $movement->reference->receipt_number])
+                        : $movement->remarks,
+                    'restock' => $movement->reference?->receipt_number
+                        ? __('Stock restored for order #:receipt', ['receipt' => $movement->reference->receipt_number])
+                        : $movement->remarks,
+                    default => $movement->remarks,
+                };
+            @endphp
+
+            <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden">
+                @php
+                    $strip = match ($movement->type) {
+                        'order_created', 'order_updated' => 'bg-red-400',
+                        'order_cancelled', 'refund', 'restock' => 'bg-emerald-500',
+                        'manual_adjustment' => 'bg-indigo-400',
+                        default => 'bg-zinc-400',
+                    };
+                @endphp
+                <div class="h-1 w-full {{ $strip }}"></div>
+                <div class="p-4">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <p class="font-medium text-zinc-900 dark:text-zinc-100">{{ $referenceLabel }}</p>
+                            @php
+                                $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
+                                $formattedDate = $movement->created_at->locale($loc)->isoFormat('MMM DD, YYYY HH:mm A');
+                            @endphp
+                            <p class="text-xs text-zinc-500 mt-1">{{ $formattedDate }}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold {{ $typeColor }}">{{ $typeLabels[$movement->type] ?? ucfirst(str_replace('_', ' ', $movement->type)) }}</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
+                        <div>
+                            <div class="text-xs text-zinc-500">{{ __('Product') }}</div>
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ $movement->product?->name ?? __('Unknown product') }}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-zinc-500">{{ __('Quantity') }}</div>
+                            <div class="font-medium text-zinc-900 dark:text-zinc-100">{{ number_format($movement->quantity) }}</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 text-sm text-zinc-500 max-w-full truncate">{{ $remarks ?? __('N/A') }}</div>
+                </div>
+            </div>
+
+        @empty
+            <div class="col-span-1">
+                <div class="flex flex-col items-center text-zinc-400 dark:text-zinc-500 py-8">
+                    <i class="fas fa-boxes-stacked text-4xl mb-3 opacity-40"></i>
+                    <p class="text-sm">{{ __('No inventory movements found.') }}</p>
+                </div>
+            </div>
+        @endforelse
+    </div>
+
+    {{-- Cards pagination (mobile/tablet) --}}
+    <div class="px-4 py-3 border-t border-zinc-100 dark:border-zinc-700 xl:hidden">
+        {{ $movements->links() }}
+    </div>
+
+    {{-- Table for desktop (xl and above) --}}
+    <div class="hidden xl:block bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-zinc-100 dark:divide-zinc-700">
                 <thead class="bg-zinc-50 dark:bg-zinc-900/60">
                     <tr>
-                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider">{{ __('Order') }}</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider">{{ __('Order Number') }}</th>
                         <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider">{{ __('Product') }}</th>
-                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider">{{ __('Type') }}</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider">{{ __('Movement Type') }}</th>
                         <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider">{{ __('Quantity') }}</th>
                         <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider">{{ __('Before') }}</th>
                         <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 uppercase tracking-wider">{{ __('After') }}</th>
@@ -140,9 +275,13 @@
 
                             {{-- Order Number and Date --}}
                             <td class="px-4 py-3 text-center text-sm text-zinc-500 whitespace-nowrap">
+                                @php
+                                    $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
+                                    $tableDate = $movement->created_at->locale($loc)->isoFormat('MMM DD, YYYY HH:mm:ss A');
+                                @endphp
                                 <div class="flex flex-col items-center gap-1">
                                     <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $referenceLabel ?: 'N/A' }}</span>
-                                    <span class="text-xs text-zinc-500">{{ $movement->created_at->format('M d, Y h:i:s A') }}</span>
+                                    <span class="text-xs text-zinc-500">{{ $tableDate }}</span>
                                 </div>
                             </td>
 
@@ -215,8 +354,20 @@
             </table>
         </div>
 
-        <div class="px-4 py-3 border-t border-zinc-100 dark:border-zinc-700">
+        <div class="px-4 py-3 border-t border-zinc-100 dark:border-zinc-700 hidden xl:block">
             {{ $movements->links() }}
         </div>
     </div>
+
+    @include('livewire.partials.loading-overlay',
+        ['wireTarget' => implode(', ', [
+            'search',
+            'typeFilter',
+            'productFilter',
+            'dateFrom',
+            'dateTo',
+            'clearFilters'
+        ])
+        ]
+    )
 </div>

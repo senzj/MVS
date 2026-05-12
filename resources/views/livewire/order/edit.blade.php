@@ -237,7 +237,7 @@
                     <i class="fas fa-save mr-1"></i>{{ __('Save Changes') }}
                 </span>
                 <span wire:loading wire:target="openSaveConfirmation" class="flex items-center gap-2">
-                    <i class="fas fa-spinner fa-spin"></i>{{ __('Saving') }}...
+                    <i class="fas fa-spinner fa-spin"></i>{{ __('Saving') }}
                 </span>
             </button>
         </div>

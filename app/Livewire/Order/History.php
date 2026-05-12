@@ -211,7 +211,7 @@ class History extends Component
                 $q->where('status', $this->statusFilter);
             })
             ->when($this->paymentFilter !== '', function($q) {
-                $q->where('is_paid', $this->paymentFilter === 'paid');
+                $q->where('payment_status', $this->paymentFilter);
             })
             ->when($this->yearFilter, function($q) {
                 $q->whereYear('created_at', $this->yearFilter);
@@ -289,7 +289,7 @@ class History extends Component
                         $q->where('status', $this->statusFilter);
                     })
                     ->when($this->paymentFilter !== '', function($q) {
-                        $q->where('is_paid', $this->paymentFilter === 'paid');
+                        $q->where('payment_status', $this->paymentFilter);
                     })
                     ->when($this->dayFilter, function($q) {
                         $q->whereDay('created_at', $this->dayFilter);

@@ -90,7 +90,7 @@
                 <i class="fas fa-save mr-1"></i>{{ __('Create Product') }}
             </span>
             <span wire:loading wire:target="createProduct" class="flex items-center gap-2">
-                <i class="fas fa-spinner fa-spin"></i>{{ __('Creating...') }}
+                <i class="fas fa-spinner fa-spin"></i>{{ __('Creating') }}
             </span>
         </button>
     </div>

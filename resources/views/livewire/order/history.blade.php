@@ -243,7 +243,7 @@
                                 wire:model.live.debounce.300ms="search"
                                 id="order-search"
                                 type="text"
-                                placeholder="{{ __('Search by receipt number or customer name...') }}"
+                                placeholder="{{ __('Search by receipt number or customer name') }}"
                                 class="w-full pl-10 pr-4 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 dark:placeholder-zinc-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
                             >
                             @if($search)
@@ -282,32 +282,33 @@
                             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                                 {{-- Status Filter --}}
                                 <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingStatusFilter">Status</label>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingStatusFilter">{{ __('Order Status') }}</label>
                                     <select wire:model.live="statusFilter" id="floatingStatusFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200">
-                                        <option value="">All Statuses</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="in_transit">In Transit</option>
-                                        <option value="delivered">Delivered</option>
-                                        <option value="completed">Completed</option>
-                                        <option value="cancelled">Cancelled</option>
+                                        <option value="">{{ __('All Statuses') }}</option>
+                                        <option value="pending">{{ __('Pending') }}</option>
+                                        <option value="in_transit">{{ __('In transit') }}</option>
+                                        <option value="delivered">{{ __('Delivered') }}</option>
+                                        <option value="completed">{{ __('Completed') }}</option>
+                                        <option value="cancelled">{{ __('Cancelled') }}</option>
                                     </select>
                                 </div>
 
                                 {{-- Payment Filter --}}
                                 <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingPaymentFilter">Payment</label>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingPaymentFilter">{{ __('Payment Status') }}</label>
                                     <select wire:model.live="paymentFilter" id="floatingPaymentFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200">
-                                        <option value="">All Payments</option>
-                                        <option value="paid">Paid</option>
-                                        <option value="unpaid">Unpaid</option>
+                                        <option value="">{{ __('All Payments') }}</option>
+                                        <option value="paid">{{ __('Paid') }}</option>
+                                        <option value="unpaid">{{ __('Unpaid') }}</option>
+                                        <option value="refunded">{{ __('Refunded') }}</option>
                                     </select>
                                 </div>
 
                                 {{-- Year Filter --}}
                                 <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingYearFilter">Year</label>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingYearFilter">{{ __('Year') }}</label>
                                     <select wire:model.live="yearFilter" id="floatingYearFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200">
-                                        <option value="">All Years</option>
+                                        <option value="">{{ __('All Years') }}</option>
                                         @foreach($availableYears as $year)
                                             <option value="{{ $year }}">{{ $year }}</option>
                                         @endforeach
@@ -316,9 +317,9 @@
 
                                 {{-- Month Filter --}}
                                 <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingMonthFilter">Month</label>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingMonthFilter">{{ __('Month') }}</label>
                                     <select wire:model.live="monthFilter" id="floatingMonthFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200{{ !$yearFilter ? ' opacity-50 cursor-not-allowed' : '' }}" @if(!$yearFilter) disabled title="Select a year first" @endif>
-                                        <option value="">All Months</option>
+                                        <option value="">{{ __('All Months') }}</option>
                                         @if($yearFilter)
                                             @foreach($availableMonths as $month)
                                                 <option value="{{ $month['value'] }}">{{ $month['label'] }}</option>
@@ -329,7 +330,7 @@
 
                                 {{-- Day Filter --}}
                                 <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingDayFilter">Day</label>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingDayFilter">{{ __('Day') }}</label>
                                     <select wire:model.live="dayFilter" id="floatingDayFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200{{ !$monthFilter ? ' opacity-50 cursor-not-allowed' : '' }}" @if(!$monthFilter) disabled title="Select year then month first" @endif>
                                         <option value="">All Days</option>
                                         @if($monthFilter)
@@ -342,12 +343,12 @@
 
                                 {{-- Sort Options --}}
                                 <div>
-                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingSortbyFilter">Sort By</label>
+                                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingSortbyFilter">{{ __('Sort by') }}</label>
                                     <select wire:model.live="sortBy" id="floatingSortbyFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200">
-                                        <option value="created_at">Date Created</option>
-                                        <option value="receipt_number">Receipt Number</option>
-                                        <option value="order_total">Total Amount</option>
-                                        <option value="status">Status</option>
+                                        <option value="created_at">{{ __('Date created') }}</option>
+                                        <option value="receipt_number">{{ __('Receipt Number') }}</option>
+                                        <option value="order_total">{{ __('Total Amount') }}</option>
+                                        <option value="status">{{ __('Order Status') }}</option>
                                     </select>
                                 </div>
                             </div>
@@ -360,7 +361,7 @@
                                         class="px-3 py-1.5 text-sm bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-600 transition-all duration-200 flex items-center gap-2"
                                     >
                                         <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }}"></i>
-                                        <span>{{ $sortDirection === 'asc' ? 'Ascending' : 'Descending' }}</span>
+                                        <span>{{ $sortDirection === 'asc' ? __('Ascending') : __('Descending') }}</span>
                                     </button>
                                 </div>
 
@@ -369,7 +370,7 @@
                                     class="px-4 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-all duration-200 flex items-center gap-2"
                                 >
                                     <i class="fas fa-trash-alt"></i>
-                                    <span>Clear All Filters</span>
+                                    <span>{{ __('Clear All') }}</span>
                                 </button>
                             </div>
                         </div>
@@ -446,18 +447,6 @@
 
     {{-- Orders Content --}}
     <div id="orders-content" class="container mx-auto p-4 max-w-7xl">
-        {{-- Initial Loading Indicator --}}
-        <div wire:loading.delay.longest wire:target="updatedSearch,updatedStatusFilter,updatedPaymentFilter,updatedYearFilter,updatedMonthFilter,updatedDayFilter,updatedSortBy,updatedSortDirection,clearFilters" class="flex justify-center py-12">
-            <div class="text-center">
-                <div class="inline-flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
-                    <svg class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>{{ __('Loading orders...') }}</span>
-                </div>
-            </div>
-        </div>
 
         {{-- Orders List --}}
         <div wire:loading.remove wire:target="updatedSearch,updatedStatusFilter,updatedPaymentFilter,updatedYearFilter,updatedMonthFilter,updatedDayFilter,updatedSortBy,updatedSortDirection,clearFilters">
@@ -565,7 +554,20 @@
             'search',
             'statusFilter',
             'paymentFilter',
-            'yearFilter'
+            'yearFilter',
+            'monthFilter',
+            'dayFilter',
+            'sortBy',
+            'sortDirection',
+            'updatedSearch',
+            'updatedStatusFilter',
+            'updatedPaymentFilter',
+            'updatedYearFilter',
+            'updatedMonthFilter',
+            'updatedDayFilter',
+            'updatedSortBy',
+            'updatedSortDirection',
+            'clearFilters'
         ])
     ])
 

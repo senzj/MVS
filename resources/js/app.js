@@ -15,6 +15,8 @@ window.toastr = toastr; // Add this line to make toastr globally available
 window.Chart = Chart; // Add this line to make Chart.js globally available
 
 import initDashboardCharts, { destroyDashboardCharts } from './dashboard-charts';
+import initInventoryAuditChart, { destroyInventoryAuditChart } from './products/inventory-chart';
+
 
 function setNavigationOverlayVisible(isVisible) {
   const overlay = document.getElementById('app-navigation-overlay');
@@ -51,6 +53,43 @@ function registerDashboardChartsListener() {
   });
 }
 
+function registerInventoryAuditChartListener() {
+  if (window.__inventoryAuditChartListenerRegistered) return;
+  window.__inventoryAuditChartListenerRegistered = true;
+
+  const build = (payload = null) => {
+    try {
+      initInventoryAuditChart(payload);
+    } catch (error) {
+      console.error('Failed to initialize inventory audit chart', error);
+    }
+  };
+
+  window.addEventListener('inventory-audit-chart-data', (event) => {
+    const payload = event.detail?.data || null;
+    window.__inventoryAuditChartPayload = payload;
+    build(payload);
+  });
+
+  document.addEventListener('livewire:message.processed', () => {
+    build(window.__inventoryAuditChartPayload || null);
+  });
+
+  window.addEventListener('livewire:navigating', () => {
+    destroyInventoryAuditChart();
+  });
+
+  window.addEventListener('livewire:navigated', () => {
+    build(window.__inventoryAuditChartPayload || null);
+  });
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    build(window.__inventoryAuditChartPayload || null);
+  } else {
+    document.addEventListener('DOMContentLoaded', () => build(window.__inventoryAuditChartPayload || null));
+  }
+}
+
 function registerNavigationOverlayListener() {
   if (window.__navigationOverlayListenerRegistered) return;
   window.__navigationOverlayListenerRegistered = true;
@@ -72,11 +111,14 @@ function registerNavigationOverlayListener() {
 window.addEventListener('livewire:init', () => {
   registerDashboardChartsListener();
   registerNavigationOverlayListener();
+  registerInventoryAuditChartListener();
 });
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   registerDashboardChartsListener();
   registerNavigationOverlayListener();
+  registerInventoryAuditChartListener();
 } else {
   document.addEventListener('DOMContentLoaded', registerDashboardChartsListener);
   document.addEventListener('DOMContentLoaded', registerNavigationOverlayListener);
+  document.addEventListener('DOMContentLoaded', registerInventoryAuditChartListener);
 }

@@ -264,7 +264,7 @@
                     <div class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 justify-end
                                 px-5 sm:px-6 py-4 border-t border-zinc-200 dark:border-zinc-700
                                 bg-white dark:bg-zinc-900">
-                        <div class="flex w-full items-center justify-end gap-2">
+                        <div class="flex w-full items-center justify-between gap-2">
                             {{-- Delete action (history page only) --}}
                             @if(!empty($showDelete) && $showDelete && isset($order))
                                 <button

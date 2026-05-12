@@ -23,14 +23,14 @@
 @else
 
     {{-- Mobile Cards (< lg) --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 xl:hidden">
         @foreach($orders as $order)
             @include('livewire.partials.orders.card', ['order' => $order, 'tab' => $tab])
         @endforeach
     </div>
 
     {{-- Desktop Table (≥ lg) --}}
-    <div class="hidden lg:block bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden">
+    <div class="hidden xl:block bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-zinc-100 dark:border-zinc-700 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
                 <thead class="bg-zinc-50 dark:bg-zinc-900/60">

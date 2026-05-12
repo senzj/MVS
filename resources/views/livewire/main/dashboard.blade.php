@@ -131,6 +131,65 @@
         </div>
     </div>
 
+    {{-- Business Health and Operations --}}
+    <div class="grid grid-cols-1 gap-3 mb-6 xl:grid-cols-2">
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                <i class="mr-2 text-emerald-500 fas fa-coins"></i>{{ __('Money & Growth Snapshot') }}
+            </h3>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/10">
+                    <p class="text-xs uppercase text-emerald-700 dark:text-emerald-300">{{ __('Monthly Revenue') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['month_sales'] ?? 0, 2) }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Last 30 days') }}</p>
+                </div>
+                <div class="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/10">
+                    <p class="text-xs uppercase text-amber-700 dark:text-amber-300">{{ __('Estimated Profit') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['month_profit'] ?? 0, 2) }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Based on a 25% margin') }}</p>
+                </div>
+                <div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10">
+                    <p class="text-xs uppercase text-blue-700 dark:text-blue-300">{{ __('Average Order Value') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['average_order_value'] ?? 0, 2) }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Per completed order') }}</p>
+                </div>
+                <div class="p-4 rounded-lg bg-violet-50 dark:bg-violet-900/10">
+                    <p class="text-xs uppercase text-violet-700 dark:text-violet-300">{{ __('Average Daily Sales') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['average_daily_sales'] ?? 0, 2) }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('30-day run rate') }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                <i class="mr-2 text-orange-500 fas fa-box-open"></i>{{ __('Product Health & Operations') }}
+            </h3>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Products Sold') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['month_units_sold'] ?? 0) }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Units moved in the last 30 days') }}</p>
+                </div>
+                <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Active Products') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['active_products'] ?? 0) }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Currently in stock') }}</p>
+                </div>
+                <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Low Stock Items') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['low_stock_products'] ?? 0) }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Need restocking soon') }}</p>
+                </div>
+                <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Order Completion Rate') }}
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['completion_rate'] ?? 0, 1) }}%</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Delivered and completed orders') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Top Selling Products Section --}}
     <div class="grid grid-cols-1 gap-3 mb-6 xl:grid-cols-3">
 
@@ -229,136 +288,6 @@
         </div>
     </div>
 
-    {{-- Business Insights --}}
-    <div class="grid grid-cols-1 gap-3 mb-6 xl:grid-cols-2">
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                <i class="mr-2 text-emerald-500 fas fa-coins"></i>{{ __('Money & Growth Snapshot') }}
-            </h3>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div class="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/10">
-                    <p class="text-xs uppercase text-emerald-700 dark:text-emerald-300">{{ __('Monthly Revenue') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['month_sales'] ?? 0, 2) }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Last 30 days') }}</p>
-                </div>
-                <div class="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/10">
-                    <p class="text-xs uppercase text-amber-700 dark:text-amber-300">{{ __('Estimated Profit') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['month_profit'] ?? 0, 2) }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Based on a 25% margin') }}</p>
-                </div>
-                <div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10">
-                    <p class="text-xs uppercase text-blue-700 dark:text-blue-300">{{ __('Average Order Value') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['average_order_value'] ?? 0, 2) }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Per completed order') }}</p>
-                </div>
-                <div class="p-4 rounded-lg bg-violet-50 dark:bg-violet-900/10">
-                    <p class="text-xs uppercase text-violet-700 dark:text-violet-300">{{ __('Average Daily Sales') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['average_daily_sales'] ?? 0, 2) }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('30-day run rate') }}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                <i class="mr-2 text-orange-500 fas fa-box-open"></i>{{ __('Product Health & Operations') }}
-            </h3>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
-                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Products Sold') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['month_units_sold'] ?? 0) }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Units moved in the last 30 days') }}</p>
-                </div>
-                <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
-                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Active Products') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['active_products'] ?? 0) }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Currently in stock') }}</p>
-                </div>
-                <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
-                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Low Stock Items') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['low_stock_products'] ?? 0) }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Need restocking soon') }}</p>
-                </div>
-                <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
-                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Order Completion Rate') }}
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['completion_rate'] ?? 0, 1) }}%</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Delivered and completed orders') }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Insights --}}
-    <div class="grid grid-cols-1 gap-3 mb-6 xl:grid-cols-3">
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 xl:col-span-2">
-            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                <i class="mr-2 text-indigo-500 fas fa-lightbulb"></i>{{ __('Insights') }}
-            </h3>
-            <div class="space-y-4">
-                <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
-                    <div>
-                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Best Category') }}</p>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Highest sales by category in the last 30 days') }}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __($businessInsights['top_category'] ?? __('No data')) }}</p>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">₱{{ number_format($businessInsights['top_category_sales'] ?? 0, 2) }}</p>
-                    </div>
-                </div>
-                <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
-                    <div>
-                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Best Product This Month') }}</p>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Most units sold in the last 30 days') }}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ Str::limit($businessInsights['top_product_name'] ?? 'No data', 26) }}</p>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($businessInsights['top_product_sales'] ?? 0) }} {{ __('units') }}</p>
-                    </div>
-                </div>
-                <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
-                    <div>
-                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Payment Rate') }}</p>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Paid orders share over the last 30 days') }}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['payment_rate'] ?? 0, 1) }}%</p>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Cash flow health') }}</p>
-                    </div>
-                </div>
-                <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
-                    <div>
-                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Refund Rate') }}</p>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Share of refunded orders in the last 30 days') }}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['refund_rate'] ?? 0, 1) }}%</p>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Lower is better') }}
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                <i class="mr-2 text-red-500 fas fa-triangle-exclamation"></i>{{ __('Stock Watch') }}
-            </h3>
-            <div class="space-y-4">
-                <div class="p-4 rounded-lg bg-red-50 dark:bg-red-900/10">
-                    <p class="text-xs uppercase text-red-700 dark:text-red-300">{{ __('Low Stock') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['low_stock_products'] ?? 0) }}</p>
-                </div>
-                <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
-                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Out of Stock') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['out_of_stock_products'] ?? 0) }}</p>
-                </div>
-                <div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10">
-                    <p class="text-xs uppercase text-blue-700 dark:text-blue-300">{{ __('Units Sold') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($todayStats['units_sold'] ?? 0) }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Today') }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
     {{-- Descriptive Analytics Chart Section --}}
     <div class="grid grid-cols-1 gap-3 mb-8 lg:grid-cols-2">
 
@@ -453,6 +382,77 @@
             </h3>
             <div class="h-80" wire:ignore>
                 <canvas id="categoryBreakdownChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    {{-- Insights --}}
+    <div class="grid grid-cols-1 gap-3 mb-6 xl:grid-cols-3">
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 xl:col-span-2">
+            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                <i class="mr-2 text-indigo-500 fas fa-lightbulb"></i>{{ __('Insights') }}
+            </h3>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                    <div>
+                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Best Category') }}</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Highest sales by category in the last 30 days') }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __($businessInsights['top_category'] ?? __('No data')) }}</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">₱{{ number_format($businessInsights['top_category_sales'] ?? 0, 2) }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                    <div>
+                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Best Product This Month') }}</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Most units sold in the last 30 days') }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ Str::limit($businessInsights['top_product_name'] ?? 'No data', 26) }}</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($businessInsights['top_product_sales'] ?? 0) }} {{ __('units') }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                    <div>
+                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Payment Rate') }}</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Paid orders share over the last 30 days') }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['payment_rate'] ?? 0, 1) }}%</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Cash flow health') }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                    <div>
+                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Refund Rate') }}</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Share of refunded orders in the last 30 days') }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['refund_rate'] ?? 0, 1) }}%</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Lower is better') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
+            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                <i class="mr-2 text-red-500 fas fa-triangle-exclamation"></i>{{ __('Stock Watch') }}
+            </h3>
+            <div class="space-y-4">
+                <div class="p-4 rounded-lg bg-red-50 dark:bg-red-900/10">
+                    <p class="text-xs uppercase text-red-700 dark:text-red-300">{{ __('Low Stock') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['low_stock_products'] ?? 0) }}</p>
+                </div>
+                <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Out of Stock') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['out_of_stock_products'] ?? 0) }}</p>
+                </div>
+                <div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10">
+                    <p class="text-xs uppercase text-blue-700 dark:text-blue-300">{{ __('Units Sold') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($todayStats['units_sold'] ?? 0) }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Today') }}</p>
+                </div>
             </div>
         </div>
     </div>

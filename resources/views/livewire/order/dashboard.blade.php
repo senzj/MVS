@@ -205,18 +205,6 @@
         </div>
     </div>
 
-    {{-- SHARED LOADING SPINNER (shown while filters/search run) --}}
-    <div wire:loading.flex wire:target="search,paymentFilter,statusFilter,clearFilters"
-        class="justify-center py-10">
-        <div class="flex items-center gap-2 rounded-full border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm dark:border-blue-900/40 dark:bg-zinc-800 dark:text-blue-300">
-            <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
-                <path class="opacity-75" fill="currentColor" d="M12 2a10 10 0 0 1 10 10h-3a7 7 0 0 0-7-7V2z"></path>
-            </svg>
-            <span>{{ __('Loading orders...') }}</span>
-        </div>
-    </div>
-
     {{-- ONGOING TAB --}}
     <div x-show="activeTab === 'ongoing'"
          x-transition:enter="transition ease-out duration-150"

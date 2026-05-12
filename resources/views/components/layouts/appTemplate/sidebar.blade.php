@@ -8,9 +8,9 @@
 
         @php
             $dashboardCurrent = request()->routeIs('dashboard');
-            $ordersCurrent = request()->routeIs('orders', 'orders.*');
+            $ordersCurrent = request()->routeIs('orders');
             $ordersHistoryCurrent = request()->routeIs('orders.history');
-            $productsCurrent = request()->routeIs('products', 'products.*');
+            $productsCurrent = request()->routeIs('products');
             $customersCurrent = request()->routeIs('customers', 'customers.*');
             $employeesCurrent = request()->routeIs('employees', 'employees.*');
             $logsCurrent = request()->routeIs('logs', 'logs.*');
@@ -71,8 +71,8 @@
             {{-- Desktop User Menu --}}
             <flux:dropdown class="hidden lg:block" position="bottom" align="start">
                 <flux:profile
-                    :name="auth()->user()->name"
-                    :initials="auth()->user()->initials()"
+                    :name="Auth::user()->name"
+                    :initials="Auth::user()->initials()"
                     icon:trailing="chevrons-up-down"
                 />
 
@@ -84,13 +84,13 @@
                                     <span
                                         class="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white"
                                     >
-                                        {{ auth()->user()->initials() }}
+                                        {{ Auth::user()->initials() }}
                                     </span>
                                 </span>
 
                                 <div class="grid flex-1 text-start text-sm leading-tight">
-                                    <span class="truncate font-semibold">{{ auth()->user()->name }}</span>
-                                    <span class="truncate text-xs">{{ auth()->user()->email }}</span>
+                                    <span class="truncate font-semibold">{{ Auth::user()->name }}</span>
+                                    <span class="truncate text-xs">{{ Auth::user()->email }}</span>
                                 </div>
                             </div>
                         </div>
@@ -123,7 +123,7 @@
 
             <flux:dropdown position="top" align="end">
                 <flux:profile
-                    :initials="auth()->user()->initials()"
+                    :initials="Auth::user()->initials()"
                     icon-trailing="chevron-down"
                 />
 
@@ -135,13 +135,13 @@
                                     <span
                                         class="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white"
                                     >
-                                        {{ auth()->user()->initials() }}
+                                        {{ Auth::user()->initials() }}
                                     </span>
                                 </span>
 
                                 <div class="grid flex-1 text-start text-sm leading-tight">
-                                    <span class="truncate font-semibold">{{ auth()->user()->name }}</span>
-                                    <span class="truncate text-xs">{{ auth()->user()->email }}</span>
+                                    <span class="truncate font-semibold">{{ Auth::user()->name }}</span>
+                                    <span class="truncate text-xs">{{ Auth::user()->email }}</span>
                                 </div>
                             </div>
                         </div>
