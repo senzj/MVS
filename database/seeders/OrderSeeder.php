@@ -34,8 +34,15 @@ class OrderSeeder extends Seeder
 
         // Create random orders with items
         for ($i = 1; $i <= $random; $i++) {
-            $orderType = fake()->randomElement(['deliver']);
+            $orderType = fake()->randomElement(['deliver', 'walk_in']);
+
+            // Get all configured payment types
+            $otherPaymentTypes = config('storeconfig.other_payment_types', []);
+            $allPaymentTypes = array_merge(['cash', 'gcash'], $otherPaymentTypes);
+            $paymentType = fake()->randomElement($allPaymentTypes);
+
             $status = fake()->randomElement($statuses);
+
             $paymentStatus = match ($status) {
                 'delivered', 'completed' => 'paid',
                 'cancelled' => 'refunded',
@@ -64,7 +71,7 @@ class OrderSeeder extends Seeder
                 'delivered_by' => $orderType === 'deliver' && $employeeIds->isNotEmpty() ? $employeeIds->random() : null,
                 'order_total' => 0,
                 'order_type' => $orderType,
-                'payment_type' => fake()->randomElement(['cash', 'gcash']),
+                'payment_type' => $paymentType,
                 'status' => $status,
                 'payment_status' => $paymentStatus,
                 'receipt_number' => $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT),
@@ -106,7 +113,7 @@ class OrderSeeder extends Seeder
                 $inventoryService->deduct(
                     $product->id,
                     $quantity,
-                    'Order Created - ' . $order->receipt_number,
+                    'Order Created',
                     $order,
                     'Order seeding'
                 );

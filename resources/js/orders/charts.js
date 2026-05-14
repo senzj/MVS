@@ -44,7 +44,18 @@ export function initPaymentStatusChart(payload = null) {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: { position: 'bottom' },
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            return ' ' + value + ' orders';
+                        }
+                    }
+                }
             },
         },
         });
@@ -73,7 +84,18 @@ export function initPaymentMethodsChart(payload = null) {
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
-                    legend: { position: 'bottom' },
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                return ' ' + value + ' orders';
+                            }
+                        }
+                    }
                 },
             },
         });

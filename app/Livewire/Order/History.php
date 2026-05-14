@@ -414,7 +414,7 @@ class History extends Component
                 ->sort()
                 ->values()
                 ->toArray();
-                
+
         } elseif ($this->monthFilter) {
             $availableDays = Order::whereMonth('created_at', $this->monthFilter)
                 ->get()
@@ -481,20 +481,33 @@ class History extends Component
         $paymentMethodCounts = [];
         $paymentMethodColors = [];
 
-        $paymentMethodColorMap = [
-            'cash' => '#22c55e',
-            'gcash' => '#3b82f6',
-            'card' => '#8b5cf6',
-            'check' => '#6366f1',
-            'bank_transfer' => '#06b6d4',
-            'other' => '#6b7280',
+        // Dynamic color palette for payment methods
+        $colorPalette = [
+            'cash' => '#22c55e',        // Green (fixed)
+            'gcash' => '#3b82f6',       // Blue (fixed)
         ];
 
+        $additionalColors = [
+            '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1',
+            '#14b8a6', '#f97316', '#e11d48', '#2563eb', '#db2777',
+            '#0891b2', '#4f46e5', '#d946ef', '#0ea5e9', '#be185d',
+            '#0f766e', '#f43f5e', '#10b981', '#a855f7', '#22c55e',
+            '#e879f9', '#3b82f6', '#fbbf24', '#8b5cf6', '#ec4899',
+        ];
+
+        $colorIndex = 0;
         foreach ($paymentMethodData as $row) {
             $key = $row->payment_type ?? 'other';
-            $paymentMethodLabels[] = ucfirst($key);
+            $paymentMethodLabels[] = ucfirst(str_replace('_', ' ', $key));
             $paymentMethodCounts[] = (int) $row->count;
-            $paymentMethodColors[] = $paymentMethodColorMap[$key] ?? $paymentMethodColorMap['other'];
+
+            // Use predefined color for cash/gcash, else cycle through palette
+            if (isset($colorPalette[$key])) {
+                $paymentMethodColors[] = $colorPalette[$key];
+            } else {
+                $paymentMethodColors[] = $additionalColors[$colorIndex % count($additionalColors)];
+                $colorIndex++;
+            }
         }
 
         $paymentMethodsChart = [
