@@ -106,7 +106,7 @@ class OrderSeeder extends Seeder
                 $inventoryService->deduct(
                     $product->id,
                     $quantity,
-                    'seeder',
+                    'Order Created - ' . $order->receipt_number,
                     $order,
                     'Order seeding'
                 );

@@ -16,11 +16,52 @@ This project is mainly tailored for:
 
 Before installing, make sure you have the following:
 
+- **Git** — Version control system
+  - [Download Git](https://git-scm.com/download/win)
 - A local web server stack: **XAMPP** or **Laragon** (see below for which to choose)
-- PHP 8.2 or newer
-- Composer
-- Node.js and npm
+  - [Download XAMPP](https://www.apachefriends.org/)
+  - [Download Laragon](https://laragon.org/)
+- **PHP 8.2 or newer** (included with XAMPP/Laragon)
+- **Composer** — PHP dependency manager
+  - [Download Composer](https://getcomposer.org/download/)
+- **Node.js and npm** — JavaScript runtime and package manager
+  - [Download Node.js (includes npm)](https://nodejs.org/)
 - Laravel dependencies installed through Composer
+
+### Add PHP to Your Environment Variable
+
+Some commands like `php artisan` only work if Windows can find PHP from the terminal. If you get an error like `php is not recognized`, add PHP to your PATH.
+
+#### If You Are Using XAMPP
+
+1. Open **File Explorer** and go to `C:\xampp\php`.
+2. Copy that folder path.
+3. Search Windows for **Environment Variables** and open **Edit the system environment variables**.
+4. Click **Environment Variables**.
+5. Under **System variables**, select **Path** and click **Edit**.
+6. Click **New** and paste the XAMPP PHP folder path.
+7. Click **OK** on all windows to save.
+8. Close and reopen your terminal, then test with:
+
+```bash
+php -v
+```
+
+#### If You Are Using Laragon
+
+1. Open **File Explorer** and go to the Laragon PHP folder.
+2. Usually this is something like `C:\laragon\bin\php\php-8.x.x`.
+3. Copy that folder path.
+4. Open **Environment Variables** again.
+5. Add the Laragon PHP folder path to **Path**.
+6. Save the changes and reopen your terminal.
+7. Test with:
+
+```bash
+php -v
+```
+
+If the version number appears, PHP is ready and `php artisan` should work normally.
 
 ### Choosing Between XAMPP and Laragon
 
@@ -41,6 +82,22 @@ Both work great for MVS. Choose based on your preference—the installation step
 ## Installation
 
 ### Step 1: Copy the Project to Your Web Server
+
+**Option A: Clone with Git (Recommended)**
+
+Open a terminal and run:
+
+```bash
+# If using XAMPP
+cd C:/xampp/htdocs
+git clone <repository-url> MVS
+
+# If using Laragon
+cd C:/laragon/www
+git clone <repository-url> MVS
+```
+
+**Option B: Manual Copy**
 
 **If using XAMPP:**
 - Copy or clone this project into: `C:/xampp/htdocs/MVS`
