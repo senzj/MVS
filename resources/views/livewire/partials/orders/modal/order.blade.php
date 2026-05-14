@@ -41,6 +41,7 @@
     $walkinImage       = $currentImage ?? null;
     // Show QR only for walk-in + gcash + not yet paid
     $showQr = $walkinPaymentType === 'gcash'
+              || $walkinPaymentType === 'maya'
               && ! $isDelivery
               && in_array($reviewPaymentStatus, [__('Unpaid'), 'Unpaid', 'unpaid']);
 
@@ -159,7 +160,7 @@
                                         <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
                                             <i class="fas fa-money-bill-wave mr-1"></i>{{ __('Payment') }}
                                             <span class="ml-1 font-mono font-normal normal-case text-zinc-700 dark:text-zinc-300">
-                                                {{ $walkinPaymentType === 'cash' ? __('Cash') : __('GCash / Online') }}
+                                                {{ $walkinPaymentType }}
                                             </span>
                                         </p>
                                     </div>
@@ -224,7 +225,7 @@
                                             @endif
 
                                         {{-- GCash: QR (unpaid walk-in only) + proof upload --}}
-                                        @elseif($walkinPaymentType === 'gcash')
+                                        @elseif($walkinPaymentType != 'cash')
                                             @if($showQr && $walkinImage)
                                                 <div class="text-center space-y-2">
                                                     <div class="inline-block rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
@@ -241,6 +242,7 @@
                                             @include('livewire.partials.orders.proof-of-payment', [
                                                 'compact'          => true,
                                                 'existingProofUrl' => null,
+                                                'paymentType'      => $walkinPaymentType,
                                             ])
                                         @endif
                                     </div>
@@ -252,6 +254,7 @@
                                 @include('livewire.partials.orders.proof-of-payment', [
                                     'compact'          => true,
                                     'existingProofUrl' => $confirmProofUrl,
+                                    'paymentType'      => $paymentType ?? $reviewPaymentLabel,
                                     'readOnly'         => false,
                                     'allowCamera'      => $confirmProofAllowCamera,
                                 ])
@@ -264,9 +267,10 @@
                     <div class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 justify-end
                                 px-5 sm:px-6 py-4 border-t border-zinc-200 dark:border-zinc-700
                                 bg-white dark:bg-zinc-900">
-                        <div class="flex w-full items-center justify-between gap-2">
+
                             {{-- Delete action (history page only) --}}
                             @if(!empty($showDelete) && $showDelete && isset($order))
+                            <div class="flex w-full items-center justify-between gap-2">
                                 <button
                                     wire:click="confirmDelete({{ $order->id }})"
                                     class="cursor-pointer inline-flex items-center px-4 py-2.5 text-sm font-medium rounded-lg
@@ -277,6 +281,8 @@
                                     <i class="fas fa-trash mr-1"></i>
                                     {{ __('Delete Order') }}
                                 </button>
+                            @else
+                                <div class="flex w-full items-center justify-end gap-2">
                             @endif
 
                             {{-- Confirm + cancel --}}

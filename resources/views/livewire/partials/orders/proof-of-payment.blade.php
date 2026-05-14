@@ -14,6 +14,8 @@
     $allowCamera      = $allowCamera      ?? true;
     $readOnly         = $readOnly         ?? false;
     $compact          = $compact          ?? false;
+    $paymentType      = strtolower(trim((string) ($paymentType ?? '')));
+    $isCashPayment    = $paymentType === 'cash';
     $borderClass      = $compact
         ? 'rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/40 p-3 space-y-3'
         : 'rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-900/40 p-4 space-y-3';
@@ -21,19 +23,42 @@
 
 <div x-data="{ captureMode: null }" class="{{ $borderClass }}">
 
-    {{-- Section label --}}
-    <div class="flex items-center gap-2">
-        <i class="fas fa-receipt text-blue-400 text-sm" aria-hidden="true"></i>
-        <p class="text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
-            {{ __('Image of Payment') }}
-            @if(!$readOnly)
-                <span class="text-zinc-400 font-normal normal-case ml-1">({{ __('optional') }})</span>
-            @endif
-        </p>
-    </div>
+    {{-- ── Cash payments: display only if there is an existing proof ───────── --}}
+    @if($isCashPayment)
+
+        @if($existingProofUrl)
+            <div class="flex items-center gap-2">
+                <i class="fas fa-receipt text-blue-400 text-sm" aria-hidden="true"></i>
+                <p class="text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+                    {{ __('Image of Payment') }}
+                </p>
+            </div>
+
+            <div class="space-y-2">
+                <a href="{{ $existingProofUrl }}" target="_blank" rel="noopener"
+                   class="block overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    <img src="{{ $existingProofUrl }}"
+                         alt="{{ __('Image of Payment') }}"
+                         class="w-full max-h-60 object-contain bg-white dark:bg-zinc-800">
+                </a>
+                <p class="text-xs text-zinc-400 text-center">
+                    {{ __('Tap image to open full size') }}
+                </p>
+            </div>
+        @elseif(!$readOnly)
+            <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                {{ __('No proof of payment is required for cash payments.') }}
+            </p>
+        @endif
 
     {{-- ── Read-only / view mode ─────────────────────────────── --}}
-    @if($readOnly)
+    @elseif($readOnly)
+        <div class="flex items-center gap-2">
+            <i class="fas fa-receipt text-blue-400 text-sm" aria-hidden="true"></i>
+            <p class="text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+                {{ __('Image of Payment') }}
+            </p>
+        </div>
 
         @if($existingProofUrl)
             <div class="space-y-2">
@@ -59,6 +84,13 @@
 
     {{-- ── Editable mode ─────────────────────────────────────── --}}
     @else
+        <div class="flex items-center gap-2">
+            <i class="fas fa-receipt text-blue-400 text-sm" aria-hidden="true"></i>
+            <p class="text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+                {{ __('Image of Payment') }}
+                <span class="text-zinc-400 font-normal normal-case ml-1">({{ __('optional') }})</span>
+            </p>
+        </div>
 
         {{-- Existing proof preview (Edit form) --}}
         @if($existingProofUrl)

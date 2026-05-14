@@ -44,7 +44,7 @@ class Create extends Component
     public bool    $processingPayment = false;
     public ?string $currentImage      = null;
 
-    // Proof of payment (GCash)
+    // Proof of payment (not cash)
     public $proofOfPayment = null;
 
     // Product form
@@ -55,10 +55,11 @@ class Create extends Component
     public string       $productCategory    = 'other';
     public string|int   $productStocks      = 1;
     public string|float $productPrice       = 0;
+    public string       $defaultPaymentType  = 'cash';
 
     protected $rules = [
         'orderType'               => 'required|in:deliver,walk_in',
-        'paymentType'             => 'required|in:cash,gcash',
+        'paymentType'             => 'required|string',
         'selectedEmployeeId'      => 'nullable|exists:employees,id',
         'selectedCustomerId'      => 'nullable|exists:customers,id',
         'customerName'            => 'nullable|string|max:255',
@@ -69,14 +70,16 @@ class Create extends Component
         'orderItems.*.product_id' => 'required|exists:products,id',
         'orderItems.*.quantity'   => 'required|integer|min:1',
         'orderItems.*.price'      => 'nullable|numeric|min:0',
+        'orderItems.*.discount'   => 'nullable|numeric|min:0',
         'orderItems.*.is_free'    => 'nullable|boolean',
         'proofOfPayment'          => 'nullable|image|mimes:png,jpg,jpeg,webp|max:10240',
     ];
 
     public function mount(): void
     {
+        $this->defaultPaymentType = config('storeconfig.default_payment_type');
         $this->orderType   = config('storeconfig.default_order_type',   'walk_in');
-        $this->paymentType = config('storeconfig.default_payment_type', 'cash');
+        $this->paymentType = $this->defaultPaymentType;
         $this->orderNumber = $this->generateReceiptNumber();
         $this->addOrderItem();
     }
@@ -206,6 +209,12 @@ class Create extends Component
     protected function getSubmissionRules(): array
     {
         $rules = $this->rules;
+        $allowedPaymentTypes = array_values(array_unique(array_filter(array_merge(
+            [$this->defaultPaymentType, 'cash', 'gcash'],
+            (array) config('storeconfig.other_payment_types', [])
+        ))));
+
+        $rules['paymentType'] = 'required|in:' . implode(',', $allowedPaymentTypes);
 
         if ($this->orderType === 'deliver') {
             $rules['selectedEmployeeId'] = 'required|exists:employees,id';
@@ -323,13 +332,16 @@ class Create extends Component
 
                 $isFree    = (bool) ($item['is_free'] ?? false);
                 $unitPrice = $isFree ? 0 : max(0, (float) ($item['price'] ?? 0));
+                $discount  = $isFree ? 0 : min(max(0, (float) ($item['discount'] ?? 0)), $qty * $unitPrice);
+                $lineTotal = max(0, ($qty * $unitPrice) - $discount);
 
                 OrderItem::create([
                     'order_id'    => $order->id,
                     'product_id'  => $item['product_id'],
                     'quantity'    => $qty,
                     'unit_price'  => $unitPrice,
-                    'total_price' => $qty * $unitPrice,
+                    'discount_amount' => $discount,
+                    'total_price' => $lineTotal,
                 ]);
 
                 $inventory->deduct(

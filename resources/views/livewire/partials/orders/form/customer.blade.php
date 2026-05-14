@@ -8,6 +8,7 @@
     id="customer-section"
     x-data="{
         hasError: false,
+        isDelivery: '{{ ($order_type ?? 'walk_in') === 'deliver' ? 'true' : 'false' }}' === 'true',
         onError() {
             this.hasError = true;
             this.$nextTick(() => {
@@ -21,14 +22,18 @@
     @customer-validation-error.window="onError()"
     @customer-validation-clear.window="hasError = false"
     class="space-y-4"
-    :class="hasError ? 'ring-2 ring-red-400/60 rounded-2xl p-1' : ''">
+    :class="(hasError && isDelivery) ? 'ring-2 ring-red-400/60 rounded-2xl p-1' : ''">
 
     {{-- Customer picker --}}
     <div>
         <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
             <i class="fas fa-users mr-1"></i>
             {{ __('Customer') }}
-            <span class="text-red-500">*</span>
+            @if(($order_type ?? 'walk_in') === 'deliver')
+                <span class="text-red-500">*</span>
+            @else
+                <span class="text-zinc-400 normal-case font-normal">({{ __('optional') }})</span>
+            @endif
         </label>
 
         <div x-data="{
@@ -56,7 +61,7 @@
                 class="cursor-pointer w-full px-3 py-2 border rounded-lg
                        flex items-center justify-between transition
                        bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100"
-                :class="hasError && !{{ $selectedCustomerId ?? 0 }} && !{{ $isCreatingNewCustomer ? 'true' : 'false' }}
+                :class="hasError && !{{ $selectedCustomerId ?? 0 }} && !{{ $isCreatingNewCustomer ? 'true' : 'false' }} && '{{ ($order_type ?? 'walk_in') === 'deliver' ? 'true' : 'false' }}' === 'true'
                     ? 'border-red-400 dark:border-red-500'
                     : 'border-zinc-200 dark:border-zinc-600'">
                 <span class="truncate text-sm">
@@ -155,13 +160,16 @@
                 {{-- Name --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        {{ __('Name') }} <span class="text-red-500 normal-case font-normal">*</span>
+                        {{ __('Name') }}
+                        @if(($order_type ?? 'walk_in') === 'deliver')
+                            <span class="text-red-500 normal-case font-normal">*</span>
+                        @endif
                     </label>
                     <input type="text"
                         wire:model.live="customerName"
                         data-field="customerName"
                         class="{{ $fieldClass }}"
-                        :class="hasError && !$wire.customerName?.trim() ? '{{ $errorFieldClass }}' : '{{ $normalFieldClass }}'">
+                        :class="hasError && !$wire.customerName?.trim() && '{{ ($order_type ?? 'walk_in') === 'deliver' ? 'true' : 'false' }}' === 'true' ? '{{ $errorFieldClass }}' : '{{ $normalFieldClass }}'">
                     @error('customerName')
                         <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                     @enderror
@@ -185,13 +193,16 @@
                 {{-- Unit --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        {{ __('Unit') }} <span class="text-red-500 normal-case font-normal">*</span>
+                        {{ __('Unit') }}
+                        @if(($order_type ?? 'walk_in') === 'deliver')
+                            <span class="text-red-500 normal-case font-normal">*</span>
+                        @endif
                     </label>
                     <input type="text"
                         wire:model.live="customerUnit"
                         data-field="customerUnit"
                         class="{{ $fieldClass }}"
-                        :class="hasError && !$wire.customerUnit?.trim() ? '{{ $errorFieldClass }}' : '{{ $normalFieldClass }}'">
+                        :class="hasError && !$wire.customerUnit?.trim() && '{{ ($order_type ?? 'walk_in') === 'deliver' ? 'true' : 'false' }}' === 'true' ? '{{ $errorFieldClass }}' : '{{ $normalFieldClass }}'">
                     @error('customerUnit')
                         <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                     @enderror
@@ -200,13 +211,16 @@
                 {{-- Address --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        {{ __('Address') }} <span class="text-red-500 normal-case font-normal">*</span>
+                        {{ __('Address') }}
+                        @if(($order_type ?? 'walk_in') === 'deliver')
+                            <span class="text-red-500 normal-case font-normal">*</span>
+                        @endif
                     </label>
                     <input type="text"
                         wire:model.live="customerAddress"
                         data-field="customerAddress"
                         class="{{ $fieldClass }}"
-                        :class="hasError && !$wire.customerAddress?.trim() ? '{{ $errorFieldClass }}' : '{{ $normalFieldClass }}'">
+                        :class="hasError && !$wire.customerAddress?.trim() && '{{ ($order_type ?? 'walk_in') === 'deliver' ? 'true' : 'false' }}' === 'true' ? '{{ $errorFieldClass }}' : '{{ $normalFieldClass }}'">
                     @error('customerAddress')
                         <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
                     @enderror
@@ -220,13 +234,21 @@
                  x-transition:enter-end="opacity-100 translate-y-0"
                  class="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-300">
                 <i class="fas fa-exclamation-circle shrink-0"></i>
-                {{ __('Please fill in all required customer fields before saving.') }}
+                @if(($order_type ?? 'walk_in') === 'deliver')
+                    {{ __('Please select or create a customer and fill in all delivery details before saving.') }}
+                @else
+                    {{ __('Please fill in all required customer fields before saving.') }}
+                @endif
             </div>
 
         @else
             <div class="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                 <i class="fas fa-info-circle text-blue-400"></i>
-                {{ __('No customer selected. Choose one above or create a new one.') }}
+                @if(($order_type ?? 'walk_in') === 'deliver')
+                    {{ __('Please select or create a customer for delivery.') }}
+                @else
+                    {{ __('No customer selected. Choose one above or create a new one.') }}
+                @endif
             </div>
         @endif
     </div>

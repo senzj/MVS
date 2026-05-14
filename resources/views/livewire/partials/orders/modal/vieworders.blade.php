@@ -15,7 +15,7 @@
     $sourceOrder = $order ?? null;
     $statusKey = $sourceOrder?->status ?? ($reviewStatusKey ?? null) ?: 'pending';
     $paymentType = strtolower($sourceOrder->payment_type ?? ($reviewPaymentLabel ?? ''));
-    $isGcash = $paymentType === 'gcash';
+    $isNotCash = $paymentType !== 'cash';
     $isDelivery = $sourceOrder?->order_type === 'deliver' || in_array($reviewOrderType ?? '', [__('Delivery'), 'Delivery', 'deliver']);
 
     $receiptNumber = $sourceOrder?->receipt_number ?? ($reviewReceiptNumber ?? '');
@@ -24,7 +24,7 @@
         : ($reviewDateTime ?? __('N/A'));
 
     $paymentLabel = $sourceOrder
-        ? (strtolower($sourceOrder->payment_type ?? '') === 'cash' ? __('Cash') : __('GCash / Online'))
+        ? (strtolower($sourceOrder->payment_type ?? '') === 'cash' ? __('Cash') : $sourceOrder->payment_type)
         : ($reviewPaymentLabel ?? __('N/A'));
 
     $paymentStatus = $sourceOrder?->payment_status ?? strtolower((string)($reviewPaymentStatus ?? ''));
@@ -37,15 +37,23 @@
                 'quantity' => (int) ($item['quantity'] ?? 0),
                 'unit_price' => (float) ($item['price'] ?? 0),
                 'total_price' => (float) ($item['total'] ?? 0),
+                'discount_amount' => (float) ($item['discount'] ?? 0),
                 'is_free' => (bool) ($item['is_free'] ?? false),
                 'product' => null,
             ];
         });
 
-    $customerName = $sourceOrder?->customer?->name ?? ($reviewCustomerName ?? null);
-    $customerContact = $sourceOrder?->customer?->contact_number ?? ($reviewCustomerContact ?? null);
-    $customerUnit = $sourceOrder?->customer?->unit ?? ($reviewCustomerUnit ?? null);
-    $customerAddress = $sourceOrder?->customer?->address ?? ($reviewCustomerAddress ?? null);
+    $customer = $sourceOrder?->customer;
+    $customerName = $customer?->name ?? ($reviewCustomerName ?? null);
+    $customerContact = $customer?->contact_number ?? ($reviewCustomerContact ?? null);
+    $customerUnit = $customer?->unit ?? ($reviewCustomerUnit ?? null);
+    $customerAddress = $customer?->address ?? ($reviewCustomerAddress ?? null);
+    $hasCustomerInfo = filled($customer)
+        || !is_null($sourceOrder?->customer_id)
+        || filled($customerName)
+        || filled($customerContact)
+        || filled($customerUnit)
+        || filled($customerAddress);
     $deliveredBy = $sourceOrder?->employee?->name ?? ($reviewDeliveredBy ?? null);
     $orderTotal = $sourceOrder?->order_total ?? (float) ($reviewTotal ?? 0);
     $amountReceived = $sourceOrder?->amount_received ?? null;
@@ -53,7 +61,7 @@
     $existingProofUrl = $sourceOrder?->proof_url ?? null;
 @endphp
 
-<div class="mx-auto w-full max-w-md space-y-3 text-sm text-gray-800 dark:text-gray-100 select-text">
+<div class="mx-auto w-full max-w-full space-y-3 text-sm text-gray-800 dark:text-gray-100 select-text">
 
     {{-- Header --}}
     <div class="space-y-2.5 pb-3 border-b border-zinc-800/50 dark:border-gray-200/50">
@@ -83,17 +91,17 @@
         @endif
 
         {{-- Customer / delivery block --}}
-        @if($isDelivery)
+        @if($isDelivery || $hasCustomerInfo)
             @php $addr = implode(', ', array_filter([$customerUnit, $customerAddress])); @endphp
             <div class="space-y-2 border-b border-zinc-800/50 dark:border-zinc-200/50 pb-2">
-                <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
 
                     <div class="space-y-0.5">
                         <p class="text-[13px] uppercase text-zinc-700 dark:text-zinc-300">{{ __('Customer Name') }}</p>
                         <p class="font-semibold text-zinc-900 dark:text-zinc-100 leading-snug">{{ $customerName ?: 'N/A' }}</p>
                     </div>
 
-                    <div class="space-y-0.5 text-right">
+                    <div class="space-y-0.5 sm:text-right">
                         <p class="text-[13px] uppercase text-zinc-700 dark:text-zinc-300">{{ __('Contact Number') }}</p>
                         <p class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $customerContact ?: __('Not Provided') }}</p>
                     </div>
@@ -111,7 +119,7 @@
         <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
             <div class="space-y-0.5">
                 <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300">{{ __('Cashier') }}</p>
-                <p class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $sourceOrder?->staff?->name ?? __('Staff') }}</p>
+                <p class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $sourceOrder?->staff?->name ?? Auth::user()->name }}</p>
             </div>
             <div class="space-y-0.5 text-right">
                 <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300">{{ __('Courier') }}</p>
@@ -123,7 +131,7 @@
                 <p class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $isDelivery ? __('Delivery') : __('Walk-In') }}</p>
             </div>
             <div class="space-y-0.5 text-right">
-                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300">{{ __('Payment') }}</p>
+                <p class="text-[13px] uppercase  text-zinc-700 dark:text-zinc-300">{{ __('Payment Method') }}</p>
                 <p class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $paymentLabel }}</p>
             </div>
 
@@ -154,10 +162,11 @@
             </div>
 
             <div class="overflow-hidden">
-                <div class="grid grid-cols-[1fr_3.25rem_4.5rem_5rem] gap-2 px-3 py-2 text-[13px] uppercase text-zinc-700 dark:text-zinc-300 border-b border-dashed border-gray-500/80">
+                <div class="grid grid-cols-[1fr_3.25rem_4.5rem_4.5rem_5rem] gap-2 px-3 py-2 text-[13px] uppercase text-zinc-700 dark:text-zinc-300 border-b border-dashed border-gray-500/80">
                     <span class="text-center">{{ __('Item') }}</span>
                     <span class="text-center">{{ __('Qty / kg') }}</span>
                     <span class="text-center">{{ __('Price') }}</span>
+                    <span class="text-center">{{ __('Discount') }}</span>
                     <span class="text-center">{{ __('Total') }}</span>
                 </div>
 
@@ -168,7 +177,7 @@
                             $isFullyRefunded = $refundedQty > 0 && $refundedQty >= (int) $item->quantity;
                             $isPartiallyRefunded = $refundedQty > 0 && $refundedQty < (int) $item->quantity;
                         @endphp
-                        <div class="grid grid-cols-[1fr_3.25rem_4.5rem_5rem] gap-2 px-3 py-2.5 items-center
+                        <div class="grid grid-cols-[1fr_3.25rem_4.5rem_4.5rem_5rem] gap-2 px-3 py-2.5 items-center
                                     {{ $isFullyRefunded ? 'opacity-50' : '' }}">
                             <div class="min-w-0 pr-1">
                                 <div class="flex items-center gap-1 min-w-0 flex-wrap">
@@ -201,9 +210,12 @@
                                         {{ $isFullyRefunded ? 'line-through text-zinc-400' : 'text-zinc-900 dark:text-zinc-100' }}">
                                 ₱{{ number_format((float) ($item->unit_price ?? 0), 2) }}
                             </div>
+                            <div class="text-center font-mono tabular-nums pt-0.5 text-zinc-700 dark:text-zinc-300">
+                                ₱{{ number_format((float) ($item->discount_amount ?? $item->discount ?? 0), 2) }}
+                            </div>
                             <div class="text-center font-semibold font-mono tabular-nums pt-0.5
                                         {{ $isFullyRefunded ? 'line-through text-zinc-400' : 'text-zinc-900 dark:text-zinc-100' }}">
-                                ₱{{ number_format((float) ($item->total_price ?? 0), 2) }}
+                                ₱{{ number_format((float) ($item->total_price ?? $item->total ?? 0), 2) }}
                             </div>
                         </div>
                     @endforeach
@@ -231,15 +243,40 @@
             </div>
         @endif
 
-        <div class="pt-2">
-            <div class="flex items-end justify-between gap-3">
-                <span class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                    <i class="fas fa-receipt mr-2"></i>
-                    {{ __('Total Amount') }}
-                </span>
-                <span class="text-2xl font-black text-zinc-900 dark:text-zinc-100 font-mono tabular-nums leading-none">
-                    ₱{{ number_format((float) $orderTotal, 2) }}
-                </span>
+        @php
+            $subtotal = 0;
+            $discountSum = 0;
+            foreach ($displayItems as $it) {
+                $qty = (int) ($it->quantity ?? 0);
+                $unit = (float) ($it->unit_price ?? ($it->unit_price ?? 0));
+                $subtotal += $qty * $unit;
+                $discountSum += (float) ($it->discount_amount ?? $it->discount ?? 0);
+            }
+        @endphp
+
+        <div class="pt-2 space-y-2">
+            <div class="flex items-center justify-between text-xs text-zinc-700 dark:text-zinc-300">
+                <span>{{ __('Subtotal') }}</span>
+                <span class="font-mono">₱{{ number_format((float) $subtotal, 2) }}</span>
+            </div>
+
+            @if($discountSum > 0)
+                <div class="flex items-center justify-between text-xs text-zinc-700 dark:text-zinc-300">
+                    <span>{{ __('Discount') }}</span>
+                    <span class="font-mono">-₱{{ number_format((float) $discountSum, 2) }}</span>
+                </div>
+            @endif
+
+            <div class="pt-2">
+                <div class="flex items-end justify-between gap-3">
+                    <span class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                        <i class="fas fa-receipt mr-2"></i>
+                        {{ __('Total Amount') }}
+                    </span>
+                    <span class="text-2xl font-black text-zinc-900 dark:text-zinc-100 font-mono tabular-nums leading-none">
+                        ₱{{ number_format((float) $orderTotal, 2) }}
+                    </span>
+                </div>
             </div>
         </div>
     </div>
@@ -254,7 +291,7 @@
     @endif
 
     {{-- Payment proof --}}
-    @if($showProofSection && $isGcash)
+    @if($showProofSection && ($isNotCash || ! empty($existingProofUrl)))
         <div class="pt-3 border-t border-gray-200/80 dark:border-gray-700/80">
             <p class="text-xs uppercase tracking-[0.22em] text-gray-400 dark:text-gray-500 mb-2">
                 {{ __('Payment Proof') }}
@@ -263,6 +300,7 @@
                 'readOnly'          => true,
                 'allowUploadInView' => in_array($paymentStatus, ['unpaid']),
                 'existingProofUrl'  => $existingProofUrl,
+                'paymentType'       => $paymentType,
                 'compact'           => true,
             ])
         </div>

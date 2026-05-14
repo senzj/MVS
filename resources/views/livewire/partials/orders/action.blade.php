@@ -11,7 +11,7 @@
 @php
     $btn   = $style === 'table' ? 'tbl-action-btn' : 'card-action-btn';
 
-    $editLocked = in_array($order->status, (array) config('storeconfig.order_edit_lock_status'));
+    $editLocked = in_array($order->status, (array) config('storeconfig.order_edit_lock_status')) && $order->payment_status !== 'unpaid';
 
     // Determine which primary action to show
     $primarySlot = null;
@@ -26,7 +26,7 @@
         $primarySlot   = 'preparing';
     } elseif ($order->status === 'in_transit') {
         $primarySlot = 'in_transit';
-    } elseif ($order->status === 'delivered' && $order->payment_status === 'unpaid') {
+    } elseif ($order->status === 'delivered' && $order->payment_status === 'unpaid' || $order->payment_status === 'unpaid') {
         $primarySlot = 'delivered:unpaid';
     } elseif ($order->status === 'delivered' && $order->payment_status === 'paid') {
         $primarySlot = 'delivered:paid';
@@ -53,12 +53,12 @@
     @else
         <span class="{{ $btn }} text-zinc-500 cursor-not-allowed opacity-50" title="{{ __('Cannot edit') }} — {{ $order->status }}">
             <i class="fas fa-lock {{ $style === 'table' ? 'text-base' : '' }}"></i>
-            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Edit Locked') }}</span>
+            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Locked') }}</span>
         </span>
     @endif
 
     {{-- SLOT 3: Primary --}}
-    <div class="inline-flex items-center justify-center min-w-[5.5rem]">
+    <div class="inline-flex items-center justify-center min-w-20">
 
         @if ($primarySlot === 'pending:no_person')
             <span class="{{ $btn }} text-zinc-400 opacity-50 cursor-not-allowed">
@@ -119,11 +119,6 @@
                     <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Preparing') }}</span>
                     <span class="font-mono text-[10px] bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded ml-1" x-text="Math.floor(r/60)+':'+String(r%60).padStart(2,'0')"></span>
                 </div>
-            @else
-                <span class="{{ $btn }} text-orange-600 dark:text-orange-400">
-                    <i class="fas fa-user-slash {{ $style === 'table' ? 'text-base' : '' }}"></i>
-                    <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('No Staff') }}</span>
-                </span>
             @endif
 
         @elseif ($primarySlot === 'in_transit')

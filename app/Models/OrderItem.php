@@ -12,6 +12,7 @@ class OrderItem extends Model
         'quantity',
         'refunded_quantity',  // tracks how many units have been returned
         'unit_price',
+        'discount_amount',
         'total_price',
     ];
 
@@ -19,6 +20,7 @@ class OrderItem extends Model
         'quantity'          => 'integer',
         'refunded_quantity' => 'integer',
         'unit_price'        => 'float',
+        'discount_amount'   => 'float',
         'total_price'       => 'float',
     ];
 

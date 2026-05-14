@@ -30,12 +30,11 @@ return new class extends Migration
 
             $table->string('receipt_number')->unique();
 
-            $table->decimal('order_total', 10, 2);
-
+            $default_order = config('storeconfig.default_order_type');
             $table->enum('order_type', ['walk_in', 'deliver'])
-                ->default('deliver');
+                ->default($default_order);
 
-            $table->enum('payment_type', ['cash', 'gcash'])
+            $table->string('payment_type')
                 ->nullable();
 
             $table->enum('status', [
@@ -45,16 +44,17 @@ return new class extends Migration
                 'delivered',
                 'completed',
                 'cancelled'
-            ])->default('pending');
+                ])->default('pending');
 
-            $table->enum('payment_status', [
+                $table->enum('payment_status', [
                 'unpaid',
                 'paid',
                 'refunded',
-            ])->default('unpaid');
+                ])->default('unpaid');
 
-            $table->string('change_amount')->nullable();
-            $table->string('amount_received')->nullable();
+            $table->decimal('order_total', 10, 2);
+            $table->decimal('change_amount', 10, 2)->nullable();
+            $table->decimal('amount_received', 10, 2)->nullable();
 
             $table->string('proof_of_payment')->nullable();
 

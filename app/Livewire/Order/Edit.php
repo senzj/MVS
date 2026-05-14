@@ -77,6 +77,7 @@ class Edit extends Component
                 'receipt' => $order->receipt_number,
                 'status'  => $order->status,
             ]));
+
             $this->redirect(route('orders'), navigate: true);
             return;
         }
@@ -132,7 +133,7 @@ class Edit extends Component
 
     public function updatedPaymentType(): void
     {
-        if ($this->payment_type !== 'gcash') {
+        if ($this->payment_type === 'cash') {
             $this->proofOfPayment = null;
         }
     }
@@ -258,6 +259,7 @@ class Edit extends Component
                 'quantity'          => (int) $item->quantity,
                 'refunded_quantity' => (int) ($item->refunded_quantity ?? 0),
                 'price'             => (float) $item->unit_price,
+                'discount'          => (float) ($item->discount_amount ?? 0),
                 'stocks'            => $item->product?->stocks ?? 0,
                 'original_price'    => (float) $item->unit_price,
                 'is_free'           => (float) $item->total_price <= 0,
@@ -279,7 +281,7 @@ class Edit extends Component
 
         $this->validate([
             'status'         => 'required|in:pending,preparing,in_transit,delivered,completed,cancelled',
-            'payment_type'   => 'required|in:cash,gcash',
+            'payment_type'   => 'required|string',
             'payment_status' => 'required|in:unpaid,paid,refunded',
             'order_type'     => 'required|in:walk_in,deliver',
             'delivered_by'   => 'nullable|exists:employees,id',
@@ -288,6 +290,7 @@ class Edit extends Component
             'orderItems.*.product_id' => 'required|exists:products,id',
             'orderItems.*.quantity'   => 'required|integer|min:1',
             'orderItems.*.price'      => 'required|numeric|min:0',
+            'orderItems.*.discount'   => 'nullable|numeric|min:0',
             'orderItems.*.is_free'    => 'nullable|boolean',
             'proofOfPayment'          => 'nullable|image|mimes:png,jpg,jpeg,webp|max:10240',
         ]);
@@ -298,7 +301,7 @@ class Edit extends Component
 
         // Handle proof upload
         $proofPath = $this->existingProof;
-        if ($this->payment_type === 'gcash' && $this->proofOfPayment) {
+        if ($this->payment_type !== 'cash' && $this->proofOfPayment) {
             if ($this->existingProof) {
                 Storage::disk('public')->delete($this->existingProof);
             }
@@ -331,6 +334,7 @@ class Edit extends Component
                         'quantity'          => $newQty,
                         'refunded_quantity' => $refundedQty, // carry through — never modified here
                         'price'             => max(0, (float) $item['price']),
+                        'discount'          => max(0, (float) ($item['discount'] ?? 0)),
                         'is_free'           => (bool) ($item['is_free'] ?? false),
                         'total'             => max(0, (float) ($item['total'] ?? 0)),
                     ];
@@ -368,14 +372,17 @@ class Edit extends Component
                     $existing->update([
                         'quantity'    => $item['quantity'],
                         'unit_price'  => $item['price'],
+                        'discount_amount' => min(max(0, (float) ($item['discount'] ?? 0)), $item['quantity'] * $item['price']),
                         'total_price' => $item['total'],
                     ]);
                 } else {
+                    $discount = min(max(0, (float) ($item['discount'] ?? 0)), $item['quantity'] * $item['price']);
                     OrderItem::create([
                         'order_id'          => $this->order->id,
                         'product_id'        => $item['product_id'],
                         'quantity'          => $item['quantity'],
                         'unit_price'        => $item['price'],
+                        'discount_amount'   => $discount,
                         'total_price'       => $item['total'],
                         'refunded_quantity' => 0,
                     ]);
@@ -404,6 +411,18 @@ class Edit extends Component
 
     public function cancel(): void
     {
+        if ($this->isLocked) {
+            session()->flash('error', __('This order cannot be edited.'));
+            return;
+        } elseif ($this->order->status === 'cancelled') {
+            session()->flash('info', __('This order is already cancelled.'));
+            return;
+        } else {
+            $this->status = 'cancelled';
+            session()->flash('success', __('Order #:receipt cancelled.', ['receipt' => $this->order->receipt_number]));
+            $this->save();
+        }
+
         $this->redirect(route('orders'), navigate: true);
     }
 
@@ -479,11 +498,17 @@ class Edit extends Component
     private function buildConfirmData(): array
     {
         $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
+        $paymentType = strtolower(trim((string) $this->payment_type));
+
         return [
             'receiptNumber'      => $this->order->receipt_number,
             'reviewDateTime'     => $this->order->created_at->locale($loc)->isoFormat('LLLL'),
             'orderType'          => $this->order_type === 'deliver' ? __('Delivery') : __('Walk-In'),
-            'paymentLabel'       => $this->payment_type === 'cash' ? __('Cash') : __('GCash'),
+            'paymentLabel'       => match ($paymentType) {
+                'cash'  => __('Cash'),
+                'gcash' => __('GCash'),
+                default => ucwords(str_replace('_', ' ', $paymentType)),
+            },
             'paymentStatusLabel' => match ($this->payment_status) {
                 'paid'     => __('Paid'),
                 'refunded' => __('Refunded'),

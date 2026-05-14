@@ -79,7 +79,11 @@ trait HasConfirmData
             ?? $this->payment_type                    // Edit
             ?? 'cash';
 
-        $paymentLabel = $paymentTypeRaw === 'gcash' ? __('GCash') : __('Cash');
+        $paymentLabel = match (strtolower((string) $paymentTypeRaw)) {
+            'cash'  => __('Cash'),
+            'gcash' => __('GCash'),
+            default => ucwords(str_replace('_', ' ', (string) $paymentTypeRaw)),
+        };
 
         // ── Payment status ──────────────────────────────────────────
         $paymentStatusRaw = $this->paymentStatus      // Add
@@ -133,10 +137,18 @@ trait HasConfirmData
             'paymentStatusLabel' => $paymentStatusLabel,
             'statusLabel'        => $statusLabel,
             'deliveredBy'        => optional($employee)->name,
-            'customerName'       => $this->customerName    ?? optional($customer)->name,
-            'customerContact'    => $this->customerContact ?? optional($customer)->contact_number,
-            'customerUnit'       => $this->customerUnit    ?? optional($customer)->unit,
-            'customerAddress'    => $this->customerAddress ?? optional($customer)->address,
+            'customerName'       => filled($this->customerName ?? null)
+                ? $this->customerName
+                : optional($customer)->name,
+            'customerContact'    => filled($this->customerContact ?? null)
+                ? $this->customerContact
+                : optional($customer)->contact_number,
+            'customerUnit'       => filled($this->customerUnit ?? null)
+                ? $this->customerUnit
+                : optional($customer)->unit,
+            'customerAddress'    => filled($this->customerAddress ?? null)
+                ? $this->customerAddress
+                : optional($customer)->address,
             'items'              => $items,
             'totalAmount'        => (float) $total,
         ];

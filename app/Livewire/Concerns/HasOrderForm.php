@@ -214,6 +214,7 @@ trait HasOrderForm
         $this->orderItems[$itemIndex]['stocks']       = (int) $product->stocks;
         $this->orderItems[$itemIndex]['price']        = (float) $product->price;
         $this->orderItems[$itemIndex]['original_price'] = (float) $product->price;
+        $this->orderItems[$itemIndex]['discount']     = (float) ($this->orderItems[$itemIndex]['discount'] ?? 0);
 
         // Clamp qty to available stock
         $currentQty = (int) ($this->orderItems[$itemIndex]['quantity'] ?? 1);
@@ -238,6 +239,7 @@ trait HasOrderForm
             'quantity'       => 1,
             'price'          => 0,
             'original_price' => 0,
+            'discount'       => 0,
             'is_free'        => false,
             'total'          => 0,
         ];
@@ -268,8 +270,10 @@ trait HasOrderForm
         }
 
         $isFree = (bool) ($this->orderItems[$index]['is_free'] ?? false);
+        $discount = max(0, (float) ($this->orderItems[$index]['discount'] ?? 0));
 
         if ($isFree) {
+            $this->orderItems[$index]['discount'] = 0;
             $this->orderItems[$index]['total'] = 0;
             return;
         }
@@ -277,8 +281,11 @@ trait HasOrderForm
         $qtyRaw  = $this->orderItems[$index]['quantity'] ?? null;
         $qty     = (is_numeric($qtyRaw) && $qtyRaw !== '') ? max(1, (int) $qtyRaw) : 0;
         $price   = max(0, (float) ($this->orderItems[$index]['price'] ?? 0));
+        $subtotal = $qty * $price;
+        $discount = min($discount, $subtotal);
 
-        $this->orderItems[$index]['total'] = $qty * $price;
+        $this->orderItems[$index]['discount'] = $discount;
+        $this->orderItems[$index]['total'] = max(0, $subtotal - $discount);
     }
 
     /**
@@ -302,6 +309,7 @@ trait HasOrderForm
             'product_id' => $this->onProductIdChange($index),
             'quantity'   => $this->onQuantityChange($index),
             'price'      => $this->onPriceChange($index),
+            'discount'   => $this->onDiscountChange($index),
             'is_free'    => $this->calculateItemTotal($index),
             default      => null,
         };
@@ -367,6 +375,12 @@ trait HasOrderForm
         $this->calculateItemTotal($index);
     }
 
+    private function onDiscountChange(int $index): void
+    {
+        $this->orderItems[$index]['discount'] = max(0, (float) ($this->orderItems[$index]['discount'] ?? 0));
+        $this->calculateItemTotal($index);
+    }
+
     // ──────────────────────────────────────────────────────────────
     // Order total
     // ──────────────────────────────────────────────────────────────
@@ -380,7 +394,9 @@ trait HasOrderForm
             $qty = (is_numeric($item['quantity'] ?? null) && ($item['quantity'] !== ''))
                 ? max(1, (int) $item['quantity'])
                 : 0;
-            return $qty * max(0, (float) ($item['price'] ?? 0));
+            $subtotal = $qty * max(0, (float) ($item['price'] ?? 0));
+            $discount = min(max(0, (float) ($item['discount'] ?? 0)), $subtotal);
+            return max(0, $subtotal - $discount);
         });
     }
 

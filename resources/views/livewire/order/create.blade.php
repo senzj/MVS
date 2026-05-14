@@ -110,7 +110,13 @@
                         data-field="paymentType"
                         class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 transition">
                         <option value="cash">{{ __('Cash') }}</option>
-                        <option value="gcash">{{ __('GCash') }}</option>
+                        @php
+                            $otherPaymentTypes = config('storeconfig.other_payment_types', []);
+                        @endphp
+
+                        @foreach($otherPaymentTypes as $type)
+                            <option value="{{ $type }}">{{ ucfirst($type) }}</option>
+                        @endforeach
                     </select>
                 </div>
             </div>
@@ -129,15 +135,13 @@
             @endif
         </div>
 
-        {{-- Customer Information Card (Only for Delivery Orders) --}}
-        @if($orderType === 'deliver')
+        {{-- Customer Information Card (optional for walk-in orders) --}}
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow p-6">
             <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
                 <i class="fas fa-user text-blue-500 mr-2"></i>{{ __('Customer Information') }}
             </h3>
-            @include('livewire.partials.orders.form.customer')
+            @include('livewire.partials.orders.form.customer', ['order_type' => $orderType])
         </div>
-        @endif
 
         {{-- Order Items Card --}}
         <div class="bg-white dark:bg-zinc-800 rounded-lg shadow p-6">

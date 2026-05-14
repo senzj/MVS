@@ -96,7 +96,13 @@
                                bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
                                focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
                         <option value="cash">{{ __('Cash') }}</option>
-                        <option value="gcash">{{ __('GCash / Online') }}</option>
+                        @php
+                            $otherPaymentTypes = config('storeconfig.other_payment_types', []);
+                        @endphp
+
+                        @foreach($otherPaymentTypes as $type)
+                            <option value="{{ $type }}">{{ ucfirst($type) }}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -134,15 +140,13 @@
             </div>
         </div>
 
-        {{-- Customer --}}
-        @if($order_type === 'deliver')
-            <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm p-5">
-                <h3 class="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">
-                    <i class="fas fa-user text-blue-500 mr-2"></i>{{ __('Customer Information') }}
-                </h3>
-                @include('livewire.partials.orders.form.customer')
-            </div>
-        @endif
+        {{-- Customer (optional for walk-in orders) --}}
+        <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm p-5">
+            <h3 class="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-4">
+                <i class="fas fa-user text-blue-500 mr-2"></i>{{ __('Customer Information') }}
+            </h3>
+            @include('livewire.partials.orders.form.customer', ['order_type' => $orderType])
+        </div>
 
         {{-- Order Items --}}
         <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm p-5 space-y-4">
@@ -183,7 +187,7 @@
                     Show for every GCash order.
                     Walk-in orders can take a photo; delivery orders upload only.
                 --}}
-                @if($payment_type === 'gcash')
+                @if($payment_type !== 'cash' || ! empty($existingProof))
                     <div class="pt-2">
                         @if($this->showQr)
                             {{-- QR code for unpaid walk-in gcash --}}
@@ -201,6 +205,7 @@
 
                         @include('livewire.partials.orders.proof-of-payment', [
                             'existingProofUrl' => $existingProof ? asset('storage/' . $existingProof) : null,
+                            'paymentType'      => $payment_type,
                             'allowCamera'      => $order_type === 'walk_in',
                             'readOnly'         => false,
                         ])

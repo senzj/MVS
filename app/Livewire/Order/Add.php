@@ -57,12 +57,13 @@ class Add extends Component
     public string       $productCategory    = 'other';
     public string|int   $productStocks      = 1;
     public string|float $productPrice       = 0;
+    public string       $defaultPaymentType  = 'cash';
 
     protected $rules = [
         'receiptNumber'              => 'required|string|max:255|unique:orders,receipt_number',
         'saleDate'                   => 'required|date',
         'orderType'                  => 'required|in:deliver,walk_in',
-        'paymentType'                => 'required|in:cash,gcash',
+        'paymentType'                => 'required|string',
         'paymentStatus'              => 'required|in:unpaid,paid,refunded',
         'status'                     => 'required|in:pending,preparing,in_transit,delivered,completed,cancelled',
         'selectedEmployeeId'         => 'nullable|exists:employees,id',
@@ -75,6 +76,7 @@ class Add extends Component
         'orderItems.*.product_id'    => 'required|exists:products,id',
         'orderItems.*.quantity'      => 'required|integer|min:1',
         'orderItems.*.price'         => 'required|numeric|min:0',
+        'orderItems.*.discount'      => 'nullable|numeric|min:0',
         'proofOfPayment'             => 'nullable|image|mimes:png,jpg,jpeg,webp|max:10240',
     ];
 
@@ -156,6 +158,11 @@ class Add extends Component
     protected function getSubmissionRules(): array
     {
         $rules = $this->rules;
+        // Validate paymentType against configured types
+        $other = config('storeconfig.other_payment_types', []);
+        $other = is_array($other) ? $other : array_filter(array_map('trim', explode(',', (string) $other)));
+        $allowed = array_unique(array_merge(['cash'], array_values($other)));
+        $rules['paymentType'] = 'required|in:' . implode(',', $allowed);
 
         if ($this->orderType === 'deliver') {
             $rules['selectedEmployeeId'] = 'required|exists:employees,id';
@@ -266,13 +273,16 @@ class Add extends Component
 
                 $qty       = max(1, (int) ($item['quantity'] ?? 1));
                 $unitPrice = max(0, (float) ($item['price'] ?? 0));
+                $discount  = min(max(0, (float) ($item['discount'] ?? 0)), $qty * $unitPrice);
+                $lineTotal = max(0, ($qty * $unitPrice) - $discount);
 
                 OrderItem::create([
                     'order_id'    => $order->id,
                     'product_id'  => (int) $item['product_id'],
                     'quantity'    => $qty,
                     'unit_price'  => $unitPrice,
-                    'total_price' => $qty * $unitPrice,
+                    'discount_amount' => $discount,
+                    'total_price' => $lineTotal,
                 ]);
             }
         });

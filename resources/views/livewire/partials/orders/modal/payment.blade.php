@@ -77,7 +77,7 @@
                                 @endif
                                 <p class="text-xs text-zinc-400 mt-1">
                                     <span class="inline-block px-2 py-1 rounded text-white text-xs font-medium"
-                                          :class="'{{ $order->payment_type }}' === 'gcash' ? 'bg-blue-600' : 'bg-green-600'">
+                                          :class="'{{ $order->payment_type }}' === 'cash' ? 'bg-green-600' : 'bg-blue-600'">
                                         {{ ucfirst($order->payment_type) }}
                                     </span>
                                 </p>
@@ -142,8 +142,8 @@
                             </div>
                         </div>
 
-                        {{-- GCash proof --}}
-                        @if($order->payment_type === 'gcash')
+                        {{-- Proof of Payment --}}
+                        @if($order->payment_type !== 'cash')
                             <div>
                                 <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1">
                                     {{ __('Proof of Payment') }}
@@ -151,6 +151,7 @@
                                 </label>
                                 @include('livewire.partials.orders.proof-of-payment', [
                                     'existingProofUrl'  => $order->proof_url ?? null,
+                                    'paymentType'       => $order->payment_type,
                                     'allowCamera'       => true,
                                     'readOnly'          => false,
                                     'compact'           => true,

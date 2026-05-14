@@ -7,4 +7,5 @@ return [
     'store_open_hour' => env('STORE_OPEN_HOUR', 7),
     'store_close_hour' => env('STORE_CLOSE_HOUR', 20),
     'store_open_days' => explode(',', env('STORE_OPEN_DAYS', '1,2,3,4,5,6')),
+    'other_payment_types' => explode(',', env('OTHER_PAYMENT_TYPES', 'gcash')),
 ];
