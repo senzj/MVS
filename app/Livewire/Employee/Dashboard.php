@@ -4,6 +4,7 @@ namespace App\Livewire\Employee;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Services\System\AuditLogsService;
 use App\Models\Employee;
 
 class Dashboard extends Component
@@ -82,40 +83,46 @@ class Dashboard extends Component
     }
 
     // CRUD methods
-    public function createEmployee()
+    public function createEmployee(AuditLogsService $audit): void
     {
         $this->validate();
 
-        Employee::create([
-            'name' => ucwords(trim($this->name)),
+        $employee = Employee::create([
+            'name'           => ucwords(trim($this->name)),
             'contact_number' => $this->contact_number,
-            'status' => $this->status,
-            'is_archived' => false,
+            'status'         => $this->status,
+            'is_archived'    => false,
         ]);
 
-        // close form modal
-        $this->dispatch('close-create-modal');
+        $audit->recordEmployeeCreated(Auth::user(), $employee, request());
 
+        $this->dispatch('close-create-modal');
         $this->dispatch('show-success', ['message' => __('Employee created successfully!')]);
         $this->resetForm();
     }
 
-    public function updateEmployee()
+    public function updateEmployee(AuditLogsService $audit): void
     {
         $this->validate();
 
         $employee = Employee::find($this->selectedEmployeeId);
 
         if ($employee) {
+            $oldValues = [
+                'name'           => $employee->name,
+                'contact_number' => $employee->contact_number,
+                'status'         => $employee->status,
+            ];
+
             $employee->update([
-                'name' => ucwords(trim($this->name)),
+                'name'           => ucwords(trim($this->name)),
                 'contact_number' => $this->contact_number,
-                'status' => $this->status,
+                'status'         => $this->status,
             ]);
 
-            // close form modal
-            $this->dispatch('close-edit-modal');
+            $audit->recordEmployeeUpdated(Auth::user(), $employee, $oldValues, request());
 
+            $this->dispatch('close-edit-modal');
             $this->dispatch('show-success', ['message' => __('Employee updated successfully!')]);
             $this->resetForm();
         } else {
@@ -123,36 +130,41 @@ class Dashboard extends Component
         }
     }
 
-    public function deleteEmployee()
+    public function deleteEmployee(AuditLogsService $audit): void
     {
         $employee = Employee::find($this->selectedEmployeeId);
-        if (!$employee) {
+
+        if (! $employee) {
             $this->dispatch('show-error', ['message' => __('Employee not found!')]);
             return;
         }
 
-        // Check if employee has ongoing orders
-        $ongoingOrders = $employee->orders()->whereIn('status', ['pending', 'in_progress', 'out_for_delivery'])->count();
+        $ongoingOrders = $employee->orders()
+            ->whereIn('status', ['pending', 'in_progress', 'out_for_delivery'])
+            ->count();
+
         if ($ongoingOrders > 0) {
             $this->dispatch('show-error', ['message' => __('Cannot archive employee with ongoing orders!')]);
             return;
         }
 
-        // close modal
         $this->dispatch('close-delete-modal');
-
-        // Archive the employee instead of deleting
         $employee->update(['is_archived' => true]);
+
+        $audit->recordEmployeeArchived(Auth::user(), $employee, request());
+
         $this->dispatch('show-success', ['message' => __('Employee archived successfully!')]);
         $this->selectedEmployeeId = null;
     }
 
     // Add method to restore archived employee
-    public function restoreEmployee($employeeId)
+    public function restoreEmployee(int $employeeId, AuditLogsService $audit): void
     {
         $employee = Employee::find($employeeId);
+
         if ($employee && $employee->is_archived) {
             $employee->update(['is_archived' => false]);
+            $audit->recordEmployeeRestored(Auth::user(), $employee, request());
             $this->dispatch('show-success', ['message' => __('Employee restored successfully!')]);
         }
     }

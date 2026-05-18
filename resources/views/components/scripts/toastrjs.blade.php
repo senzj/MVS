@@ -40,27 +40,41 @@
 
     // Also listen for Livewire events
     document.addEventListener('livewire:init', () => {
+        const extractMessage = (data) => data?.message ?? data?.[0]?.message ?? data?.detail?.message ?? data?.detail?.[0]?.message;
+
         Livewire.on('show-success', (data) => {
             if (typeof toastr !== 'undefined') {
-                toastr.success(data[0].message);
+                const message = extractMessage(data);
+                if (message) {
+                    toastr.success(message);
+                }
             }
         });
 
         Livewire.on('show-error', (data) => {
             if (typeof toastr !== 'undefined') {
-                toastr.error(data[0].message);
+                const message = extractMessage(data);
+                if (message) {
+                    toastr.error(message);
+                }
             }
         });
 
         Livewire.on('show-warning', (data) => {
             if (typeof toastr !== 'undefined') {
-                toastr.warning(data[0].message);
+                const message = extractMessage(data);
+                if (message) {
+                    toastr.warning(message);
+                }
             }
         });
 
         Livewire.on('show-info', (data) => {
             if (typeof toastr !== 'undefined') {
-                toastr.info(data[0].message);
+                const message = extractMessage(data);
+                if (message) {
+                    toastr.info(message);
+                }
             }
         });
     });

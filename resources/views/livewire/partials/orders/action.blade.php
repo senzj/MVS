@@ -10,21 +10,28 @@
 
 @php
     $btn   = $style === 'table' ? 'tbl-action-btn' : 'card-action-btn';
+    $isWalkIn = $order->order_type === 'walk_in';
 
     $editLocked = in_array($order->status, (array) config('storeconfig.order_edit_lock_status')) && $order->payment_status !== 'unpaid';
 
     // Determine which primary action to show
     $primarySlot = null;
 
-    if ($order->status === 'pending') {
+    if ($isWalkIn && $order->payment_status === 'unpaid') {
+        $primarySlot = 'walkin:unpaid';
+    } elseif ($isWalkIn && $order->status === 'completed' && $order->payment_status === 'paid') {
+        $primarySlot = 'completed:paid';
+    } elseif ($isWalkIn && $order->payment_status === 'paid') {
+        $primarySlot = 'walkin:paid';
+    } elseif (!$isWalkIn && $order->status === 'pending') {
         $deliveryStatus = $this->getDeliveryPersonStatus($order->id);
         $primarySlot = 'pending:' . $deliveryStatus;
-    } elseif ($order->status === 'preparing') {
+    } elseif (!$isWalkIn && $order->status === 'preparing') {
         $employeeId    = $order->delivered_by;
         $batchInfo     = $this->getBatchInfo($employeeId);
         $remainingTime = $batchInfo['remaining_time'] ?? 0;
         $primarySlot   = 'preparing';
-    } elseif ($order->status === 'in_transit') {
+    } elseif (!$isWalkIn && $order->status === 'in_transit') {
         $primarySlot = 'in_transit';
     } elseif ($order->status === 'delivered' && $order->payment_status === 'unpaid' || $order->payment_status === 'unpaid') {
         $primarySlot = 'delivered:unpaid';
@@ -128,14 +135,14 @@
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Delivered') }}</span>
             </button>
 
-        @elseif ($primarySlot === 'delivered:unpaid')
+        @elseif ($primarySlot === 'walkin:unpaid' || $primarySlot === 'delivered:unpaid')
             <button wire:click="togglePaid({{ $order->id }})"
                 class="{{ $btn }} text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
                 <i class="fas fa-money-bill-transfer {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Paid') }}</span>
             </button>
 
-        @elseif ($primarySlot === 'delivered:paid')
+        @elseif ($primarySlot === 'walkin:paid' || $primarySlot === 'delivered:paid')
             <button wire:click="markFinished({{ $order->id }})"
                 class="{{ $btn }} text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
                 <i class="fas fa-check-double {{ $style === 'table' ? 'text-base' : '' }}"></i>

@@ -4,6 +4,7 @@ namespace App\Livewire\Customer;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Services\System\AuditLogsService;
 use App\Models\Customer;
 
 class Dashboard extends Component
@@ -92,41 +93,49 @@ class Dashboard extends Component
     }
 
     // CRUD methods
-    public function createCustomer()
+    public function createCustomer(AuditLogsService $audit): void
     {
         $this->validate();
 
-        Customer::create([
-            'name' => ucwords(trim($this->name)),
-            'unit' => ucwords($this->unit),
-            'address' => ucwords($this->address),
+        $customer = Customer::create([
+            'name'           => ucwords(trim($this->name)),
+            'unit'           => ucwords($this->unit),
+            'address'        => ucwords($this->address),
             'contact_number' => trim($this->contact_number) !== '' ? trim($this->contact_number) : null,
         ]);
 
-        // close modal
-        $this->dispatch('close-create-modal');
+        $audit->recordCustomerCreated(Auth::user(), $customer, request());
 
+        $this->dispatch('close-create-modal');
         $this->dispatch('show-success', ['message' => __('Customer created successfully!')]);
         $this->resetForm();
     }
 
-    public function updateCustomer()
+    public function updateCustomer(AuditLogsService $audit): void
     {
         $this->validate();
 
         $customer = Customer::find($this->selectedCustomerId);
 
         if ($customer) {
+            // Snapshot before update
+            $oldValues = [
+                'name'           => $customer->name,
+                'unit'           => $customer->unit,
+                'address'        => $customer->address,
+                'contact_number' => $customer->contact_number,
+            ];
+
             $customer->update([
-                'name' => ucwords(trim($this->name)),
-                'unit' => ucwords($this->unit),
-                'address' => ucwords($this->address),
+                'name'           => ucwords(trim($this->name)),
+                'unit'           => ucwords($this->unit),
+                'address'        => ucwords($this->address),
                 'contact_number' => trim($this->contact_number) !== '' ? trim($this->contact_number) : null,
             ]);
 
-            // close modal
-            $this->dispatch('close-edit-modal');
+            $audit->recordCustomerUpdated(Auth::user(), $customer, $oldValues, request());
 
+            $this->dispatch('close-edit-modal');
             $this->dispatch('show-success', ['message' => __('Customer updated successfully!')]);
             $this->resetForm();
         } else {
@@ -134,27 +143,34 @@ class Dashboard extends Component
         }
     }
 
-    public function deleteCustomer()
+    public function deleteCustomer(AuditLogsService $audit): void
     {
         $customer = Customer::find($this->selectedCustomerId);
-        if (!$customer) {
+
+        if (! $customer) {
             $this->dispatch('show-error', ['message' => __('Customer not found!')]);
             return;
         }
 
-        // Check if customer has orders
         if ($customer->orders()->count() > 0) {
             $this->dispatch('show-error', ['message' => __('Cannot delete customer with existing orders!')]);
             return;
         }
 
-        // close modal
-        $this->dispatch('close-delete-modal');
+        // Snapshot before delete
+        $snapshot = [
+            'name'           => $customer->name,
+            'unit'           => $customer->unit,
+            'address'        => $customer->address,
+            'contact_number' => $customer->contact_number,
+        ];
 
-        $customerName = $customer->name;
+        $this->dispatch('close-delete-modal');
         $customer->delete();
 
-        $this->dispatch('show-success', ['message' => __('Customer :name deleted successfully!', ['name' => $customerName])]);
+        $audit->recordCustomerDeleted(Auth::user(), $snapshot, request());
+
+        $this->dispatch('show-success', ['message' => __('Customer :name deleted successfully!', ['name' => $snapshot['name']])]);
         $this->selectedCustomerId = null;
     }
 
@@ -200,7 +216,7 @@ class Dashboard extends Component
         // Count customers with multiple orders in current month
         $thisMonthStart = now()->startOfMonth();
         $thisMonthEnd = now()->endOfMonth();
-        
+
         $repeatedCustomersThisMonth = $allCustomers->filter(function ($customer) use ($thisMonthStart, $thisMonthEnd) {
             $ordersThisMonth = $customer->orders()
                 ->whereBetween('created_at', [$thisMonthStart, $thisMonthEnd])

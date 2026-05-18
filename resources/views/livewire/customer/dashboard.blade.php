@@ -194,7 +194,7 @@
                         </div>
                         <div class="flex items-center gap-2 text-zinc-400 dark:text-zinc-500">
                             <i class="fas fa-calendar w-3.5 shrink-0"></i>
-                            <span>{{ $customer->created_at->format('M d, Y') }}</span>
+                            <span>{{ $customer->created_at->translatedFormat('M d, Y') }}</span>
                         </div>
                     </div>
 
@@ -352,8 +352,8 @@
                             {{-- Created At --}}
                             <td class="px-4 py-3 text-center">
                                 <div class="text-xs text-zinc-600 dark:text-zinc-400">
-                                    <span class="block">{{ $customer->created_at->format('M d, Y') }}</span>
-                                    <span class="block text-zinc-400 dark:text-zinc-500">{{ $customer->created_at->format('h:i A') }}</span>
+                                    <span class="block">{{ $customer->created_at->translatedFormat('M d, Y') }}</span>
+                                    <span class="block text-zinc-400 dark:text-zinc-500">{{ $customer->created_at->translatedFormat('h:i:s A') }}</span>
                                 </div>
                             </td>
 

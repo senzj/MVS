@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Services\Products\InventoryService;
+use App\Services\System\AuditLogsService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -352,6 +353,9 @@ class Create extends Component
                     __('Order #:receipt created.', ['receipt' => $order->receipt_number])
                 );
             }
+
+            // Record audit log
+            app(AuditLogsService::class)->recordOrderCreated(Auth::user(), $order, request());
         });
 
         session()->flash('success', __('Order created successfully!'));

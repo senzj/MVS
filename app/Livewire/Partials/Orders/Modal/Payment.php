@@ -67,6 +67,7 @@ class Payment extends Component
 
         DB::transaction(function () {
             $proofPath = $this->order->proof_of_payment;
+            $isWalkInOrder = ($this->order->order_type ?? null) === 'walk_in';
 
             if ($this->order->payment_type === 'gcash' && $this->proofOfPayment) {
                 $ext       = strtolower($this->proofOfPayment->getClientOriginalExtension() ?: 'png');
@@ -79,6 +80,9 @@ class Payment extends Component
             }
 
             $this->order->payment_status  = 'paid';
+            if ($isWalkInOrder) {
+                $this->order->status = 'completed';
+            }
             $this->order->amount_received = $this->amountReceived ?? $this->order->order_total;
             $this->order->change_amount   = max(0, ($this->amountReceived ?? 0) - ($this->order->order_total ?? 0));
 
@@ -93,9 +97,9 @@ class Payment extends Component
 
         $this->close();
 
-        $this->dispatch('show-success', message: __('Payment confirmed for order ":receipt"!', [
+        $this->dispatch('show-success', ['message' => __('Payment confirmed for order ":receipt"!', [
             'receipt' => $receipt,
-        ]));
+        ])]);
 
         $this->dispatch('orderPaymentConfirmed');
     }

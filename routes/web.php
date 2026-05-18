@@ -48,7 +48,8 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('employees/archived', 'employee.archive')->name('employees.archived');
 
     // Logs and Audits
-    Volt::route('System logs', 'logs.log')->name('logs');
+    Route::get('logs', \App\Livewire\Logs\Log::class)->name('logs');
+    Route::get('accounts/sessions', \App\Livewire\Logs\Users::class)->name('accounts.sessions');
 
     Route::get('payment-qr/{path}', function (string $path) {
         abort_unless(Storage::disk('public')->exists($path), 404);

@@ -25,6 +25,8 @@ import initInventoryAuditChart, {
     destroyMovementTypeChart
 } from './products/inventory-chart';
 
+import initAuditLogsCharts, { destroyAuditLogsCharts } from './logs/audit-charts';
+
 // orders history charts — registerOrdersChartListeners handles EVERYTHING internally
 import { registerOrdersChartListeners } from './orders/charts';
 
@@ -62,10 +64,10 @@ function registerInventoryAuditChartListener() {
     window.__inventoryAuditChartListenerRegistered = true;
 
     const build = (payload = null) => {
-        try { 
-            initInventoryAuditChart(payload); 
-        } catch (error) { 
-            console.error('Failed to initialize inventory audit chart', error); 
+        try {
+            initInventoryAuditChart(payload);
+        } catch (error) {
+            console.error('Failed to initialize inventory audit chart', error);
         }
     };
 
@@ -99,10 +101,10 @@ function registerStockDistributionChartListener() {
     window.__stockDistributionChartListenerRegistered = true;
 
     const build = (payload = null) => {
-        try { 
-            initStockDistributionChart(payload); 
-        } catch (error) { 
-            console.error('Failed to initialize stock distribution chart', error); 
+        try {
+            initStockDistributionChart(payload);
+        } catch (error) {
+            console.error('Failed to initialize stock distribution chart', error);
         }
     };
 
@@ -134,11 +136,11 @@ function registerMovementTypeChartListener() {
     window.__movementTypeChartListenerRegistered = true;
 
     const build = (payload = null) => {
-        try { 
-            initMovementTypeChart(payload); 
+        try {
+            initMovementTypeChart(payload);
 
-        } catch (error) { 
-            console.error('Failed to initialize movement type chart', error); 
+        } catch (error) {
+            console.error('Failed to initialize movement type chart', error);
         }
     };
 
@@ -175,6 +177,50 @@ function registerNavigationOverlayListener() {
     window.addEventListener('pageshow', () => setNavigationOverlayVisible(false));
 }
 
+function registerAuditLogsChartListener() {
+    if (window.__auditLogsChartListenerRegistered) return;
+    window.__auditLogsChartListenerRegistered = true;
+
+    const build = (payload = null) => {
+        try {
+            initAuditLogsCharts(payload);
+        } catch (error) {
+            console.error('Failed to initialize audit logs charts', error);
+        }
+    };
+
+    window.addEventListener('audit-logs-data', (event) => {
+        const payload = event.detail?.data || null;
+        window.__auditLogsChartPayload = payload;
+        build(payload);
+    });
+
+    document.addEventListener('livewire:message.processed', () => {
+        build(window.__auditLogsChartPayload || null);
+    });
+
+    window.addEventListener('livewire:navigating', () => destroyAuditLogsCharts());
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        build(window.__auditLogsChartPayload || null);
+    } else {
+        document.addEventListener('DOMContentLoaded', () => build(window.__auditLogsChartPayload || null));
+    }
+}
+
+function refreshAuditLogsChartsFromDom() {
+    const dataScript = document.getElementById('audit-logs-chart-data');
+    if (!dataScript) return;
+
+    try {
+        const payload = JSON.parse(dataScript.textContent || '{}');
+        window.__auditLogsChartPayload = payload;
+        initAuditLogsCharts(payload);
+    } catch (error) {
+        console.error('Failed to read audit logs chart data', error);
+    }
+}
+
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 
 function bootAll() {
@@ -183,10 +229,13 @@ function bootAll() {
     registerInventoryAuditChartListener();
     registerStockDistributionChartListener();
     registerMovementTypeChartListener();
+    registerAuditLogsChartListener();
     registerOrdersChartListeners();
+    refreshAuditLogsChartsFromDom();
 }
 
 window.addEventListener('livewire:init', bootAll);
+window.addEventListener('livewire:navigated', refreshAuditLogsChartsFromDom);
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     bootAll();

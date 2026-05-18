@@ -6,6 +6,7 @@ use App\Livewire\Concerns\HasOrderForm;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Serives\System\AuditLogsService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -285,6 +286,25 @@ class Add extends Component
                     'total_price' => $lineTotal,
                 ]);
             }
+
+            // ── Audit ──────────────────────────────────────────────────────
+            // Use 'order.backdated' to distinguish manual sales records from live orders
+            app(AuditLogsService::class)->record(
+                'order.backdated',
+                Auth::user(),
+                $order,
+                [],
+                [
+                    'receipt_number' => $order->receipt_number,
+                    'order_type'     => $order->order_type,
+                    'order_total'    => $order->order_total,
+                    'payment_type'   => $order->payment_type,
+                    'payment_status' => $order->payment_status,
+                    'status'         => $order->status,
+                    'sale_date'      => $this->saleDate,
+                ],
+                request()
+            );
         });
 
         $this->resetFormAfterSave();

@@ -60,8 +60,11 @@
                     {{-- employees --}}
                     <flux:navlist.item icon="users" :href="route('employees')" :current="$employeesCurrent" wire:navigate>{{ __('Employees') }}</flux:navlist.item>
 
-                    {{-- logs --}}
-                    <flux:navlist.item icon="server" :href="route('logs')" :current="$logsCurrent" wire:navigate>{{ __('Logs') }}</flux:navlist.item>
+                    {{-- Accounts & Sessions --}}
+                    <flux:navlist.item icon="user-circle" :href="route('accounts.sessions')" :current="request()->routeIs('accounts.sessions')" wire:navigate>{{ __('Accounts & Sessions') }}</flux:navlist.item>
+
+                    {{-- System Logs --}}
+                    <flux:navlist.item icon="server" :href="route('logs')" :current="$logsCurrent" wire:navigate>{{ __('System Logs') }}</flux:navlist.item>
                 </flux:navlist.group>
 
             </flux:navlist>

@@ -17,14 +17,20 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->string('password');
             $table->string('lang')->default('en');
-            $table->rememberToken();
             $table->timestamps();
         });
 
-        Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
+        Schema::create('remember_devices', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->index();
+            $table->string('browser')->nullable();
+            $table->string('platform')->nullable();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
             $table->string('token');
-            $table->timestamp('created_at')->nullable();
+            $table->timestamp('expires_at')->nullable()->index();
+            $table->timestamp('last_used_at')->useCurrent();
+            $table->timestamps();
         });
 
         Schema::create('sessions', function (Blueprint $table) {
@@ -35,6 +41,12 @@ return new class extends Migration
             $table->longText('payload');
             $table->integer('last_activity')->index();
         });
+
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
     }
 
     /**
@@ -43,6 +55,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('users');
+        Schema::dropIfExists('remember_tokens');
+        Schema::dropIfExists('remember_devices');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
     }

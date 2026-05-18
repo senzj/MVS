@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use App\Services\System\AuditLogsService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
@@ -26,7 +27,7 @@ new #[Layout('components.layouts.auth', ['title' => 'Log In'])] class extends Co
     /**
      * Handle an incoming authentication request.
      */
-    public function login(): void
+    public function login(AuditLogsService $auditLogsService): void
     {
         $this->validate();
 
@@ -36,9 +37,15 @@ new #[Layout('components.layouts.auth', ['title' => 'Log In'])] class extends Co
             'username' => ucwords($this->username),
             'password' => $this->password
         ],
-            $this->remember)) {
+            false)) {
 
                 RateLimiter::hit($this->throttleKey());
+
+            $auditLogsService->record('auth.failed_login', null, null, [], [
+                'username' => $this->username,
+                'ip_address' => request()->ip(),
+                'device_type' => 'unknown',
+            ], request());
 
             throw ValidationException::withMessages([
                 'username' => __('auth.failed'),
@@ -49,6 +56,14 @@ new #[Layout('components.layouts.auth', ['title' => 'Log In'])] class extends Co
 
         RateLimiter::clear($this->throttleKey());
         Session::regenerate();
+
+        // Clear any stale remember-device token before optionally issuing a new one.
+        $auditLogsService->revokeTemporaryDeviceToken(request());
+        $auditLogsService->recordLogin(Auth::user(), request());
+
+        if ($this->remember) {
+            $auditLogsService->issueTemporaryDeviceToken(Auth::user(), request());
+        }
 
         $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
     }

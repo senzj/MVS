@@ -524,12 +524,15 @@ class Dashboard extends Component
         // session flash message
         $this->dispatch('show-success', ['message' => __('Order ":receipt" has been marked as finished!', ['receipt' => $order->receipt_number])]);
 
-        // mark order status complete
-        if ($order->payment_status === 'paid' && $order->status === 'delivered') {
+        $isWalkInPaid = $order->order_type === 'walk_in' && $order->payment_status === 'paid';
+        $isDeliveredPaid = $order->payment_status === 'paid' && $order->status === 'delivered';
+
+        // mark order status complete if it's a walk-in paid order or if it's already delivered and paid
+        if ($isDeliveredPaid || $isWalkInPaid) {
             $order->status = 'completed';
             $order->save();
 
-            // NEW: Check if this was the last unpaid/incomplete order for this employee
+            // Check if this was the last unpaid/incomplete order for this employee
             // If so, clear the missed batch cache to make them available again
             $employeeId = $order->delivered_by;
             if ($employeeId) {

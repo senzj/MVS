@@ -1,33 +1,13 @@
 @section('title', __('Orders Records'))
 
 @push('scripts')
+    <script id="payment-status-chart-data" type="application/json">@json($paymentStatusChart ?? ['labels' => [], 'datasets' => []])</script>
+    <script id="payment-methods-chart-data" type="application/json">@json($paymentMethodsChart ?? ['labels' => [], 'datasets' => []])</script>
     <script>
-        // Store data on window immediately — charts.js recovery path reads this
-        // even if the event dispatch below is missed due to listener timing.
-        window.__pendingPaymentStatusChartData   = @json($paymentStatusChart ?? ['labels' => [], 'datasets' => []]);
-        window.__pendingPaymentMethodsChartData   = @json($paymentMethodsChart ?? ['labels' => [], 'datasets' => []]);
-
-        // Dispatch helper — retries until listeners are confirmed attached
-        (function dispatchChartData() {
-            const fire = () => {
-                window.dispatchEvent(new CustomEvent('payment-status-chart-data', {
-                    detail: { data: window.__pendingPaymentStatusChartData }
-                }));
-                window.dispatchEvent(new CustomEvent('payment-methods-chart-data', {
-                    detail: { data: window.__pendingPaymentMethodsChartData }
-                }));
-            };
-
-            // If Livewire already booted, fire immediately + small delay as safety net
-            if (window.__ordersChartsReady) {
-                fire();
-            } else {
-                // Wait for our listeners to be ready
-                window.addEventListener('orders-charts-ready', fire, { once: true });
-                // Hard fallback: fire after 300ms regardless
-                setTimeout(fire, 300);
-            }
-        })();
+        // Localized strings for orders charts
+        window.__ordersI18n = {
+            orders: '{{ __('Orders') }}'
+        };
     </script>
 @endpush
 
@@ -186,8 +166,8 @@
     {{-- css --}}
     @push('styles')
         <style>
-            [x-cloak] { 
-                display: none !important; 
+            [x-cloak] {
+                display: none !important;
             }
 
             /* Date indicator styling */
@@ -219,7 +199,7 @@
             </h2>
             @include('livewire.partials.clock')
         </div>
-        
+
         {{-- View Toggle and Controls --}}
         <div class="flex items-center gap-3">
             {{-- View Toggle --}}
@@ -256,7 +236,7 @@
         </div>
 
         <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200/50 dark:border-zinc-700/50 p-3">
-            <div class="text-sm text-zinc-500 dark:text-zinc-400 mb-2">{{ __('Payment Methods') }}</div>
+            <div class="text-sm text-zinc-500 dark:text-zinc-400 mb-2">{{ __('Payment Method') }}</div>
             <canvas id="paymentMethodsChart" class="w-full" style="max-height: 192px;"></canvas>
         </div>
     </div>
@@ -382,7 +362,7 @@
                         <div>
                             <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1" for="floatingDayFilter">{{ __('Day') }}</label>
                             <select wire:model.live="dayFilter" id="floatingDayFilter" class="w-full px-3 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200{{ !$monthFilter ? ' opacity-50 cursor-not-allowed' : '' }}" @if(!$monthFilter) disabled title="Select year then month first" @endif>
-                                <option value="">All Days</option>
+                                <option value="">{{ __('All Days') }}</option>
                                 @if($monthFilter)
                                     @foreach($availableDays as $day)
                                         <option value="{{ $day }}">{{ $day }}</option>

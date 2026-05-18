@@ -4,6 +4,7 @@ namespace App\Livewire\Product;
 
 use App\Models\Product;
 use App\Services\Products\InventoryService;
+use App\Services\System\AuditLogsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -143,42 +144,53 @@ class Dashboard extends Component
     }
 
     // CRUD methods - Updated to use Toastr
-    public function createProduct()
+    public function createProduct(AuditLogsService $audit): void
     {
         $this->validate();
 
-        Product::create([
-            'name' => ucwords(trim($this->name)),
+        $product = Product::create([
+            'name'        => ucwords(trim($this->name)),
             'description' => trim($this->description),
-            'price' => $this->price,
-            'stocks' => $this->stocks,
-            'category' => $this->category,
-            'sold' => $this->sold,
+            'price'       => $this->price,
+            'stocks'      => $this->stocks,
+            'category'    => $this->category,
+            'sold'        => $this->sold,
             'is_in_stock' => $this->is_in_stock,
         ]);
+
+        $audit->recordProductCreated(Auth::user(), $product, request());
 
         $this->dispatch('show-success', ['message' => __('Product created successfully!')]);
         $this->dispatch('close-create-modal');
         $this->resetForm();
     }
 
-    public function updateProduct()
+    public function updateProduct(AuditLogsService $audit): void
     {
         $this->validate();
 
         $product = Product::find($this->selectedProductId);
 
-        if (!$product) {
+        if (! $product) {
             $this->dispatch('show-error', ['message' => __('Product not found!')]);
             return;
         }
 
-        try {
-            DB::transaction(function () use ($product) {
-                $inventory = app(InventoryService::class);
+        // Snapshot before any changes
+        $oldValues = [
+            'name'        => $product->name,
+            'description' => $product->description,
+            'price'       => $product->price,
+            'stocks'      => $product->stocks,
+            'category'    => $product->category,
+            'is_in_stock' => $product->is_in_stock,
+        ];
 
-                $oldStocks = (int) $product->stocks;
-                $newStocks = (int) $this->stocks;
+        try {
+            DB::transaction(function () use ($product, $oldValues, $audit) {
+                $inventory   = app(InventoryService::class);
+                $oldStocks   = (int) $product->stocks;
+                $newStocks   = (int) $this->stocks;
 
                 if ($newStocks > $oldStocks) {
                     $inventory->restore(
@@ -201,14 +213,29 @@ class Dashboard extends Component
                 $product->refresh();
 
                 $product->update([
-                    'name' => ucwords(trim($this->name)),
+                    'name'        => ucwords(trim($this->name)),
                     'description' => trim($this->description),
-                    'price' => $this->price,
-                    'stocks' => $newStocks,
-                    'category' => $this->category,
-                    'sold' => $this->sold,
+                    'price'       => $this->price,
+                    'stocks'      => $newStocks,
+                    'category'    => $this->category,
+                    'sold'        => $this->sold,
                     'is_in_stock' => $this->is_in_stock,
                 ]);
+
+                // Log stock change separately for inventory-specific audit trail
+                if ($oldStocks !== $newStocks) {
+                    $audit->recordProductStockAdjusted(
+                        Auth::user(),
+                        $product,
+                        $oldStocks,
+                        $newStocks,
+                        'manual',
+                        request()
+                    );
+                }
+
+                // Log general product update
+                $audit->recordProductUpdated(Auth::user(), $product, $oldValues, request());
             });
         } catch (ValidationException $e) {
             $message = collect($e->errors())->flatten()->first() ?: __('Unable to update stock.');
@@ -221,22 +248,26 @@ class Dashboard extends Component
         $this->resetForm();
     }
 
-    public function makeAvailable($productId)
+    public function makeAvailable(int $productId, AuditLogsService $audit): void
     {
         $product = Product::find($productId);
+
         if ($product) {
             $product->update(['is_in_stock' => true]);
+            $audit->recordProductRestored(Auth::user(), $product, request());
             $this->dispatch('show-success', ['message' => __(':name is now available for sale!', ['name' => $product->name])]);
         } else {
             $this->dispatch('show-error', ['message' => __('Product not found!')]);
         }
     }
 
-    public function archiveProduct()
+    public function archiveProduct(AuditLogsService $audit): void
     {
         $product = Product::find($this->selectedProductId);
+
         if ($product) {
             $product->update(['is_in_stock' => false]);
+            $audit->recordProductArchived(Auth::user(), $product, request());
             $this->dispatch('show-success', ['message' => __(':name has been marked as unavailable!', ['name' => $product->name])]);
             $this->dispatch('close-archive-modal');
             $this->selectedProductId = null;
@@ -245,26 +276,32 @@ class Dashboard extends Component
         }
     }
 
-    public function deleteProduct()
+    public function deleteProduct(AuditLogsService $audit): void
     {
         $product = Product::find($this->selectedProductId);
 
-        if (!$product) {
+        if (! $product) {
             $this->dispatch('show-error', ['message' => __('Product not found!')]);
             return;
         }
 
-        $hasOrderHistory = $product->orderItems()->count() > 0;
-
-        if ($hasOrderHistory) {
+        if ($product->orderItems()->count() > 0) {
             $this->dispatch('show-error', ['message' => __('Cannot permanently delete product with order history!')]);
             return;
         }
 
-        $productName = $product->name;
+        $snapshot = [
+            'name'     => $product->name,
+            'category' => $product->category,
+            'price'    => $product->price,
+            'stocks'   => $product->stocks,
+        ];
+
         $product->delete();
 
-        $this->dispatch('show-success', ['message' => __('Product :name permanently deleted!', ['name' => $productName])]);
+        $audit->recordProductDeleted(Auth::user(), $snapshot, request());
+
+        $this->dispatch('show-success', ['message' => __('Product :name permanently deleted!', ['name' => $snapshot['name']])]);
         $this->dispatch('close-delete-modal');
         $this->selectedProductId = null;
     }

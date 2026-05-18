@@ -181,13 +181,27 @@ class History extends Component
     {
         $order = Order::find($this->deleteOrderId);
 
-        if (!$order) {
+        if (! $order) {
             session()->flash('error', __('Order not found.'));
             $this->closeDeleteModal();
             return;
         }
 
+        // Snapshot before deletion
+        $snapshot = [
+            'receipt_number' => $order->receipt_number,
+            'order_type'     => $order->order_type,
+            'order_total'    => $order->order_total,
+            'payment_type'   => $order->payment_type,
+            'payment_status' => $order->payment_status,
+            'status'         => $order->status,
+            'created_at'     => $order->created_at?->toIso8601String(),
+        ];
+
         $order->delete();
+
+        app(AuditLogsService::class)->recordOrderDeleted(Auth::user(), $snapshot, request());
+
         $this->closeDeleteModal();
         $this->closeOrderDetailsModal();
         session()->flash('success', __('Order deleted successfully.'));
@@ -381,7 +395,7 @@ class History extends Component
             foreach ($monthsCollection as $monthNumber) {
                 $availableMonths[] = [
                     'value' => $monthNumber,
-                    'label' => Carbon::create()->month($monthNumber)->format('F')
+                    'label' => Carbon::create()->month($monthNumber)->locale(app()->getLocale())->isoFormat('MMMM')
                 ];
             }
         } else {
@@ -396,7 +410,7 @@ class History extends Component
             foreach ($monthsCollection as $monthNumber) {
                 $availableMonths[] = [
                     'value' => $monthNumber,
-                    'label' => Carbon::create()->month($monthNumber)->format('F')
+                    'label' => Carbon::create()->month($monthNumber)->locale(app()->getLocale())->isoFormat('MMMM')
                 ];
             }
         }
@@ -451,7 +465,13 @@ class History extends Component
 
         foreach ($paymentStatusData as $row) {
             $key = $row->payment_status ?? 'other';
-            $paymentStatusLabels[] = ucfirst($key);
+            // Translate common payment status labels
+            $paymentStatusLabels[] = match ($key) {
+                'paid' => __('Paid'),
+                'unpaid' => __('Unpaid'),
+                'refunded' => __('Refunded'),
+                default => ucfirst($key),
+            };
             $paymentStatusCounts[] = (int) $row->count;
             $paymentStatusColors[] = $paymentStatusColorMap[$key] ?? $paymentStatusColorMap['other'];
         }
@@ -498,7 +518,12 @@ class History extends Component
         $colorIndex = 0;
         foreach ($paymentMethodData as $row) {
             $key = $row->payment_type ?? 'other';
-            $paymentMethodLabels[] = ucfirst(str_replace('_', ' ', $key));
+            // Translate common payment methods where possible
+            $paymentMethodLabels[] = match ($key) {
+                'cash' => __('Cash'),
+                'gcash' => __('GCash'),
+                default => ucfirst(str_replace('_', ' ', $key)),
+            };
             $paymentMethodCounts[] = (int) $row->count;
 
             // Use predefined color for cash/gcash, else cycle through palette

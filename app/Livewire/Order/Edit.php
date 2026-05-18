@@ -313,11 +313,15 @@ class Edit extends Component
             }
         }
 
+        if ($this->order_type === 'walk_in' && $this->payment_status === 'paid') {
+            $this->status = 'completed';
+        }
+
         DB::transaction(function () use ($proofPath) {
             $oldStatus = $this->order->status;
             $newStatus = $this->status;
 
-            // ── 1. Build edited items using authoritative refunded_quantity from DB ──
+            // Build edited items using authoritative refunded_quantity from DB
             $existingItemsFromDb = OrderItem::query()->where('order_id', $this->order->id)
                 ->get()
                 ->keyBy('product_id');
@@ -342,7 +346,7 @@ class Edit extends Component
                 ->values()
                 ->all();
 
-            // ── 2. Reconcile inventory ────────────────────────────────────────────
+            // Reconcile inventory
             if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
                 // Cancellation: restore ALL net quantities back to stock
                 $this->restoreOriginalInventory($existingItemsFromDb);
@@ -351,7 +355,7 @@ class Edit extends Component
                 $this->reconcileInventory($newItems, $existingItemsFromDb);
             }
 
-            // ── 3. Upsert order items (preserves refunded_quantity) ───────────────
+            // Upsert order items (preserves refunded_quantity)
             $newProductIds = collect($newItems)->pluck('product_id')->all();
 
             // Delete rows that were removed from the order
@@ -389,7 +393,7 @@ class Edit extends Component
                 }
             }
 
-            // ── 4. Update the order ───────────────────────────────────────────────
+            // Update the order
             $this->order->update([
                 'status'           => $newStatus,
                 'payment_type'     => $this->payment_type,
@@ -400,6 +404,27 @@ class Edit extends Component
                 'order_total'      => $this->editedTotal,
                 'proof_of_payment' => $proofPath,
             ]);
+
+            // ── Audit ──────────────────────────────────────────────────
+            $action = $newStatus === 'cancelled' && $oldStatus !== 'cancelled'
+                ? 'order.cancelled'
+                : 'order.updated';
+
+            app(AuditLogsService::class)->record(
+                $action,
+                Auth::user(),
+                $this->order,
+                $oldSnapshot,
+                [
+                    'receipt_number' => $this->order->receipt_number,
+                    'status'         => $newStatus,
+                    'payment_type'   => $this->payment_type,
+                    'payment_status' => $this->payment_status,
+                    'order_type'     => $this->order_type,
+                    'order_total'    => $this->editedTotal,
+                ],
+                request()
+            );
         });
 
         $this->order->refresh()->load(['orderItems.product']);

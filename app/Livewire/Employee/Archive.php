@@ -4,6 +4,7 @@ namespace App\Livewire\Employee;
 
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Services\System\AuditLogsService;
 use App\Models\Employee;
 
 class Archive extends Component
@@ -37,12 +38,13 @@ class Archive extends Component
     }
 
     // Restore archived employee
-    public function restoreEmployee($employeeId)
+    public function restoreEmployee(int $employeeId, AuditLogsService $audit): void
     {
         $employee = Employee::find($employeeId);
 
         if ($employee && $employee->is_archived) {
             $employee->update(['is_archived' => false]);
+            $audit->recordEmployeeRestored(Auth::user(), $employee, request());
             $this->dispatch('show-success', ['message' => __('Employee restored successfully!')]);
         } else {
             $this->dispatch('show-error', ['message' => __('Employee not found or not archived!')]);
@@ -56,28 +58,31 @@ class Archive extends Component
     }
 
     // Permanently delete employee
-    public function permanentlyDeleteEmployee()
+    public function permanentlyDeleteEmployee(AuditLogsService $audit): void
     {
         $employee = Employee::find($this->selectedEmployeeId);
 
-        if (!$employee) {
+        if (! $employee) {
             $this->dispatch('show-error', ['message' => __('Employee not found!')]);
             return;
         }
 
-        // Check if employee has any orders
-        $hasOrders = $employee->orders()->count() > 0;
-
-        if ($hasOrders) {
+        if ($employee->orders()->count() > 0) {
             $this->dispatch('show-error', ['message' => __('Cannot permanently delete employee with order history!')]);
             return;
         }
 
-        // Permanently delete
-        $employeeName = $employee->name;
+        $snapshot = [
+            'name'           => $employee->name,
+            'contact_number' => $employee->contact_number,
+            'status'         => $employee->status,
+        ];
+
         $employee->delete();
 
-        $this->dispatch('show-success', ['message' => __('Employee :name permanently deleted!', ['name' => $employeeName])]);
+        $audit->recordEmployeeDeleted(Auth::user(), $snapshot, request());
+
+        $this->dispatch('show-success', ['message' => __('Employee :name permanently deleted!', ['name' => $snapshot['name']])]);
         $this->selectedEmployeeId = null;
     }
 
