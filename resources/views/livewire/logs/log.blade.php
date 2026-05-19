@@ -171,7 +171,11 @@
             <div>
                 <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Audit Log Entries') }}</h3>
                 <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                    {{ __('Showing :count entries', ['count' => count($recentLogs)]) }}
+                    {{ __('Showing :from–:to of :total entries', [
+                        'from'  => $logs->firstItem() ?? 0,
+                        'to'    => $logs->lastItem()  ?? 0,
+                        'total' => $logs->total(),
+                    ]) }}
                 </p>
             </div>
             <span class="hidden sm:inline-flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500">
@@ -180,165 +184,176 @@
             </span>
         </div>
 
-        @if (count($recentLogs) === 0)
-            {{-- Empty state --}}
-            <div class="flex flex-col items-center justify-center py-16 text-center px-4">
-                <div class="w-14 h-14 rounded-full bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center mb-4">
-                    <i class="fas fa-file-circle-xmark text-2xl text-zinc-400 dark:text-zinc-500"></i>
-                </div>
-                <p class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{{ __('No logs found') }}</p>
-                <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-1">{{ __('Try adjusting the filters above.') }}</p>
-            </div>
-        @else
+        <div class="">
+            @if (count($logs) !== 0)
 
-            {{-- ── Desktop table (md+) ─────────────────────────────────────── --}}
-            <div class="hidden md:block overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="bg-zinc-50 dark:bg-zinc-700/40 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                            <th class="text-center px-4 py-3">{{ __('User') }}</th>
-                            <th class="text-center px-4 py-3">{{ __('Action') }}</th>
-                            <th class="text-center px-4 py-3">{{ __('Device') }}</th>
-                            <th class="text-center px-4 py-3">{{ __('IP Address') }}</th>
-                            <th class="text-center px-4 py-3">{{ __('Date & Time') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
-                        @foreach ($recentLogs as $log)
-                            @php
-                                $parsedAt = $log['created_at'] ? \Carbon\Carbon::parse($log['created_at']) : null;
-                            @endphp
-                            <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-700/30 transition-colors">
-                                {{-- User --}}
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-2.5">
-                                        <div class="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                                            <span class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">
-                                                {{ substr($log['user_name'] ?? '?', 0, 1) }}
+                {{-- ── Desktop table (md+) ─────────────────────────────────────── --}}
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-zinc-50 dark:bg-zinc-700/40 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
+                                <th class="text-center px-4 py-3">{{ __('User') }}</th>
+                                <th class="text-center px-4 py-3">{{ __('Action') }}</th>
+                                <th class="text-center px-4 py-3">{{ __('Device') }}</th>
+                                <th class="text-center px-4 py-3">{{ __('IP Address') }}</th>
+                                <th class="text-center px-4 py-3">{{ __('Date & Time') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
+                            @foreach ($logs as $log)
+                                @php
+                                    $parsedAt = $log['created_at'] ? \Carbon\Carbon::parse($log['created_at']) : null;
+                                @endphp
+                                <tr class="hover:bg-zinc-50/60 dark:hover:bg-zinc-700/30 transition-colors">
+                                    {{-- User --}}
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                                <span class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">
+                                                    {{ substr($log['user_name'] ?? '?', 0, 1) }}
+                                                </span>
+                                            </div>
+                                            <span class="font-medium text-zinc-900 dark:text-zinc-100 truncate max-w-[120px]">
+                                                {{ $log['user_name'] ?? __('System') }}
                                             </span>
                                         </div>
-                                        <span class="font-medium text-zinc-900 dark:text-zinc-100 truncate max-w-[120px]">
-                                            {{ $log['user_name'] ?? __('System') }}
+                                    </td>
+
+                                    {{-- Action badge --}}
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold {{ $this->actionBadgeClass($log['action']) }}">
+                                            {{ $log['action_label'] ?? $log['action'] }}
                                         </span>
-                                    </div>
-                                </td>
+                                    </td>
 
-                                {{-- Action badge --}}
-                                <td class="px-4 py-3 text-center">
-                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold {{ $this->actionBadgeClass($log['action']) }}">
-                                        {{ $log['action_label'] ?? $log['action'] }}
-                                    </span>
-                                </td>
+                                    {{-- Device type --}}
+                                    <td class="px-4 py-3 text-center">
+                                        @php
+                                            $deviceType = $this->deviceTypeLabel($log['user_agent'] ?? null);
+                                        @endphp
 
-                                {{-- Device type --}}
-                                <td class="px-4 py-3 text-center">
-                                    @php
-                                        $deviceType = $this->deviceTypeLabel($log['user_agent'] ?? null);
-                                    @endphp
+                                        <div class="flex items-center justify-center gap-1.5 text-zinc-700 dark:text-zinc-200">
+                                            @if ($deviceType === 'Mobile')
+                                                <i class="fas fa-mobile-alt"></i>
+                                            @elseif ($deviceType === 'Tablet')
+                                                <i class="fas fa-tablet-alt"></i>
+                                            @elseif ($deviceType === 'Bot')
+                                                <i class="fas fa-robot"></i>
+                                            @else
+                                                <i class="fas fa-desktop"></i>
+                                            @endif
 
-                                    <div class="flex items-center justify-center gap-1.5 text-zinc-700 dark:text-zinc-200">
-                                        @if ($deviceType === 'Mobile')
-                                            <i class="fas fa-mobile-alt"></i>
-                                        @elseif ($deviceType === 'Tablet')
-                                            <i class="fas fa-tablet-alt"></i>
-                                        @elseif ($deviceType === 'Bot')
-                                            <i class="fas fa-robot"></i>
-                                        @else
-                                            <i class="fas fa-desktop"></i>
-                                        @endif
+                                            <div class="text-left">
+                                                <div class="font-medium text-xs text-zinc-700 dark:text-zinc-200">
+                                                    {{ $log['browser'] ?? __('Unknown') }}
+                                                </div>
 
-                                        <div class="text-left">
-                                            <div class="font-medium text-xs text-zinc-700 dark:text-zinc-200">
-                                                {{ $log['browser'] ?? __('Unknown') }}
-                                            </div>
-
-                                            <div class="text-xs text-zinc-400">
-                                                {{ $log['platform'] ?? __('Unknown') }}
+                                                <div class="text-xs text-zinc-400">
+                                                    {{ $log['platform'] ?? __('Unknown') }}
+                                                </div>
                                             </div>
                                         </div>
+                                    </td>
+
+                                    {{-- IP --}}
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="font-mono text-xs text-zinc-600 dark:text-zinc-300">
+                                            {{ $log['ip_address'] ?? __('N/A') }}
+                                        </span>
+                                    </td>
+
+                                    {{-- Date/time --}}
+                                    <td class="px-4 py-3 whitespace-nowrap text-center">
+                                        @if ($parsedAt)
+                                            <span class="text-zinc-700 dark:text-zinc-200 text-xs">{{ $parsedAt->translatedFormat('M d, Y') }}</span>
+                                                <span class="block text-zinc-400 dark:text-zinc-500 text-xs">{{ $parsedAt->translatedFormat('h:i:s A') }}</span>
+                                        @else
+                                            <span class="text-zinc-400 text-xs">—</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- ── Mobile / Tablet cards (< md) ───────────────────────────── --}}
+                <div class="md:hidden divide-y divide-zinc-100 dark:divide-zinc-700">
+                    @foreach ($logs as $log)
+                        @php
+                            $parsedAt = $log['created_at'] ? \Carbon\Carbon::parse($log['created_at']) : null;
+                            $deviceType = $this->deviceTypeLabel($log['user_agent'] ?? null);
+                        @endphp
+                        <div class="px-4 py-3 hover:bg-zinc-50/60 dark:hover:bg-zinc-700/20 transition-colors">
+
+                            {{-- Row 1: avatar + user + badge --}}
+                            <div class="flex items-start justify-between gap-3 mb-2">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                        <span class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">
+                                            {{ substr($log['user_name'] ?? '?', 0, 1) }}
+                                        </span>
                                     </div>
-                                </td>
-
-                                {{-- IP --}}
-                                <td class="px-4 py-3 text-center">
-                                    <span class="font-mono text-xs text-zinc-600 dark:text-zinc-300">
-                                        {{ $log['ip_address'] ?? __('N/A') }}
-                                    </span>
-                                </td>
-
-                                {{-- Date/time --}}
-                                <td class="px-4 py-3 whitespace-nowrap text-center">
-                                    @if ($parsedAt)
-                                        <span class="text-zinc-700 dark:text-zinc-200 text-xs">{{ $parsedAt->translatedFormat('M d, Y') }}</span>
-                                            <span class="block text-zinc-400 dark:text-zinc-500 text-xs">{{ $parsedAt->translatedFormat('h:i:s A') }}</span>
-                                    @else
-                                        <span class="text-zinc-400 text-xs">—</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            {{-- ── Mobile / Tablet cards (< md) ───────────────────────────── --}}
-            <div class="md:hidden divide-y divide-zinc-100 dark:divide-zinc-700">
-                @foreach ($recentLogs as $log)
-                    @php
-                        $parsedAt = $log['created_at'] ? \Carbon\Carbon::parse($log['created_at']) : null;
-                        $deviceType = $this->deviceTypeLabel($log['user_agent'] ?? null);
-                    @endphp
-                    <div class="px-4 py-3 hover:bg-zinc-50/60 dark:hover:bg-zinc-700/20 transition-colors">
-
-                        {{-- Row 1: avatar + user + badge --}}
-                        <div class="flex items-start justify-between gap-3 mb-2">
-                            <div class="flex items-center gap-2.5 min-w-0">
-                                <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                                    <span class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">
-                                        {{ substr($log['user_name'] ?? '?', 0, 1) }}
-                                    </span>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                                            {{ $log['user_name'] ?? __('System') }}
+                                        </p>
+                                        <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+                                            {{ $parsedAt ? $parsedAt->translatedFormat('M d, Y · h:i A') : '—' }}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div class="min-w-0">
-                                    <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                                        {{ $log['user_name'] ?? __('System') }}
-                                    </p>
-                                    <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
-                                        {{ $parsedAt ? $parsedAt->translatedFormat('M d, Y · h:i A') : '—' }}
-                                    </p>
-                                </div>
+
+                                {{-- Action badge (right-aligned) --}}
+                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold flex-shrink-0 {{ $this->actionBadgeClass($log['action']) }}">
+                                    {{ $log['action_label'] ?? $log['action'] }}
+                                </span>
                             </div>
 
-                            {{-- Action badge (right-aligned) --}}
-                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold flex-shrink-0 {{ $this->actionBadgeClass($log['action']) }}">
-                                {{ $log['action_label'] ?? $log['action'] }}
-                            </span>
+                            {{-- Row 2: IP + device --}}
+                            <div class="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 pl-10">
+                                <span class="inline-flex items-center gap-1">
+                                    <i class="fas fa-globe w-3 text-center"></i>
+                                    <span class="font-mono">{{ $log['ip_address'] ?? __('N/A') }}</span>
+                                </span>
+                                <span class="inline-flex items-center gap-1">
+                                    @if ($deviceType === 'Mobile')
+                                        <i class="fas fa-mobile-screen-button w-3 text-center"></i>
+                                    @elseif ($deviceType === 'Tablet')
+                                        <i class="fas fa-tablet-screen-button w-3 text-center"></i>
+                                    @elseif ($deviceType === 'Bot')
+                                        <i class="fas fa-robot w-3 text-center"></i>
+                                    @else
+                                        <i class="fas fa-desktop w-3 text-center"></i>
+                                    @endif
+                                </span>
+                                <span class="inline-flex items-center gap-1 font-medium text-zinc-700 dark:text-zinc-200">
+                                    {{ $log['browser'] ?? __('Unknown') }} · {{ $log['platform'] ?? __('Unknown') }}
+                                </span>
+                            </div>
                         </div>
+                    @endforeach
+                </div>
 
-                        {{-- Row 2: IP + device --}}
-                        <div class="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400 pl-10">
-                            <span class="inline-flex items-center gap-1">
-                                <i class="fas fa-globe w-3 text-center"></i>
-                                <span class="font-mono">{{ $log['ip_address'] ?? __('N/A') }}</span>
-                            </span>
-                            <span class="inline-flex items-center gap-1">
-                                @if ($deviceType === 'Mobile')
-                                    <i class="fas fa-mobile-screen-button w-3 text-center"></i>
-                                @elseif ($deviceType === 'Tablet')
-                                    <i class="fas fa-tablet-screen-button w-3 text-center"></i>
-                                @elseif ($deviceType === 'Bot')
-                                    <i class="fas fa-robot w-3 text-center"></i>
-                                @else
-                                    <i class="fas fa-desktop w-3 text-center"></i>
-                                @endif
-                            </span>
-                            <span class="inline-flex items-center gap-1 font-medium text-zinc-700 dark:text-zinc-200">
-                                {{ $log['browser'] ?? __('Unknown') }} · {{ $log['platform'] ?? __('Unknown') }}
-                            </span>
-                        </div>
+            @else
+
+                {{-- Empty state --}}
+                <div class="flex flex-col items-center justify-center py-16 text-center px-4">
+                    <div class="w-14 h-14 rounded-full bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center mb-4">
+                        <i class="fas fa-file-circle-xmark text-2xl text-zinc-400 dark:text-zinc-500"></i>
                     </div>
-                @endforeach
-            </div>
+                    <p class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{{ __('No logs found') }}</p>
+                    <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-1">{{ __('Try adjusting the filters above.') }}</p>
+                </div>
 
+            @endif
+        </div>
+
+        {{-- ── Pagination ──────────────────────────────────────────────────────── --}}
+        @if ($logs->hasPages())
+            <div class="px-4 py-3 border-t border-zinc-100 dark:border-zinc-700">
+                {{ $logs->links() }}
+            </div>
         @endif
     </div>
 

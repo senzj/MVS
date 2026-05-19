@@ -4,6 +4,7 @@ namespace App\Livewire\Logs;
 
 use App\Models\User;
 use App\Services\System\AuditLogsService;
+use App\Models\AuditLogs;
 use Carbon\Carbon;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -59,28 +60,6 @@ class Log extends Component
         $to   = $this->dateTo   !== '' ? Carbon::parse($this->dateTo)->endOfDay()   : null;
 
         $this->metrics = $auditLogsService->dashboardMetrics($from, $to);
-
-        // Serialize every value to primitives so Livewire can safely round-trip
-        // the array through JSON — Carbon instances must become strings.
-        $this->recentLogs = $auditLogsService
-            ->recentLogs(
-                100,
-                $from,
-                $to,
-                $this->actionFilter !== 'all' ? $this->actionFilter : null
-            )
-            ->map(fn ($log) => [
-                'user_name'   => $log->user?->name ?? null,
-                'action'      => $log->action,
-                'action_label'=> $this->actionLabel($log->action, $log->old_values ?? [], $log->new_values ?? []),
-                'ip_address'  => $log->ip_address ?? null,
-                'user_agent'  => $log->user_agent ?? null,
-                'browser'     => $this->browserLabel($log->user_agent ?? null),
-                'platform'    => $this->platformLabel($log->user_agent ?? null),
-                // Store as ISO-8601 string — blade formats it via Carbon::parse()
-                'created_at'  => $log->created_at?->toIso8601String(),
-            ])
-            ->all();
     }
 
     public function clearFilters(): void
@@ -363,6 +342,33 @@ class Log extends Component
 
     public function render()
     {
-        return view('livewire.logs.log');
+        $from = $this->dateFrom !== '' ? Carbon::parse($this->dateFrom)->startOfDay() : null;
+        $to   = $this->dateTo   !== '' ? Carbon::parse($this->dateTo)->endOfDay()     : null;
+
+        $logs = AuditLogs::with('user')
+            ->when($from, fn ($q) => $q->where('created_at', '>=', $from))
+            ->when($to,   fn ($q) => $q->where('created_at', '<=', $to))
+            ->when(
+                $this->actionFilter !== 'all',
+                fn ($q) => $q->where('action', $this->actionFilter)
+            )
+            ->latest()
+            ->paginate(25);
+
+        // Map to primitives exactly like before, but on the paginated collection
+        $mappedLogs = $logs->through(fn ($log) => [
+            'user_name'    => $log->user?->name ?? null,
+            'action'       => $log->action,
+            'action_label' => $this->actionLabel($log->action, $log->old_values ?? [], $log->new_values ?? []),
+            'ip_address'   => $log->ip_address ?? null,
+            'user_agent'   => $log->user_agent ?? null,
+            'browser'      => $this->browserLabel($log->user_agent ?? null),
+            'platform'     => $this->platformLabel($log->user_agent ?? null),
+            'created_at'   => $log->created_at?->toIso8601String(),
+        ]);
+
+        return view('livewire.logs.log', [
+            'logs' => $mappedLogs,
+        ]);
     }
 }
