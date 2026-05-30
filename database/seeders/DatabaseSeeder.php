@@ -2,16 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Customer;
-use App\Models\Employee;
-use App\Models\Log;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Product;
-use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -38,6 +30,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             CustomerSeeder::class,
             EmployeeSeeder::class,
+            ProductCategorySeeder::class,
             ProductSeeder::class,
             OrderSeeder::class,
         ]);

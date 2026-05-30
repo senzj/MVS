@@ -5,6 +5,7 @@ namespace App\Livewire\Product;
 use App\Models\Product;
 use App\Services\Products\InventoryService;
 use App\Services\System\AuditLogsService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -38,7 +39,7 @@ class Dashboard extends Component
         'description' => 'nullable|string',
         'price' => 'required|numeric|min:0',
         'stocks' => 'required|integer|min:0',
-        'category' => 'required|string|max:255',
+        'category' => 'required|exists:product_categories,id',
         'sold' => 'integer|min:0',
         'is_in_stock' => 'boolean',
     ];
@@ -63,19 +64,16 @@ class Dashboard extends Component
     public function updatedSearch()
     {
         $this->resetPage();
-        $this->dispatch('$refresh'); // Force component refresh
     }
 
     public function updatedCategoryFilter()
     {
         $this->resetPage();
-        $this->dispatch('$refresh'); // Force component refresh
     }
 
     public function updatedStockFilter()
     {
         $this->resetPage();
-        $this->dispatch('$refresh'); // Force component refresh
     }
 
     public function clearSearch()
@@ -84,7 +82,6 @@ class Dashboard extends Component
         $this->categoryFilter = 'all';
         $this->stockFilter = '';
         $this->resetPage();
-        $this->dispatch('$refresh'); // Force component refresh
     }
 
     public function clearFilters()
@@ -92,7 +89,6 @@ class Dashboard extends Component
         $this->categoryFilter = 'all';
         $this->stockFilter = '';
         $this->resetPage();
-        $this->dispatch('$refresh'); // Force component refresh
     }
 
     // Fix the sortBy method
@@ -125,6 +121,11 @@ class Dashboard extends Component
             $this->category = $product->category;
             $this->sold = $product->sold;
             $this->is_in_stock = $product->is_in_stock;
+
+            $this->dispatch('edit-product-loaded');
+        } else {
+            $this->dispatch('show-error', ['message' => __('Product not found!')]);
+            $this->dispatch('edit-product-load-failed');
         }
     }
 
@@ -136,6 +137,13 @@ class Dashboard extends Component
     public function openDeleteModal($productId)
     {
         $this->selectedProductId = $productId;
+
+        if (Product::find($productId)) {
+            $this->dispatch('delete-product-loaded');
+        } else {
+            $this->dispatch('show-error', ['message' => __('Product not found!')]);
+            $this->dispatch('delete-product-load-failed');
+        }
     }
 
     public function setSelectedProduct($productId)
@@ -323,27 +331,21 @@ class Dashboard extends Component
     public function render()
     {
         // Start fresh query
-        $query = Product::query();
+        $query = Product::query()->withCount('orderItems');
 
         // Apply search filter
         if ($this->search && trim($this->search) !== '') {
             $searchTerm = '%' . trim($this->search) . '%';
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'like', $searchTerm)
-                  ->orWhere('description', 'like', $searchTerm)
-                  ->orWhere('category', 'like', $searchTerm);
+                    ->orWhere('description', 'like', $searchTerm)
+                    ->orWhereHas('categoryRecord', fn ($categoryQuery) => $categoryQuery->where('name', 'like', $searchTerm));
             });
         }
 
         // FIXED: Category filter with explicit check and better debugging
         if ($this->categoryFilter !== 'all' && !empty($this->categoryFilter)) {
-            // Log for debugging
-            // Log::info('Applying category filter: ' . $this->categoryFilter);
-            $query->where('category', $this->categoryFilter);
-
-            // Debug: Check what products exist with this category
-            $categoryProducts = Product::where('category', $this->categoryFilter)->get();
-            // Log::info('Products with category "' . $this->categoryFilter . '": ' . $categoryProducts->count());
+            $query->where('category_id', (int) $this->categoryFilter);
         }
 
         // Apply stock filter
@@ -374,16 +376,15 @@ class Dashboard extends Component
         $products = $query->paginate(10);
 
         // Get all products for stats (separate query to avoid filter interference)
-        $allProducts = Product::all();
+        $allProducts = Product::query()->select(['id', 'stocks', 'category_id', 'is_in_stock'])->get();
 
         // Get categories - FIXED: Make sure we get all available categories from database
         $categories = Product::getCategories();
 
         // Also get categories that actually exist in the database
-        $existingCategories = Product::whereNotNull('category')
-            ->where('category', '!=', '')
+        $existingCategories = Product::whereNotNull('category_id')
             ->distinct()
-            ->pluck('category', 'category')
+            ->pluck('category_id', 'category_id')
             ->toArray();
 
         return view('livewire.product.dashboard', [
@@ -401,7 +402,7 @@ class Dashboard extends Component
         $categoryData = [];
 
         foreach ($allProducts as $product) {
-            $cat = $product->category;
+            $cat = $product->category_id;
             if (!isset($categoryData[$cat])) {
                 $categoryData[$cat] = 0;
             }

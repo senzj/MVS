@@ -9,17 +9,19 @@
 
          openCreateModal()  { $wire.openCreateModal();  this.showCreateModal  = true; },
          closeCreateModal() { this.showCreateModal  = false; $wire.resetForm(); },
-         openEditModal(id)  { $wire.openEditModal(id); this.showEditModal    = true; },
-         closeEditModal()   { this.showEditModal    = false; $wire.resetForm(); },
-         openDeleteModal(id)  { $wire.openDeleteModal(id);  this.showDeleteModal  = true; },
-         closeDeleteModal()   { this.showDeleteModal  = false; $wire.selectedProductId = null; },
+         openEditModal(id)  { this.showEditModal = false; $wire.openEditModal(id); },
+         closeEditModal()   { this.showEditModal = false; $wire.resetForm(); },
+         openDeleteModal(id)  { this.showDeleteModal = false; $wire.openDeleteModal(id); },
+         closeDeleteModal()   { this.showDeleteModal = false; $wire.resetForm(); },
          openArchiveModal(id) { $wire.openArchiveModal(id); this.showArchiveModal = true; },
          closeArchiveModal()  { this.showArchiveModal = false; $wire.selectedProductId = null; },
      }"
      @close-create-modal.window="closeCreateModal()"
      @close-edit-modal.window="closeEditModal()"
      @close-delete-modal.window="closeDeleteModal()"
-     @close-archive-modal.window="closeArchiveModal()">
+     @close-archive-modal.window="closeArchiveModal()"
+     @edit-product-loaded.window="showEditModal = true"
+     @delete-product-loaded.window="showDeleteModal = true">
 
     {{-- ═══════════════════════════════════════════════
          HEADER
@@ -175,10 +177,14 @@
 
     {{-- Loading overlay --}}
     @include('livewire.partials.loading-overlay', [
-        'wireTarget' => 'categoryFilter,stockFilter,search,sortByField,createProduct,updateProduct,archiveProduct,deleteProduct,makeAvailable',
+        'wireTarget' => 'categoryFilter,stockFilter,search,sortByField,openEditModal,openDeleteModal,createProduct,updateProduct,archiveProduct,deleteProduct,makeAvailable',
         'title' => __('Updating...'),
         'message' => __('Please wait while we process your request'),
     ])
+
+    @php
+        $categoryNames = \App\Models\Product::getCategories();
+    @endphp
 
     {{-- PRODUCT LIST --}}
 
@@ -191,8 +197,7 @@
         @forelse($products as $product)
             @php
                 $isOutOfStock = empty($product->stocks) || (int)$product->stocks === 0;
-                $categoryNames = \App\Models\Product::getCategories();
-                $catLabel = $categoryNames[$product->category] ?? ucfirst($product->category ?? 'Other');
+                $catLabel = $categoryNames[$product->category] ?? __('Uncategorized');
             @endphp
 
             <div wire:key="mobile-card-{{ $product->id }}"
@@ -291,7 +296,7 @@
                         </button>
 
                         {{-- Delete --}}
-                        @if($product->orderItems()->count() === 0)
+                        @if(($product->order_items_count ?? 0) === 0)
                             <button @click="openDeleteModal({{ $product->id }})"
                                 class="prod-card-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 ml-auto">
                                 <i class="fas fa-trash"></i>{{ __('Delete') }}
@@ -383,8 +388,7 @@
                     @forelse($products as $index => $product)
                         @php
                             $isOutOfStock  = empty($product->stocks) || (int)$product->stocks === 0;
-                            $categoryNames = \App\Models\Product::getCategories();
-                            $catLabel      = $categoryNames[$product->category] ?? ucfirst($product->category ?? 'Other');
+                            $catLabel      = $categoryNames[$product->category] ?? __('Uncategorized');
                         @endphp
                         <tr wire:key="product-row-{{ $product->id }}-{{ $categoryFilter }}-{{ $stockFilter }}-{{ $search }}-{{ $index }}"
                             class="transition-colors
@@ -485,7 +489,7 @@
                                     </button>
 
                                     {{-- Delete --}}
-                                    @if($product->orderItems()->count() === 0)
+                                    @if(($product->order_items_count ?? 0) === 0)
                                         <button @click="openDeleteModal({{ $product->id }})"
                                             class="tbl-action-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                                             title="{{ __('Delete Permanently. This action cannot be undone.') }}">
@@ -790,7 +794,7 @@
                         class="cursor-pointer px-4 py-2 text-sm font-medium rounded-xl border border-zinc-200 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                         <i class="fas fa-times mr-1"></i>{{ __('Cancel') }}
                     </button>
-                    <button wire:click="deleteProduct" @click="closeDeleteModal()"
+                    <button wire:click="deleteProduct"
                         class="cursor-pointer px-4 py-2 text-sm font-semibold rounded-xl bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-all">
                         <i class="fas fa-trash mr-1"></i>{{ __('Delete') }}
                     </button>

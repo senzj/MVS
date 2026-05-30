@@ -12,6 +12,7 @@
             $ordersCurrent = request()->routeIs('orders');
             $ordersHistoryCurrent = request()->routeIs('orders.history');
             $productsCurrent = request()->routeIs('products');
+            $productsCategoriesCurrent = request()->routeIs('products.categories');
             $customersCurrent = request()->routeIs('customers', 'customers.*');
             $employeesCurrent = request()->routeIs('employees', 'employees.*');
             $logsCurrent = request()->routeIs('logs', 'logs.*');
@@ -47,6 +48,9 @@
                 <flux:navlist.group :heading="__('Products')" class="grid mt-2.5">
                     {{-- products --}}
                     <flux:navlist.item icon="shopping-bag" :href="route('products')" :current="$productsCurrent" wire:navigate>{{ __('Products') }}</flux:navlist.item>
+
+                    {{-- categories --}}
+                    <flux:navlist.item icon="tag" :href="route('products.categories')" :current="$productsCategoriesCurrent" wire:navigate>{{ __('Categories') }}</flux:navlist.item>
 
                     {{-- Inventory Audit --}}
                     <flux:navlist.item icon="chart-bar" :href="route('inventory.audit')" :current="request()->routeIs('inventory.audit')" wire:navigate>{{ __('Inventory Audit') }}</flux:navlist.item>

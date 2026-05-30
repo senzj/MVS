@@ -190,7 +190,7 @@ trait HasOrderForm
             $q->where(function ($sub) use ($term) {
                 $sub->where('name',        'like', "%{$term}%")
                     ->orWhere('description','like', "%{$term}%")
-                    ->orWhere('category',   'like', "%{$term}%");
+                    ->orWhereHas('categoryRecord', fn ($categoryQuery) => $categoryQuery->where('name', 'like', "%{$term}%"));
             });
         }
 

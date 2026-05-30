@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     protected $fillable = [
+        'category_id',
         'name',
         'description',
         'stocks',
@@ -18,34 +19,43 @@ class Product extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'category_id' => 'integer',
         'is_in_stock' => 'boolean',
     ];
 
-    // Define product categories
-    public static function getCategories()
+    public static function getCategories(): array
     {
-        return [
-            'meat' => __('Meat & Poultry'),
-            'vegetables' => __('Vegetables'),
-            'fruits' => __('Fruits'),
-            'dairy' => __('Dairy'),
-            'eggs' => __('Eggs'),
-            'seafood' => __('Seafood'),
-            'beverages' => __('Beverages'),
-            'snacks' => __('Snacks'),
-            'condiments' => __('Condiments & Spices'),
-            'grains' => __('Grains & Cereals'),
-            'frozen' => __('Frozen Goods'),
-            'bakery' => __('Bakery Goods'),
-            'gas' => __('Gas'),
-            'other' => __('Other'),
-        ];
+        static $categories = null;
+
+        if ($categories === null) {
+            $categories = ProductCategories::query()
+                ->orderBy('name', 'asc')
+                ->pluck('name', 'id')
+                ->toArray();
+        }
+
+        return $categories;
     }
 
     public function getCategoryNameAttribute()
     {
         $categories = self::getCategories();
-        return $categories[$this->category] ?? $this->category ?? 'Uncategorized';
+
+        if (! empty($this->category_id) && isset($categories[$this->category_id])) {
+            return $categories[$this->category_id];
+        }
+
+        return 'Uncategorized';
+    }
+
+    public function getCategoryAttribute()
+    {
+        return $this->category_id;
+    }
+
+    public function setCategoryAttribute($value): void
+    {
+        $this->attributes['category_id'] = $value !== '' ? $value : null;
     }
 
     public function getStockStatusAttribute()
@@ -66,6 +76,11 @@ class Product extends Model
             'low_stock' => 'yellow',
             'in_stock' => 'green',
         };
+    }
+
+    public function categoryRecord()
+    {
+        return $this->belongsTo(ProductCategories::class, 'category_id');
     }
 
     // Relationship with order items

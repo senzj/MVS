@@ -4,6 +4,10 @@ namespace App\Services\System;
 
 use App\Models\AuditLogs;
 use App\Models\User;
+use App\Models\Product;
+use App\Models\Customer;
+use App\Models\Employee;
+use App\Models\Order;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;
