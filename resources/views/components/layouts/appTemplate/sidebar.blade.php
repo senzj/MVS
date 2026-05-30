@@ -64,6 +64,9 @@
                     {{-- employees --}}
                     <flux:navlist.item icon="users" :href="route('employees')" :current="$employeesCurrent" wire:navigate>{{ __('Employees') }}</flux:navlist.item>
 
+                    {{-- Discount Presets --}}
+                    <flux:navlist.item icon="receipt-percent" :href="route('presets.discounts')" :current="request()->routeIs('presets.discounts')" wire:navigate>{{ __('Discount Presets') }}</flux:navlist.item>
+
                     {{-- Accounts & Sessions --}}
                     <flux:navlist.item icon="user-circle" :href="route('accounts.sessions')" :current="request()->routeIs('accounts.sessions')" wire:navigate>{{ __('Accounts & Sessions') }}</flux:navlist.item>
 

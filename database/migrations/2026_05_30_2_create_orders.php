@@ -53,6 +53,11 @@ return new class extends Migration
                 ])->default('unpaid');
 
             $table->decimal('order_total', 10, 2);
+
+            $table->foreignId('discount_preset_id')->nullable()->constrained('discount_preset')->nullOnDelete();
+            $table->enum('discount_type', ['percentage', 'fixed', 'none'])->default('none');
+            $table->decimal('discount_value', 10, 2)->default(0.00);
+
             $table->decimal('change_amount', 10, 2)->nullable();
             $table->decimal('amount_received', 10, 2)->nullable();
 

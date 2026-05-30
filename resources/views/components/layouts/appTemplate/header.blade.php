@@ -121,6 +121,9 @@
 
         {{ $slot }}
 
+        {{-- scripts --}}
+        @include('components.scripts.toastrjs')
+
         @fluxScripts
     </body>
 </html>

@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\DiscountPreset;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\Products\InventoryService;
@@ -28,6 +29,7 @@ class OrderSeeder extends Seeder
         }
 
         $statuses = ['pending', 'in_transit', 'delivered', 'completed', 'cancelled'];
+        $discountPresets = DiscountPreset::query()->where('is_active', true)->get();
 
         $random = fake()->numberBetween(8, 30);
         $successfulOrders = 0;
@@ -78,9 +80,8 @@ class OrderSeeder extends Seeder
             ]);
 
             $products = Product::query()
-                ->whereNotNull('stocks')
                 ->where('stocks', '>', 0)
-                ->inRandomOrder()
+                ->inRandomOrder(1)
                 ->take(fake()->numberBetween(1, 4))
                 ->get();
 
@@ -122,13 +123,40 @@ class OrderSeeder extends Seeder
                 $hasItems = true;
             }
 
+            $discountPreset = null;
+            $discountAmount = 0;
+
+            if ($discountPresets->isNotEmpty() && fake()->boolean(30)) {
+                $discountPreset = $discountPresets->random();
+
+                if ($discountPreset->type === 'percentage') {
+                    $discountAmount = min($orderTotal, $orderTotal * ((float) $discountPreset->value / 100));
+                } else {
+                    $discountAmount = min($orderTotal, (float) $discountPreset->value);
+                }
+            }
+
+            $finalTotal = max(0, $orderTotal - $discountAmount);
+
+            $amountReceived = null;
+            $changeAmount = null;
+            if ($paymentType === 'cash' && $paymentStatus === 'paid') {
+                $amountReceived = round($finalTotal + fake()->randomFloat(2, 0, 300), 2);
+                $changeAmount = round(max(0, $amountReceived - $finalTotal), 2);
+            }
+
             if (! $hasItems) {
                 $order->delete();
                 continue;
             }
 
             $order->update([
-                'order_total' => $orderTotal,
+                'order_total' => $finalTotal,
+                'discount_preset_id' => $discountPreset?->id,
+                'discount_type' => $discountPreset?->type ?? 'none',
+                'discount_value' => $discountPreset?->value ?? 0,
+                'amount_received' => $amountReceived,
+                'change_amount' => $changeAmount,
                 'payment_status' => $paymentStatus,
             ]);
 

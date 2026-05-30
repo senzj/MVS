@@ -4,9 +4,10 @@ namespace App\Livewire\Order;
 use App\Livewire\Concerns\HasConfirmData;
 use App\Livewire\Concerns\HasOrderForm;
 use App\Models\Customer;
+use App\Models\DiscountPreset;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Serives\System\AuditLogsService;
+use App\Services\System\AuditLogsService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,10 @@ class Add extends Component
      * Replaces the old boolean $isPaid.
      */
     public string  $paymentStatus         = 'paid';
+    public ?int    $discountPresetId      = null;
+    public string  $discountType          = 'none';
+    public string|float $discountValue    = 0;
+    public array   $discountPresets       = [];
 
     public string  $status                = 'completed';
     public ?int    $selectedEmployeeId    = null;
@@ -66,6 +71,9 @@ class Add extends Component
         'orderType'                  => 'required|in:deliver,walk_in',
         'paymentType'                => 'required|string',
         'paymentStatus'              => 'required|in:unpaid,paid,refunded',
+        'discountPresetId'           => 'nullable|exists:discount_preset,id',
+        'discountType'               => 'required|in:percentage,fixed,none',
+        'discountValue'              => 'nullable|numeric|min:0',
         'status'                     => 'required|in:pending,preparing,in_transit,delivered,completed,cancelled',
         'selectedEmployeeId'         => 'nullable|exists:employees,id',
         'selectedCustomerId'         => 'nullable|exists:customers,id',
@@ -86,7 +94,141 @@ class Add extends Component
         $this->receiptNumber = $this->generateReceiptNumber();
         $this->saleDate      = now()->format('Y-m-d\TH:i');
         $this->orderType     = config('storeconfig.default_order_type', 'walk_in');
+        $this->loadDiscountPresets();
         $this->addOrderItem();
+    }
+
+    private function loadDiscountPresets(): void
+    {
+        $this->discountPresets = DiscountPreset::query()
+            ->where('is_active', true)
+            ->orderBy('name', 'asc')
+            ->get(['id', 'name', 'type', 'value'])
+            ->toArray();
+    }
+
+    public function updatedDiscountPresetId($value): void
+    {
+        $presetId = is_numeric($value) ? (int) $value : null;
+
+        if (! $presetId) {
+            $this->discountPresetId = null;
+            $this->discountType = 'none';
+            $this->discountValue = 0;
+            return;
+        }
+
+        $preset = DiscountPreset::query()
+            ->where('is_active', true)
+            ->whereKey($presetId)
+            ->first();
+
+        if (! $preset) {
+            $this->discountPresetId = null;
+            $this->discountType = 'none';
+            $this->discountValue = 0;
+            return;
+        }
+
+        $this->discountPresetId = $preset->id;
+        $this->discountType = $preset->type;
+        $this->discountValue = (float) $preset->value;
+    }
+
+    private function resolveDiscountConfig(): array
+    {
+        $presetId = null;
+        $type = (string) $this->discountType;
+        $value = (float) $this->discountValue;
+
+        if ($this->discountPresetId) {
+            $preset = collect($this->discountPresets)
+                ->first(fn ($item) => (int) ($item['id'] ?? 0) === (int) $this->discountPresetId);
+
+            if (! $preset) {
+                $model = DiscountPreset::query()->whereKey((int) $this->discountPresetId)->first(['id', 'type', 'value']);
+                if ($model) {
+                    $preset = [
+                        'id' => $model->id,
+                        'type' => $model->type,
+                        'value' => $model->value,
+                    ];
+                }
+            }
+
+            if ($preset) {
+                $presetId = (int) ($preset['id'] ?? 0);
+                $type = (string) ($preset['type'] ?? 'none');
+                $value = (float) ($preset['value'] ?? 0);
+            }
+        }
+
+        if (! in_array($type, ['percentage', 'fixed'], true)) {
+            return ['preset_id' => null, 'type' => 'none', 'value' => 0.0];
+        }
+
+        return [
+            'preset_id' => $presetId,
+            'type' => $type,
+            'value' => $value,
+        ];
+    }
+
+    private function calculateOrderDiscountFor(float $baseTotal, string $type, float $value): float
+    {
+        if ($baseTotal <= 0) {
+            return 0;
+        }
+
+        return match ($type) {
+            'percentage' => min($baseTotal, max(0, $baseTotal * ($value / 100))),
+            'fixed' => min($baseTotal, max(0, $value)),
+            default => 0,
+        };
+    }
+
+    private function syncDiscountFromSelection(): array
+    {
+        $config = $this->resolveDiscountConfig();
+
+        $this->discountPresetId = $config['preset_id'];
+        $this->discountType = $config['type'];
+        $this->discountValue = (float) $config['value'];
+
+        return $config;
+    }
+
+    public function getOrderDiscountAmountProperty(): float
+    {
+        $config = $this->resolveDiscountConfig();
+        return $this->calculateOrderDiscountFor((float) $this->totalAmount, $config['type'], (float) $config['value']);
+    }
+
+    public function getFinalTotalProperty(): float
+    {
+        return max(0, (float) $this->totalAmount - (float) $this->orderDiscountAmount);
+    }
+
+    public function getOrderDiscountDisplayProperty(): string
+    {
+        $amount = (float) $this->orderDiscountAmount;
+        if ($amount <= 0) {
+            return '-P0';
+        }
+
+        $formattedAmount = 'P' . $this->formatMoneyCompact($amount);
+
+        if ($this->discountType === 'percentage') {
+            $percent = rtrim(rtrim(number_format((float) $this->discountValue, 2, '.', ''), '0'), '.');
+            return '-' . $formattedAmount . ' (' . $percent . '%)';
+        }
+
+        return '-' . $formattedAmount;
+    }
+
+    private function formatMoneyCompact(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
     }
 
     // ── Lifecycle ──────────────────────────────────────────────────
@@ -133,6 +275,8 @@ class Add extends Component
 
     public function openSaveConfirmation(): void
     {
+        $this->syncDiscountFromSelection();
+
         if (! $this->validateSubmissionRequirements()) {
             $this->showConfirmModal = false;
             return;
@@ -221,6 +365,12 @@ class Add extends Component
 
     public function createOrder(): void
     {
+        $discountConfig = $this->syncDiscountFromSelection();
+        $finalTotal = max(
+            0,
+            (float) $this->totalAmount - $this->calculateOrderDiscountFor((float) $this->totalAmount, $discountConfig['type'], (float) $discountConfig['value'])
+        );
+
         if (! $this->validateSubmissionRequirements()) {
             return;
         }
@@ -247,14 +397,17 @@ class Add extends Component
             }
         }
 
-        DB::transaction(function () use ($proofPath) {
+        DB::transaction(function () use ($proofPath, $discountConfig, $finalTotal) {
             $customerId = $this->persistCustomer();
 
             $order = Order::create([
                 'customer_id'      => $customerId,
                 'created_by'       => Auth::id(),
                 'delivered_by'     => $this->orderType === 'deliver' ? $this->selectedEmployeeId : null,
-                'order_total'      => $this->totalAmount,
+            'order_total'      => $finalTotal,
+            'discount_preset_id' => $discountConfig['type'] === 'none' ? null : $discountConfig['preset_id'],
+            'discount_type'    => $discountConfig['type'],
+            'discount_value'   => $discountConfig['type'] === 'none' ? 0 : (float) $discountConfig['value'],
                 'order_type'       => $this->orderType,
                 'payment_type'     => $this->paymentType,
                 'payment_status'   => $this->paymentStatus,
@@ -344,6 +497,9 @@ class Add extends Component
         $this->orderType             = config('storeconfig.default_order_type', 'walk_in');
         $this->paymentType           = 'cash';
         $this->paymentStatus         = 'paid';
+        $this->discountPresetId      = null;
+        $this->discountType          = 'none';
+        $this->discountValue         = 0;
         $this->status                = 'completed';
         $this->selectedEmployeeId    = null;
         $this->selectedCustomerId    = null;

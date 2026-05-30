@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @mixin Builder
@@ -16,6 +17,9 @@ class Order extends Model
         'delivered_by',
         'order_type',
         'order_total',
+        'discount_preset_id',
+        'discount_type',
+        'discount_value',
         'payment_type',
         'payment_status',   // 'unpaid' | 'paid' | 'refunded'
         'status',
@@ -27,6 +31,7 @@ class Order extends Model
 
     protected $casts = [
         'order_total'    => 'float',
+        'discount_value' => 'float',
         'amount_received'=> 'float',
         'change_amount'  => 'float',
     ];
@@ -51,6 +56,11 @@ class Order extends Model
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class, 'order_id');
+    }
+
+    public function discountPreset(): BelongsTo
+    {
+        return $this->belongsTo(DiscountPreset::class, 'discount_preset_id');
     }
 
     // ── Computed attributes ────────────────────────────────────────

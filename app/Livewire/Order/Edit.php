@@ -5,10 +5,13 @@ namespace App\Livewire\Order;
 use App\Livewire\Concerns\HasConfirmData;
 use App\Livewire\Concerns\HasOrderForm;
 use App\Models\Customer;
+use App\Models\DiscountPreset;
 use App\Models\Employee;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\Products\InventoryService;
+use App\Services\System\AuditLogsService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
@@ -28,6 +31,10 @@ class Edit extends Component
     public string $payment_type   = '';
     public string $payment_status = 'unpaid';
     public string $order_type     = '';
+    public ?int   $discountPresetId = null;
+    public string $discountType     = 'none';
+    public string|float $discountValue = 0;
+    public array  $discountPresets  = [];
     public $delivered_by          = null;
     public $customer_id           = null;
 
@@ -88,10 +95,14 @@ class Edit extends Component
         $this->payment_status = $order->payment_status ?? 'unpaid';
         $this->order_type     = $order->order_type;
         $this->orderType      = $order->order_type;
+        $this->discountPresetId = $order->discount_preset_id;
+        $this->discountType = $order->discount_type ?? 'none';
+        $this->discountValue = (float) ($order->discount_value ?? 0);
         $this->delivered_by   = $order->delivered_by;
         $this->customer_id    = $order->customer_id;
         $this->selectedCustomerId = $order->customer_id;
         $this->existingProof  = $order->proof_of_payment;
+        $this->loadDiscountPresets();
 
         if ($this->customer_id) {
             $c = Customer::query()->whereKey($this->customer_id)->first();
@@ -104,6 +115,55 @@ class Edit extends Component
         }
 
         $this->loadOrderItems();
+    }
+
+    private function loadDiscountPresets(): void
+    {
+        $query = DiscountPreset::query()->orderBy('name', 'asc');
+
+        if ($this->discountPresetId) {
+            $query->where(function ($sub) {
+                $sub->where('is_active', true)
+                    ->orWhere('id', $this->discountPresetId);
+            });
+        } else {
+            $query->where('is_active', true);
+        }
+
+        $this->discountPresets = $query
+            ->get(['id', 'name', 'type', 'value', 'is_active'])
+            ->toArray();
+    }
+
+    public function updatedDiscountPresetId($value): void
+    {
+        $presetId = is_numeric($value) ? (int) $value : null;
+
+        if (! $presetId) {
+            $this->discountPresetId = null;
+            $this->discountType = 'none';
+            $this->discountValue = 0;
+            return;
+        }
+
+        $preset = DiscountPreset::query()
+            ->where(function ($query) {
+                $query->where('is_active', true)
+                    ->orWhere('id', $this->discountPresetId);
+            })
+            ->whereKey($presetId)
+            ->first();
+
+        if (! $preset) {
+            $this->discountPresetId = null;
+            $this->discountType = 'none';
+            $this->discountValue = 0;
+            return;
+        }
+
+        $this->discountPresetId = $preset->id;
+        $this->discountType = $preset->type;
+        $this->discountValue = (float) $preset->value;
     }
 
     // ── Lifecycle ──────────────────────────────────────────────────
@@ -240,6 +300,25 @@ class Edit extends Component
         return (float) collect($this->orderItems)->sum(fn ($item) => (float) ($item['total'] ?? 0));
     }
 
+    public function getOrderDiscountAmountProperty(): float
+    {
+        $baseTotal = (float) $this->editedTotal;
+        if ($baseTotal <= 0) {
+            return 0;
+        }
+
+        return match ($this->discountType) {
+            'percentage' => min($baseTotal, max(0, $baseTotal * ((float) $this->discountValue / 100))),
+            'fixed' => min($baseTotal, max(0, (float) $this->discountValue)),
+            default => 0,
+        };
+    }
+
+    public function getDiscountedEditedTotalProperty(): float
+    {
+        return max(0, (float) $this->editedTotal - (float) $this->orderDiscountAmount);
+    }
+
     public function getShowQrProperty(): bool
     {
         return $this->order_type    === 'walk_in'
@@ -284,6 +363,9 @@ class Edit extends Component
             'payment_type'   => 'required|string',
             'payment_status' => 'required|in:unpaid,paid,refunded',
             'order_type'     => 'required|in:walk_in,deliver',
+            'discountPresetId' => 'nullable|exists:discount_preset,id',
+            'discountType'     => 'required|in:percentage,fixed,none',
+            'discountValue'    => 'nullable|numeric|min:0',
             'delivered_by'   => 'nullable|exists:employees,id',
             'customer_id'    => 'nullable|exists:customers,id',
             'orderItems'              => 'required|array|min:1',
@@ -393,6 +475,8 @@ class Edit extends Component
                 }
             }
 
+            $oldSnapshot = $this->order->toArray();
+
             // Update the order
             $this->order->update([
                 'status'           => $newStatus,
@@ -401,7 +485,10 @@ class Edit extends Component
                 'order_type'       => $this->order_type,
                 'delivered_by'     => $this->delivered_by ?: null,
                 'customer_id'      => $this->customer_id  ?: null,
-                'order_total'      => $this->editedTotal,
+                'order_total'      => $this->discountedEditedTotal,
+                'discount_preset_id' => $this->discountType === 'none' ? null : $this->discountPresetId,
+                'discount_type'    => $this->discountType,
+                'discount_value'   => $this->discountType === 'none' ? 0 : (float) $this->discountValue,
                 'proof_of_payment' => $proofPath,
             ]);
 
@@ -555,7 +642,11 @@ class Edit extends Component
             'customerUnit'       => $this->customerUnit,
             'customerAddress'    => $this->customerAddress,
             'items'              => $this->orderItems,
-            'totalAmount'        => $this->editedTotal,
+            'totalAmount'        => $this->discountedEditedTotal,
+            'subtotalAmount'     => $this->editedTotal,
+            'discountType'       => $this->discountType,
+            'discountValue'      => (float) $this->discountValue,
+            'discountAmount'     => $this->orderDiscountAmount,
         ];
     }
 

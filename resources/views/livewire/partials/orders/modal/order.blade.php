@@ -27,6 +27,11 @@
     $reviewCustomerUnit    = $cd['customerUnit']       ?? null;
     $reviewCustomerAddress = $cd['customerAddress']    ?? null;
     $reviewItems           = $cd['items']              ?? [];
+    $reviewSubtotal        = (float) ($cd['subtotalAmount'] ?? 0);
+    $reviewDiscountType    = $cd['discountType']       ?? 'none';
+    $reviewDiscountValue   = (float) ($cd['discountValue'] ?? 0);
+    $reviewDiscountPresetName = $cd['discountPresetName'] ?? null;
+    $reviewDiscountAmount  = (float) ($cd['discountAmount'] ?? 0);
     $reviewTotal           = (float) ($cd['totalAmount'] ?? 0);
     $reviewStatusKey       = $cd['statusKey']          ?? strtolower(str_replace(' ', '_', $reviewStatusLabel));
     $isDelivery            = in_array($reviewOrderType, [__('Delivery'), 'Delivery', 'deliver']);
@@ -148,6 +153,11 @@
                                 'reviewCustomerUnit' => $reviewCustomerUnit,
                                 'reviewCustomerAddress' => $reviewCustomerAddress,
                                 'reviewItems' => $reviewItems,
+                                'reviewSubtotal' => $reviewSubtotal,
+                                'reviewDiscountType' => $reviewDiscountType,
+                                'reviewDiscountValue' => $reviewDiscountValue,
+                                'reviewDiscountPresetName' => $reviewDiscountPresetName,
+                                'reviewDiscountAmount' => $reviewDiscountAmount,
                                 'reviewTotal' => $reviewTotal,
                                 'showProofSection' => false,
                                 'showFooter' => false,

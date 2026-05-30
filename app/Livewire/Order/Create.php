@@ -5,6 +5,7 @@ use App\Helpers\PaymentImageHelper;
 use App\Livewire\Concerns\HasConfirmData;
 use App\Livewire\Concerns\HasOrderForm;
 use App\Models\Customer;
+use App\Models\DiscountPreset;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -38,6 +39,10 @@ class Create extends Component
     public bool    $showConfirmModal     = false;
     public string  $modalMode            = 'confirm';
     public array $confirmData = [];
+    public ?int    $discountPresetId     = null;
+    public string  $discountType         = 'none';
+    public string|float $discountValue   = 0;
+    public array   $discountPresets      = [];
 
     // Walk-in payment
     public ?float  $amountReceived    = null;
@@ -62,6 +67,9 @@ class Create extends Component
         'orderType'               => 'required|in:deliver,walk_in',
         'paymentType'             => 'required|string',
         'selectedEmployeeId'      => 'nullable|exists:employees,id',
+        'discountPresetId'        => 'nullable|exists:discount_preset,id',
+        'discountType'            => 'required|in:percentage,fixed,none',
+        'discountValue'           => 'nullable|numeric|min:0',
         'selectedCustomerId'      => 'nullable|exists:customers,id',
         'customerName'            => 'nullable|string|max:255',
         'customerUnit'            => 'nullable|string|max:255',
@@ -82,7 +90,141 @@ class Create extends Component
         $this->orderType   = config('storeconfig.default_order_type',   'walk_in');
         $this->paymentType = $this->defaultPaymentType;
         $this->orderNumber = $this->generateReceiptNumber();
+        $this->loadDiscountPresets();
         $this->addOrderItem();
+    }
+
+    private function loadDiscountPresets(): void
+    {
+        $this->discountPresets = DiscountPreset::query()
+            ->where('is_active', true)
+            ->orderBy('name', 'asc')
+            ->get(['id', 'name', 'type', 'value'])
+            ->toArray();
+    }
+
+    public function updatedDiscountPresetId($value): void
+    {
+        $presetId = is_numeric($value) ? (int) $value : null;
+
+        if (! $presetId) {
+            $this->discountPresetId = null;
+            $this->discountType = 'none';
+            $this->discountValue = 0;
+            return;
+        }
+
+        $preset = DiscountPreset::query()
+            ->where('is_active', true)
+            ->whereKey($presetId)
+            ->first();
+
+        if (! $preset) {
+            $this->discountPresetId = null;
+            $this->discountType = 'none';
+            $this->discountValue = 0;
+            return;
+        }
+
+        $this->discountPresetId = $preset->id;
+        $this->discountType = $preset->type;
+        $this->discountValue = (float) $preset->value;
+    }
+
+    private function resolveDiscountConfig(): array
+    {
+        $presetId = null;
+        $type = (string) $this->discountType;
+        $value = (float) $this->discountValue;
+
+        if ($this->discountPresetId) {
+            $preset = collect($this->discountPresets)
+                ->first(fn ($item) => (int) ($item['id'] ?? 0) === (int) $this->discountPresetId);
+
+            if (! $preset) {
+                $model = DiscountPreset::query()->whereKey((int) $this->discountPresetId)->first(['id', 'type', 'value']);
+                if ($model) {
+                    $preset = [
+                        'id' => $model->id,
+                        'type' => $model->type,
+                        'value' => $model->value,
+                    ];
+                }
+            }
+
+            if ($preset) {
+                $presetId = (int) ($preset['id'] ?? 0);
+                $type = (string) ($preset['type'] ?? 'none');
+                $value = (float) ($preset['value'] ?? 0);
+            }
+        }
+
+        if (! in_array($type, ['percentage', 'fixed'], true)) {
+            return ['preset_id' => null, 'type' => 'none', 'value' => 0.0];
+        }
+
+        return [
+            'preset_id' => $presetId,
+            'type' => $type,
+            'value' => $value,
+        ];
+    }
+
+    private function calculateOrderDiscountFor(float $baseTotal, string $type, float $value): float
+    {
+        if ($baseTotal <= 0) {
+            return 0;
+        }
+
+        return match ($type) {
+            'percentage' => min($baseTotal, max(0, $baseTotal * ($value / 100))),
+            'fixed' => min($baseTotal, max(0, $value)),
+            default => 0,
+        };
+    }
+
+    private function syncDiscountFromSelection(): array
+    {
+        $config = $this->resolveDiscountConfig();
+
+        $this->discountPresetId = $config['preset_id'];
+        $this->discountType = $config['type'];
+        $this->discountValue = (float) $config['value'];
+
+        return $config;
+    }
+
+    public function getOrderDiscountAmountProperty(): float
+    {
+        $config = $this->resolveDiscountConfig();
+        return $this->calculateOrderDiscountFor((float) $this->totalAmount, $config['type'], (float) $config['value']);
+    }
+
+    public function getFinalTotalProperty(): float
+    {
+        return max(0, (float) $this->totalAmount - (float) $this->orderDiscountAmount);
+    }
+
+    public function getOrderDiscountDisplayProperty(): string
+    {
+        $amount = (float) $this->orderDiscountAmount;
+        if ($amount <= 0) {
+            return '-P0';
+        }
+
+        $formattedAmount = 'P' . $this->formatMoneyCompact($amount);
+
+        if ($this->discountType === 'percentage') {
+            $percent = rtrim(rtrim(number_format((float) $this->discountValue, 2, '.', ''), '0'), '.');
+            return '-' . $formattedAmount . ' (' . $percent . '%)';
+        }
+
+        return '-' . $formattedAmount;
+    }
+
+    private function formatMoneyCompact(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
     }
 
     // ── Lifecycle ──────────────────────────────────────────────────
@@ -133,9 +275,9 @@ class Create extends Component
         }
 
         $received           = is_numeric($this->amountReceived) ? (float) $this->amountReceived : 0;
-        $this->changeAmount = max(0, $received - $this->totalAmount);
+        $this->changeAmount = max(0, $received - $this->finalTotal);
 
-        if ($received >= $this->totalAmount) {
+        if ($received >= $this->finalTotal) {
             $this->resetErrorBag(['amountReceived']);
         }
     }
@@ -144,6 +286,8 @@ class Create extends Component
 
     public function openSaveConfirmation(): void
     {
+        $this->syncDiscountFromSelection();
+
         if (! $this->validateSubmissionRequirements()) {
             $this->showConfirmModal = false;
             return;
@@ -184,14 +328,14 @@ class Create extends Component
     {
         $this->processingPayment = true;
 
-        if ($this->paymentType === 'cash' && (float) $this->totalAmount > 0) {
+        if ($this->paymentType === 'cash' && (float) $this->finalTotal > 0) {
             $this->validate([
                 'amountReceived' => [
-                    'required', 'numeric', 'min:' . $this->totalAmount,
+                    'required', 'numeric', 'min:' . $this->finalTotal,
                 ],
             ], [
                 'amountReceived.required' => __('Please enter the amount received.'),
-                'amountReceived.min'      => __('Amount received must be at least ₱') . number_format($this->totalAmount, 2),
+                'amountReceived.min'      => __('Amount received must be at least ₱') . number_format($this->finalTotal, 2),
             ]);
         }
 
@@ -273,6 +417,12 @@ class Create extends Component
 
     public function createOrder(): void
     {
+        $discountConfig = $this->syncDiscountFromSelection();
+        $finalTotal = max(
+            0,
+            (float) $this->totalAmount - $this->calculateOrderDiscountFor((float) $this->totalAmount, $discountConfig['type'], (float) $discountConfig['value'])
+        );
+
         // Stock pre-check
         foreach ($this->orderItems as $index => $item) {
             if (! ($item['product_id'] ?? null)) {
@@ -306,7 +456,7 @@ class Create extends Component
             $paymentStatus = 'paid';
         }
 
-        DB::transaction(function () use ($proofPath, $paymentStatus) {
+        DB::transaction(function () use ($proofPath, $paymentStatus, $discountConfig, $finalTotal) {
             $inventory = app(InventoryService::class);
             $customerId = $this->persistCustomer();
             $isWalkIn   = $this->orderType === 'walk_in';
@@ -315,7 +465,10 @@ class Create extends Component
                 'customer_id'     => $customerId,
                 'created_by'      => Auth::id(),
                 'delivered_by'    => $isWalkIn ? null : $this->selectedEmployeeId,
-                'order_total'     => $this->totalAmount,
+            'order_total'     => $finalTotal,
+            'discount_preset_id' => $discountConfig['type'] === 'none' ? null : $discountConfig['preset_id'],
+            'discount_type'   => $discountConfig['type'],
+            'discount_value'  => $discountConfig['type'] === 'none' ? 0 : (float) $discountConfig['value'],
                 'order_type'      => $this->orderType,
                 'payment_type'    => $this->paymentType,
                 'payment_status'  => $paymentStatus,

@@ -28,6 +28,7 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
     Volt::route('settings/language', 'settings.language')->name('settings.language');
     Volt::route('settings/qrcode', 'settings.qrcode')->name('settings.qrcode');
+    Route::get('settings/discounts', \App\Livewire\Presets\Discount::class)->name('settings.discounts');
 
     // Orders route
     Volt::route('orders', 'order.dashboard')->name('orders');
@@ -35,6 +36,9 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('orders/create', 'order.create')->name('orders.create');
     Volt::route('orders/{order}/edit', 'order.edit')->name('orders.edit');
     Volt::route('orders/add', 'order.add')->name('orders.add');
+
+    // Presets route
+    Volt::route('presets/discounts', 'presets.discount')->name('presets.discounts');
 
     // Products route
     Volt::route('products', 'product.dashboard')->name('products');

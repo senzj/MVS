@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Concerns;
 
+use App\Models\DiscountPreset;
 use Livewire\Attributes\Computed;
 use Carbon\Carbon;
 
@@ -125,9 +126,48 @@ trait HasConfirmData
 
         // ── Items / total ───────────────────────────────────────────
         $items = $this->orderItems ?? [];
-        $total = $this->totalAmount    // Add / Create (trait computed)
-            ?? $this->editedTotal      // Edit (computed)
+        $subtotal = $this->totalAmount    // Add / Create (trait computed)
+            ?? $this->editedTotal         // Edit (computed)
             ?? 0;
+
+        $discountType = $this->discountType
+            ?? $this->discount_type
+            ?? ($this->order->discount_type ?? 'none')
+            ?? 'none';
+
+        $discountPresetId = $this->discountPresetId
+            ?? $this->discount_preset_id
+            ?? ($this->order->discount_preset_id ?? null)
+            ?? null;
+
+        $discountValue = (float) (
+            $this->discountValue
+            ?? $this->discount_value
+            ?? ($this->order->discount_value ?? 0)
+            ?? 0
+        );
+
+        $discountPresetName = null;
+        if ($discountPresetId) {
+            $discountPresetName = collect($this->discountPresets ?? [])
+                ->first(fn ($item) => (int) ($item['id'] ?? 0) === (int) $discountPresetId)['name']
+                ?? null;
+
+            if (! $discountPresetName && isset($this->order) && $this->order?->relationLoaded('discountPreset')) {
+                $discountPresetName = $this->order?->discountPreset?->name;
+            }
+
+            if (! $discountPresetName) {
+                $discountPresetName = DiscountPreset::query()->whereKey((int) $discountPresetId)->value('name');
+            }
+        }
+
+        $discountAmount = $this->orderDiscountAmount
+            ?? 0;
+
+        $total = $this->finalTotal
+            ?? $this->discountedEditedTotal
+            ?? max(0, (float) $subtotal - (float) $discountAmount);
 
         return [
             'receiptNumber'      => $receiptNumber,
@@ -150,6 +190,11 @@ trait HasConfirmData
                 ? $this->customerAddress
                 : optional($customer)->address,
             'items'              => $items,
+            'subtotalAmount'     => (float) $subtotal,
+            'discountType'       => $discountType,
+            'discountValue'      => $discountValue,
+            'discountPresetName' => $discountPresetName,
+            'discountAmount'     => (float) $discountAmount,
             'totalAmount'        => (float) $total,
         ];
     }

@@ -190,11 +190,53 @@
 
             {{-- Total Amount --}}
             <div class="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-600">
-                <div class="flex justify-between items-center">
-                    <span class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                        <i class="fas fa-receipt mr-2"></i>{{ __('Total Amount') }}:
-                    </span>
-                    <span class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($this->totalAmount, 2) }}</span>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/80 dark:bg-zinc-900/40 p-4 space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Discount Preset</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">Applied before the final total is calculated.</p>
+                            </div>
+                            <a href="{{ route('settings.discounts') }}" wire:navigate class="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
+                                Manage presets
+                            </a>
+                        </div>
+
+                        <select wire:model.live="discountPresetId"
+                            class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
+                                   bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100
+                                   focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
+                            <option value="">No Discount</option>
+                            @foreach($discountPresets as $preset)
+                                <option value="{{ $preset['id'] }}">
+                                    {{ $preset['name'] }}
+                                    ({{ ucfirst($preset['type']) }}:
+                                    {{ $preset['type'] === 'percentage' ? rtrim(rtrim(number_format((float) $preset['value'], 2, '.', ''), '0'), '.') . '%' : '₱' . number_format((float) $preset['value'], 2) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 space-y-3">
+                        <div class="flex justify-between items-center text-sm text-zinc-700 dark:text-zinc-300">
+                            <span class="font-semibold uppercase tracking-wide">Subtotal</span>
+                            <span class="font-bold font-mono text-lg">₱{{ number_format($this->totalAmount, 2) }}</span>
+                        </div>
+
+                        @if($discountPresetId && $this->orderDiscountAmount > 0)
+                            <div class="flex justify-between items-center text-sm text-zinc-700 dark:text-zinc-300">
+                                <span class="font-semibold uppercase tracking-wide">Order Discount</span>
+                                <span class="font-bold font-mono text-lg">{{ $this->orderDiscountDisplay }}</span>
+                            </div>
+                        @endif
+
+                        <div class="flex justify-between items-center border-t border-zinc-200 dark:border-zinc-700 pt-3">
+                            <span class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                                <i class="fas fa-receipt mr-2"></i>{{ __('Total Amount') }}:
+                            </span>
+                            <span class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($this->finalTotal, 2) }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

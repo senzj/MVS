@@ -59,6 +59,15 @@
     $amountReceived = $sourceOrder?->amount_received ?? null;
     $changeAmount = $sourceOrder?->change_amount ?? null;
     $existingProofUrl = $sourceOrder?->proof_url ?? null;
+
+    $orderDiscountType = $sourceOrder?->discount_type ?? ($reviewDiscountType ?? 'none');
+    $orderDiscountValue = (float) ($sourceOrder?->discount_value ?? ($reviewDiscountValue ?? 0));
+    $orderDiscountPresetName = $sourceOrder?->discountPreset?->name ?? ($reviewDiscountPresetName ?? null);
+    $orderDiscountConfiguredLabel = match ($orderDiscountType) {
+        'percentage' => rtrim(rtrim(number_format($orderDiscountValue, 2, '.', ''), '0'), '.') . '%',
+        'fixed' => 'P' . rtrim(rtrim(number_format($orderDiscountValue, 2, '.', ''), '0'), '.'),
+        default => null,
+    };
 @endphp
 
 <div class="mx-auto w-full max-w-full space-y-3 text-sm text-gray-800 dark:text-gray-100 select-text">
@@ -226,23 +235,6 @@
 
     {{-- Totals --}}
     <div class="space-y-2">
-        @if($amountReceived !== null || $changeAmount !== null)
-            <div class="pt-2 space-y-1.5">
-                @if($amountReceived !== null)
-                    <div class="flex items-center justify-between gap-3 text-xs">
-                        <span class="text-zinc-700 dark:text-zinc-300">{{ __('Amount Received') }}</span>
-                        <span class="font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">₱{{ number_format((float) $amountReceived, 2) }}</span>
-                    </div>
-                @endif
-                @if($changeAmount !== null)
-                    <div class="flex items-center justify-between gap-3 text-xs">
-                        <span class="text-zinc-700 dark:text-zinc-300">{{ __('Amount Changed') }}</span>
-                        <span class="font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">₱{{ number_format((float) $changeAmount, 2) }}</span>
-                    </div>
-                @endif
-            </div>
-        @endif
-
         @php
             $subtotal = 0;
             $discountSum = 0;
@@ -252,18 +244,70 @@
                 $subtotal += $qty * $unit;
                 $discountSum += (float) ($it->discount_amount ?? $it->discount ?? 0);
             }
+
+            $subtotalAfterItemDiscount = max(0, $subtotal - $discountSum);
+            $orderDiscountAmount = match ($orderDiscountType) {
+                'percentage' => min($subtotalAfterItemDiscount, max(0, $subtotalAfterItemDiscount * ($orderDiscountValue / 100))),
+                'fixed' => min($subtotalAfterItemDiscount, max(0, $orderDiscountValue)),
+                default => 0,
+            };
+
+            if (! $sourceOrder && isset($reviewDiscountAmount)) {
+                $orderDiscountAmount = (float) $reviewDiscountAmount;
+            }
         @endphp
 
-        <div class="pt-2 space-y-2">
-            <div class="flex items-center justify-between text-xs text-zinc-700 dark:text-zinc-300">
-                <span>{{ __('Subtotal') }}</span>
-                <span class="font-mono">₱{{ number_format((float) $subtotal, 2) }}</span>
-            </div>
+        <div class="pt-1 font-semibold flex items-center justify-between text-sm text-zinc-700 dark:text-zinc-300">
+            <span class="uppercase">
+                {{ __('Subtotal') }}
+            </span>
+            <span class="font-mono">₱{{ number_format((float) $subtotal, 2) }}</span>
+        </div>
 
+        <div class="pt-2 space-y-2">
             @if($discountSum > 0)
                 <div class="flex items-center justify-between text-xs text-zinc-700 dark:text-zinc-300">
                     <span>{{ __('Discount') }}</span>
                     <span class="font-mono">-₱{{ number_format((float) $discountSum, 2) }}</span>
+                </div>
+            @endif
+
+            @if($amountReceived !== null || $changeAmount !== null)
+                <div class="space-y-2">
+                    @if($amountReceived !== null)
+                        <div class="flex items-center justify-between gap-3 text-xs">
+                            <span class="text-zinc-700 dark:text-zinc-300">{{ __('Amount Received') }}</span>
+                            <span class="font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">₱{{ number_format((float) $amountReceived, 2) }}</span>
+                        </div>
+                    @endif
+                    @if($changeAmount !== null)
+                        <div class="flex items-center justify-between gap-3 text-xs">
+                            <span class="text-zinc-700 dark:text-zinc-300">{{ __('Amount Changed') }}</span>
+                            <span class="font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">₱{{ number_format((float) $changeAmount, 2) }}</span>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
+            @if($orderDiscountAmount > 0)
+                <div class="flex items-center justify-between text-xs text-zinc-700 dark:text-zinc-300">
+                    <span>
+                        {{ __('Discount') }}
+                        @if($orderDiscountPresetName || $orderDiscountConfiguredLabel)
+                            (
+                            @if($orderDiscountPresetName)
+                                {{ $orderDiscountPresetName }}
+                            @endif
+                            @if($orderDiscountPresetName && $orderDiscountConfiguredLabel)
+                                -
+                            @endif
+                            @if($orderDiscountConfiguredLabel)
+                                {{ $orderDiscountConfiguredLabel }}
+                            @endif
+                            )
+                        @endif
+                    </span>
+                    <span class="font-mono">-₱{{ number_format((float) $orderDiscountAmount, 2) }}</span>
                 </div>
             @endif
 
