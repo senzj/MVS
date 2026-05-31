@@ -33,10 +33,10 @@ class Discount extends Component
 
         if ($this->editingId) {
             DiscountPreset::query()->whereKey($this->editingId)->update($data);
-            session()->flash('success', 'Discount preset updated.');
+            session()->flash('success', __('Discount preset updated'));
         } else {
             DiscountPreset::create($data);
-            session()->flash('success', 'Discount preset created.');
+            session()->flash('success', __('Discount preset created'));
         }
 
         $this->resetForm();
@@ -70,7 +70,7 @@ class Discount extends Component
             'is_active' => ! $preset->is_active,
         ]);
 
-        session()->flash('success', $wasActive ? 'Discount preset disabled.' : 'Discount preset enabled.');
+        session()->flash('success', $wasActive ? __('Discount preset disabled') : __('Discount preset enabled'));
         $this->redirect(route('settings.discounts'));
     }
 
@@ -82,7 +82,7 @@ class Discount extends Component
         }
 
         DiscountPreset::query()->whereKey($id)->delete();
-        session()->flash('success', 'Discount preset deleted.');
+        session()->flash('success', __('Discount preset deleted'));
 
         if ($this->editingId === $id) {
             $this->resetForm();

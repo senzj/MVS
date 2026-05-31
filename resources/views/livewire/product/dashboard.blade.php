@@ -112,7 +112,7 @@
                 <div class="relative">
                     <input type="text"
                            wire:model.live.debounce.300ms="search"
-                           placeholder="{{ __('Search products...') }}"
+                           placeholder="{{ __('Search products') }}"
                            class="w-full pl-3 pr-8 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
                                   bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100
                                   focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
@@ -161,7 +161,7 @@
             </div>
 
             {{-- Results count --}}
-            <div class="flex items-end">
+            <div class="flex items-end lg:col-span-1 lg:justify-end">
                 <div class="text-xs text-zinc-500 dark:text-zinc-400 py-2">
                     @if($search || $categoryFilter !== 'all' || $stockFilter)
                         <i class="fas fa-filter mr-1 text-blue-500"></i>

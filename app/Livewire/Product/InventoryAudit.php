@@ -63,6 +63,7 @@ class InventoryAudit extends Component
     public function render()
     {
         $tz = config('app.timezone') ?? 'UTC';
+        $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
 
         // ── Filtered query (for the table/pagination) ─────────────────────────
         $query = InventoryMovement::query()
@@ -130,7 +131,7 @@ class InventoryAudit extends Component
 
         while ($period->lte($end)) {
             $dateStr = $period->toDateString();
-            $labels[] = $period->format('M d');
+            $labels[] = $period->locale($loc)->isoFormat('MMM D');
 
             // Use clean aggregate query — no eager loads, no GROUP BY conflicts
             $dayAdded   = (clone $aggQuery)
@@ -155,6 +156,11 @@ class InventoryAudit extends Component
             'added'   => $addedSeries,
             'removed' => $removedSeries,
             'net'     => $netSeries,
+            'series'  => [
+                'added'   => __('Addition'),
+                'removed' => __('Deduction'),
+                'net'     => __('Net Movement'),
+            ],
         ];
 
         // ── Stock Distribution Chart ──────────────────────────────────────────

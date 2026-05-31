@@ -45,8 +45,19 @@
         </button>
     </div>
 
-    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
-        <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 flex items-center gap-3 lg:col-span-2">
+    {{-- KPI Cards --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shrink-0">
+                <i class="fas fa-coins text-violet-600 dark:text-violet-400"></i>
+            </div>
+            <div>
+                <div class="text-xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">₱{{ number_format($kpi['total_inventory_value'], 2) }}</div>
+                <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{{ __('Total Inventory Value') }}</div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
                 <i class="fas fa-layer-group text-blue-600 dark:text-blue-400"></i>
             </div>
@@ -56,7 +67,7 @@
             </div>
         </div>
 
-        <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 flex items-center gap-3 lg:col-span-2">
+        <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 flex items-center gap-3">
             <div class="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center shrink-0">
                 <i class="fas fa-boxes-stacked text-green-600 dark:text-green-400"></i>
             </div>
@@ -73,16 +84,6 @@
             <div>
                 <div class="text-xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{{ $kpi['uncategorized_products'] }}</div>
                 <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{{ __('Uncategorized Products') }}</div>
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shrink-0">
-                <i class="fas fa-coins text-violet-600 dark:text-violet-400"></i>
-            </div>
-            <div>
-                <div class="text-xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">₱{{ number_format($kpi['total_inventory_value'], 2) }}</div>
-                <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{{ __('Inventory Value') }}</div>
             </div>
         </div>
     </div>
@@ -164,7 +165,7 @@
                 <div class="relative">
                     <input type="text"
                            wire:model.live.debounce.300ms="search"
-                           placeholder="{{ __('Search categories by name or description...') }}"
+                           placeholder="{{ __('Search categories by name or description') }}"
                            class="w-full pl-3 pr-9 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
                     @if($search)
                         <button wire:click="$set('search', '')"
@@ -186,42 +187,6 @@
                     <option value="inventory_value">{{ __('Inventory Value') }}</option>
                     <option value="updated_at">{{ __('Last Updated') }}</option>
                 </select>
-            </div>
-        </div>
-    </div>
-
-    @include('livewire.partials.loading-overlay', [
-        'wireTarget' => 'openProductsModal',
-        'title' => __('Fetching products...'),
-        'message' => __('Please wait while we load this category.'),
-    ])
-
-    <div x-cloak x-show="showEditLoading" x-transition.opacity class="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6 bg-zinc-950/60">
-        <div class="w-full max-w-sm bg-white/90 dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-700 rounded-3xl shadow-2xl p-5">
-            <div class="flex flex-col items-center gap-3 text-center">
-                <div class="relative w-12 h-12 flex items-center justify-center">
-                    <div class="absolute inset-0 rounded-full border-4 border-blue-200 dark:border-blue-900"></div>
-                    <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 dark:border-t-blue-400 animate-spin"></div>
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Fetching category...') }}</p>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Please wait while the edit form is loaded.') }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div x-cloak x-show="showDeleteLoading" x-transition.opacity class="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6 bg-zinc-950/60">
-        <div class="w-full max-w-sm bg-white/90 dark:bg-zinc-800/90 border border-zinc-200 dark:border-zinc-700 rounded-3xl shadow-2xl p-5">
-            <div class="flex flex-col items-center gap-3 text-center">
-                <div class="relative w-12 h-12 flex items-center justify-center">
-                    <div class="absolute inset-0 rounded-full border-4 border-blue-200 dark:border-blue-900"></div>
-                    <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 dark:border-t-blue-400 animate-spin"></div>
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Fetching category...') }}</p>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Please wait while the delete confirmation is loaded.') }}</p>
-                </div>
             </div>
         </div>
     </div>
@@ -265,10 +230,19 @@
                             class="prod-card-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
                             <i class="fas fa-edit"></i>{{ __('Edit') }}
                         </button>
-                        <button @click="openDeleteModal({{ $category['id'] }})"
-                            class="prod-card-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 ml-auto">
-                            <i class="fas fa-trash"></i>{{ __('Delete') }}
-                        </button>
+
+                        @if($category['products_count'] > 0)
+                            <button type="button" disabled
+                                class="prod-card-btn text-zinc-400 opacity-60 cursor-not-allowed ml-auto"
+                                title="{{ __('Cannot delete - has products') }}">
+                                <i class="fas fa-trash"></i>{{ __('Delete') }}
+                            </button>
+                        @else
+                            <button @click="openDeleteModal({{ $category['id'] }})"
+                                class="prod-card-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 ml-auto">
+                                <i class="fas fa-trash"></i>{{ __('Delete') }}
+                            </button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -281,32 +255,33 @@
         @endforelse
     </div>
 
+    {{-- Desktop Layout --}}
     <div class="hidden lg:block bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-zinc-100 dark:divide-zinc-700">
                 <thead class="bg-zinc-50 dark:bg-zinc-900/60">
                     <tr>
                         <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider w-16">#</th>
-                        <th wire:click="sortByField('name')" class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
+                        <th wire:click="sortByField('name')" class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
                             {{ __('Category') }}
                             @if($sortBy === 'name')
                                 <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500 ml-1"></i>
                             @endif
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Description') }}</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Description') }}</th>
                         <th wire:click="sortByField('products_count')" class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
                             {{ __('Products') }}
                             @if($sortBy === 'products_count')
                                 <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500 ml-1"></i>
                             @endif
                         </th>
-                        <th wire:click="sortByField('inventory_value')" class="px-4 py-3 text-right text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
+                        <th wire:click="sortByField('inventory_value')" class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
                             {{ __('Value') }}
                             @if($sortBy === 'inventory_value')
                                 <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500 ml-1"></i>
                             @endif
                         </th>
-                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Updated') }}</th>
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Last Updated') }}</th>
                         <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
@@ -341,14 +316,35 @@
                             </td>
 
                             {{-- Inventory Value --}}
-                            <td class="px-4 py-3 text-right text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                            <td class="px-4 py-3 text-center text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                                 ₱{{ number_format($category['inventory_value'], 2) }}
                             </td>
 
                             {{-- Updated At --}}
                             <td class="px-4 py-3 text-center text-sm text-zinc-500 dark:text-zinc-400">
-                                <span title="{{ optional($category['updated_at'])->format('M d, Y h:i A') }}">
-                                {{ optional($category['updated_at'])->format('M d, Y') }}
+                                @php
+                                    $dt = $category['updated_at'] ? (\Carbon\Carbon::parse($category['updated_at'])) : null;
+                                @endphp
+
+                                @if($dt)
+                                    @php
+                                        $month = $dt->format('F');
+                                        $monthTrans = __($month);
+                                        $dateStr = $monthTrans . ' ' . $dt->format('d, Y');
+                                        $timeStr = $dt->format('h:i:s');
+                                        $meridiem = $dt->format('A');
+                                        $meridiemTrans = __($meridiem);
+                                    @endphp
+
+                                    <span title="{{ $dateStr }} {{ $timeStr }} {{ $meridiemTrans }}">
+                                        {{ $dateStr }}
+                                    </span>
+                                    <span class="block text-xs text-zinc-400 dark:text-zinc-500">
+                                        {{ $timeStr }} {{ $meridiemTrans }} | {{ $dt->diffForHumans() }}
+                                    </span>
+                                @else
+                                    -
+                                @endif
                             </td>
 
                             {{-- Actions --}}
@@ -357,9 +353,16 @@
                                     <button @click="openEditModal({{ $category['id'] }})" class="tbl-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
                                         <i class="fas fa-pen"></i>{{ __('Edit') }}
                                     </button>
-                                    <button @click="openDeleteModal({{ $category['id'] }})" class="tbl-action-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
-                                        <i class="fas fa-trash"></i>{{ __('Delete') }}
-                                    </button>
+
+                                    @if($category['products_count'] > 0)
+                                        <button type="button" disabled class="tbl-action-btn text-zinc-400 opacity-60 cursor-not-allowed" title="{{ __('Cannot delete - has products') }}">
+                                            <i class="fas fa-trash"></i>{{ __('Delete') }}
+                                        </button>
+                                    @else
+                                        <button @click="openDeleteModal({{ $category['id'] }})" class="tbl-action-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
+                                            <i class="fas fa-trash"></i>{{ __('Delete') }}
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -375,44 +378,69 @@
             </table>
         </div>
 
-        <style>
-            .prod-card-btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.25rem;
-                padding: 0.375rem 0.625rem;
-                border-radius: 0.625rem;
-                font-size: 0.75rem;
-                font-weight: 500;
-                transition: background-color 0.15s;
-                cursor: pointer;
-                white-space: nowrap;
-            }
+        @once
+            @include('livewire.partials.loading-overlay', [
+                'wireTarget' => 'search,sortBy,sortByField,openEditModal,openProductsModal,openDeleteModal, openCreateModal',
+            ])
 
-            .tbl-action-btn {
-                display: inline-flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 0.125rem;
-                padding: 0.375rem 0.5rem;
-                border-radius: 0.5rem;
-                font-size: 0.75rem;
-                font-weight: 500;
-                transition: background-color 0.15s;
-                cursor: pointer;
-                white-space: nowrap;
-                min-width: 3rem;
-                text-align: center;
-            }
-        </style>
+            @include('livewire.partials.loading-overlay', [
+                'wireTarget' => 'openProductsModal',
+                'title' => __('Fetching products'),
+                'message' => __('Please wait while we load this category.'),
+            ])
+        @endonce
+
+        @push('styles')
+            <style>
+                .prod-card-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                    padding: 0.375rem 0.625rem;
+                    border-radius: 0.625rem;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    transition: background-color 0.15s;
+                    cursor: pointer;
+                    white-space: nowrap;
+                }
+
+                .tbl-action-btn {
+                    display: inline-flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 0.125rem;
+                    padding: 0.375rem 0.5rem;
+                    border-radius: 0.5rem;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    transition: background-color 0.15s;
+                    cursor: pointer;
+                    white-space: nowrap;
+                    min-width: 3rem;
+                    text-align: center;
+                }
+
+                .tbl-action-btn:disabled {
+                    cursor: not-allowed;
+                    opacity: 0.6;
+                }
+
+                .tbl-action-btn:disabled:hover {
+                    background-color: transparent;
+                }
+            </style>
+        @endpush
     </div>
 
-    <div x-cloak x-show="showProductsModal" x-transition.opacity @click.self="closeProductsModal()" class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 bg-zinc-950/60">
+    {{-- ============== MODALS ============== --}}
+
+    {{-- Products Modal --}}
+    <div x-cloak x-show="showProductsModal" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 bg-zinc-950/60">
         <div class="w-full max-w-3xl bg-white dark:bg-zinc-800 rounded-3xl shadow-2xl border border-zinc-100 dark:border-zinc-700 overflow-hidden">
             <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-zinc-700">
                 <div>
                     <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Products in :name', ['name' => $selectedCategoryName ?: __('this category')]) }}</h3>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Click outside the modal to close it.') }}</p>
                 </div>
                 <button @click="closeProductsModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">
                     <i class="fas fa-times"></i>
@@ -426,7 +454,7 @@
                             <div class="flex items-center justify-between gap-3 rounded-2xl border border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-700/40 px-4 py-3">
                                 <div class="min-w-0">
                                     <p class="font-semibold text-zinc-900 dark:text-zinc-100 truncate">{{ $product['name'] }}</p>
-                                    <p class="text-xs text-zinc-500 dark:text-zinc-400">#{{ $product['id'] }}</p>
+                                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Product ID') }}: #{{ $product['id'] }}</p>
                                 </div>
 
                                 <div class="flex items-center gap-2 shrink-0 text-sm">
@@ -451,12 +479,13 @@
         </div>
     </div>
 
-    <div x-cloak x-show="showCreateModal" x-transition.opacity @click.self="closeCreateModal()" class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 bg-zinc-950/60">
+    {{-- Create Category Modal --}}
+    <div x-cloak x-show="showCreateModal" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 bg-zinc-950/60">
         <div class="w-full max-w-2xl bg-white dark:bg-zinc-800 rounded-3xl shadow-2xl border border-zinc-100 dark:border-zinc-700 overflow-hidden">
             <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-zinc-700">
                 <div>
                     <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Create Category') }}</h3>
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Add a new category for products.') }}</p>
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Create a new category for products.') }}</p>
                 </div>
                 <button @click="closeCreateModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors">
                     <i class="fas fa-times"></i>
@@ -465,14 +494,16 @@
 
             <form wire:submit.prevent="createCategory" class="p-5 space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1.5">{{ __('Category Name') }}</label>
-                    <input type="text" wire:model.live="name" class="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition" placeholder="{{ __('e.g. Beverages') }}">
+                    <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1.5">
+                        {{ __('Category Name') }}
+                    </label>
+                    <input type="text" wire:model.live="name" class="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition" placeholder="{{ __('e.g. Beverages, Dairy, Fish, Meat, etc.') }}">
                     @error('name') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1.5">{{ __('Description') }}</label>
-                    <textarea wire:model.live="description" rows="4" class="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition" placeholder="{{ __('Optional category notes or instructions...') }}"></textarea>
+                    <textarea wire:model.live="description" rows="4" class="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition" placeholder="{{ __('Optional category notes or instructions for this category.') }}"></textarea>
                     @error('description') <p class="mt-1 text-xs text-red-500">{{ $message }}</p> @enderror
                 </div>
 
@@ -488,7 +519,8 @@
         </div>
     </div>
 
-    <div x-cloak x-show="showEditModal" x-transition.opacity @click.self="closeEditModal()" class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 bg-zinc-950/60">
+    {{-- Edit Category Modal --}}
+    <div x-cloak x-show="showEditModal" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 bg-zinc-950/60">
         <div class="w-full max-w-2xl bg-white dark:bg-zinc-800 rounded-3xl shadow-2xl border border-zinc-100 dark:border-zinc-700 overflow-hidden">
             <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-zinc-700">
                 <div>
@@ -525,6 +557,7 @@
         </div>
     </div>
 
+    {{-- Delete Category Modal --}}
     <div x-cloak x-show="showDeleteModal" x-transition.opacity @click.self="closeDeleteModal()" class="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 bg-zinc-950/60">
         <div class="w-full max-w-lg bg-white dark:bg-zinc-800 rounded-3xl shadow-2xl border border-zinc-100 dark:border-zinc-700 overflow-hidden">
             <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-zinc-700">
@@ -544,7 +577,7 @@
                             <i class="fas fa-triangle-exclamation text-red-600 dark:text-red-400"></i>
                         </div>
                         <div>
-                            <p class="font-semibold text-red-800 dark:text-red-200">{{ __('Delete :name?', ['name' => $selectedCategoryName ?: __('this category')]) }}</p>
+                            <p class="font-semibold text-red-800 dark:text-red-200">{{ __('Deleting :name Category', ['name' => $selectedCategoryName ?: __('this category')]) }}</p>
                             <p class="text-sm text-red-700/80 dark:text-red-200/80 mt-1">{{ __('Products will keep their current category label until you reassign them, so only delete empty categories.') }}</p>
                         </div>
                     </div>
@@ -561,4 +594,7 @@
             </div>
         </div>
     </div>
+
 </div>
+
+

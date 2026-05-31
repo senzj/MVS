@@ -54,7 +54,7 @@
     <td class="px-4 py-3 whitespace-nowrap text-center">
         <time class="text-xs text-zinc-500 dark:text-zinc-400" datetime="{{ $order->updated_at->toIso8601String() }}">
             <span class="block">{{ $order->updated_at->locale($loc)->isoFormat('LL') }}</span>
-            <span class="block">{{ $order->updated_at->locale($loc)->isoFormat('hh:mm A') }}</span>
+            <span class="block">{{ $order->updated_at->locale($loc)->isoFormat('hh:mm A') }} | {{ $order->updated_at->diffForHumans() }}</span>
         </time>
     </td>
 

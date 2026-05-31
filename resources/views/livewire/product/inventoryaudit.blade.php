@@ -44,7 +44,7 @@
         <div class="flex items-center justify-between mb-2">
             <div>
                 <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Inventory Movements Over Time') }}</div>
-                <div class="text-xs text-zinc-500">{{ __('Shows additions and deductions to help detect unusual activity and supply patterns') }}</div>
+                <div class="text-xs text-zinc-500">{{ __('Shows additions and deductions to help detect unusual activity and supply patterns.') }}</div>
             </div>
         </div>
 
@@ -52,7 +52,6 @@
         <div class="h-45">
             <canvas id="inventoryAuditLineChart"></canvas>
         </div>
-
         <script>
             window.dispatchEvent(new CustomEvent('inventory-audit-chart-data', {
                 detail: { data: @json($chart) }
@@ -66,8 +65,9 @@
         <div class="rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 p-4 shadow-sm">
             <div class="mb-3">
                 <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Stock Distribution by Product') }}</div>
-                <div class="text-xs text-zinc-500">{{ __('Top 10 products by current stock quantity') }}</div>
+                <div class="text-xs text-zinc-500">{{ __('Top 10 products by current stock quantity.') }}</div>
             </div>
+
             <script id="stock-distribution-chart-data" type="application/json">@json($stockChart)</script>
             <div class="h-64">
                 <canvas id="stockDistributionChart"></canvas>
@@ -83,8 +83,9 @@
         <div class="rounded-2xl bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 p-4 shadow-sm">
             <div class="mb-3">
                 <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Movement Type Distribution') }}</div>
-                <div class="text-xs text-zinc-500">{{ __('Breakdown of all inventory movement types') }}</div>
+                <div class="text-xs text-zinc-500">{{ __('Breakdown of all inventory movement types.') }}</div>
             </div>
+
             <script id="movement-type-chart-data" type="application/json">@json($typeChart)</script>
             <div class="h-64">
                 <canvas id="movementTypeChart"></canvas>
@@ -208,7 +209,7 @@
                             <p class="font-medium text-zinc-900 dark:text-zinc-100">{{ $referenceLabel }}</p>
                             @php
                                 $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
-                                $formattedDate = $movement->created_at->locale($loc)->isoFormat('MMM DD, YYYY HH:mm A');
+                                $formattedDate = $movement->created_at->locale($loc)->isoFormat('MMM DD, YYYY | HH:mm:ss A');
                             @endphp
                             <p class="text-xs text-zinc-500 mt-1">{{ $formattedDate }}</p>
                         </div>
@@ -314,7 +315,7 @@
                             <td class="px-4 py-3 text-center text-sm text-zinc-500 whitespace-nowrap">
                                 @php
                                     $loc = app()->getLocale() === 'cn' ? 'zh_CN' : app()->getLocale();
-                                    $tableDate = $movement->created_at->locale($loc)->isoFormat('MMM DD, YYYY HH:mm:ss A');
+                                    $tableDate = $movement->created_at->locale($loc)->isoFormat('MMM DD, YYYY | HH:mm:ss A');
                                 @endphp
                                 <div class="flex flex-col items-center gap-1">
                                     <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ $referenceLabel ?: 'N/A' }}</span>

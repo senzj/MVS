@@ -57,13 +57,15 @@ export default function initInventoryAuditChart(payload = null) {
 
     destroyInventoryAuditChart();
 
+    const seriesLabels = chartPayload.series || {};
+
     inventoryAuditChart = new Chart(canvas, {
         type: 'line',
         data: {
             labels,
             datasets: [
                 {
-                    label: 'Additions',
+                    label: seriesLabels.added || 'Additions',
                     data: added,
                     borderColor: '#10b981',
                     backgroundColor: 'rgba(16,185,129,0.15)',
@@ -74,7 +76,7 @@ export default function initInventoryAuditChart(payload = null) {
                     tension: 0.35,
                 },
                 {
-                    label: 'Deductions',
+                    label: seriesLabels.removed || 'Deductions',
                     data: removed,
                     borderColor: '#ef4444',
                     backgroundColor: 'rgba(239,68,68,0.1)',
@@ -85,7 +87,7 @@ export default function initInventoryAuditChart(payload = null) {
                     tension: 0.35,
                 },
                 {
-                    label: 'Net Movement',
+                    label: seriesLabels.net || 'Net Movement',
                     data: net,
                     borderColor: '#3b82f6',
                     backgroundColor: 'transparent',

@@ -166,7 +166,7 @@
             </div>
 
             <div class="p-3 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Completed / Cancelled') }}</p>
+                <p class="text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ __('Completed / Cancelled Orders') }}</p>
                 <div class="mt-2 flex items-center justify-between">
                     <p class="text-xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($s['completed_cancelled'] ?? 0) }}</p>
                     <i class="fas fa-check-circle text-zinc-500"></i>
