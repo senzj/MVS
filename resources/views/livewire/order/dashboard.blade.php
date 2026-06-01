@@ -1,7 +1,7 @@
 @section('title', __('Orders Dashboard'))
 
 <div class="w-full max-w-full overflow-hidden px-2 sm:px-4 pb-8"
-    x-data="{ activeTab: 'ongoing' }"
+    x-data="{ activeTab: @js(($ongoingCount ?? 0) > 0 ? 'ongoing' : 'completed') }"
     wire:poll.60s="pollBatchTimers">
 
     {{-- HEADER --}}

@@ -21,7 +21,7 @@
         : 'rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-900/40 p-4 space-y-3';
 @endphp
 
-<div x-data="{ captureMode: null }" class="{{ $borderClass }}">
+<div x-data="{ captureMode: null }" class="relative overflow-hidden {{ $borderClass }}">
 
     {{-- ── Cash payments: display only if there is an existing proof ───────── --}}
     @if($isCashPayment)
@@ -113,7 +113,7 @@
         @endif
 
         {{-- Upload / Camera buttons --}}
-        <div class="flex flex-col sm:flex-row gap-2">
+        <div class="flex flex-col sm:flex-row gap-2" wire:loading.class="opacity-40 pointer-events-none" wire:target="proofOfPayment">
             <button type="button"
                 x-on:click="captureMode = null; $refs.proofInput.click()"
                 class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm
@@ -165,6 +165,24 @@
                 </div>
             </div>
         @endif
+
+        <div wire:loading.flex wire:target="proofOfPayment"
+             class="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
+            <div class="flex flex-col items-center gap-2 rounded-xl border border-white/15 bg-white/90 px-4 py-3 shadow-lg max-w-[14rem] mx-3 dark:bg-zinc-900/90">
+                <div class="relative flex h-9 w-9 items-center justify-center">
+                    <div class="absolute inset-0 rounded-full border-3 border-blue-200 dark:border-blue-900"></div>
+                    <div class="absolute inset-0 rounded-full border-3 border-transparent border-t-blue-600 dark:border-t-blue-400 animate-spin"></div>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                        {{ __('Uploading proof of payment') }}
+                    </p>
+                    <p class="text-[11px] text-zinc-500 dark:text-zinc-400">
+                        {{ __('Please wait while the image is being uploaded') }}
+                    </p>
+                </div>
+            </div>
+        </div>
 
     @endif
 </div>
