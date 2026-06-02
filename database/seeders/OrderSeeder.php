@@ -37,6 +37,12 @@ class OrderSeeder extends Seeder
         // Create random orders with items
         for ($i = 1; $i <= $random; $i++) {
             $orderType = fake()->randomElement(['deliver', 'walk_in']);
+            $storeOpenHour = (int) config('storeconfig.store_open_hour', 7);
+            $storeCloseHour = (int) config('storeconfig.store_close_hour', 20);
+            $orderTimestamp = fake()->dateTimeBetween(
+                now()->copy()->setTime($storeOpenHour, 0, 0),
+                now()->copy()->setTime(max($storeOpenHour, $storeCloseHour), 59, 59)
+            );
 
             // Get all configured payment types
             $otherPaymentTypes = config('storeconfig.other_payment_types', []);
