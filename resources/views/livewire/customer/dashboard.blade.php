@@ -77,7 +77,7 @@
             </div>
             <div class="min-w-0">
                 <div class="text-xl font-bold text-zinc-900 dark:text-zinc-100 leading-none">{{ $repeatedCustomersThisMonth }}</div>
-                <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{{ __('Repeat Customers (This Month)') }}</div>
+                <div class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">{{ __('This Month\'s Repeated Customers') }}</div>
             </div>
         </div>
 
@@ -95,9 +95,7 @@
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════════
-         SEARCH
-    ════════════════════════════════════════════════ --}}
+    {{-- SEARCH --}}
     <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 mb-4">
         <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
             <div class="flex-1 w-full">
@@ -134,9 +132,7 @@
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════════
-         CUSTOMER LIST
-    ════════════════════════════════════════════════ --}}
+    {{-- CUSTOMER LIST --}}
 
     {{-- ── Mobile Cards (< lg) ── --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
@@ -247,8 +243,8 @@
                             </div>
                         </th>
                         <th wire:click="sortByField('name')"
-                            class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
-                            <div class="flex items-center gap-1">
+                            class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
+                            <div class="flex items-center justify-center gap-1">
                                 <i class="fas fa-user"></i>
                                 {{ __('Customer Name') }}
                                 @if($sortBy === 'name')
@@ -258,7 +254,7 @@
                                 @endif
                             </div>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                             <i class="fas fa-map-marker-alt mr-1"></i>{{ __('Unit & Address') }}
                         </th>
                         <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
@@ -413,9 +409,7 @@
     </div>
 
 
-    {{-- ═══════════════════════════════════════════════
-         CREATE CUSTOMER MODAL
-    ════════════════════════════════════════════════ --}}
+    {{-- CREATE CUSTOMER MODAL --}}
     <div x-show="showCreateModal" x-cloak
          class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
         <div class="bg-white dark:bg-zinc-800 w-full sm:rounded-2xl sm:max-w-lg max-h-[92dvh] overflow-y-auto shadow-2xl">

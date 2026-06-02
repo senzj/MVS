@@ -203,11 +203,20 @@ class Dashboard extends Component
             $query->where('is_archived', false);
         }
 
+        // Attach delivered counts so Blade can read per-employee totals
+        $deliveredStatuses = ['delivered', 'completed'];
+        $query->withCount([
+            'orders as orders_delivered' => function ($q) use ($deliveredStatuses) {
+                $q->whereIn('status', $deliveredStatuses);
+            },
+            'orders as orders_delivered_today' => function ($q) use ($deliveredStatuses) {
+                $q->whereIn('status', $deliveredStatuses)->whereDate('updated_at', now());
+            },
+        ]);
+
         // Apply sorting
         if ($this->sortBy === 'orders_delivered') {
-            $query->withCount(['orders' => function ($q) {
-                $q->whereIn('status', ['delivered', 'completed']);
-            }])->orderBy('orders_count', $this->sortDirection);
+            $query->orderBy('orders_delivered', $this->sortDirection);
         } else {
             $query->orderBy($this->sortBy, $this->sortDirection);
         }

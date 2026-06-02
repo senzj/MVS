@@ -343,6 +343,8 @@
     "Delivered": "已送达",
     "Cancelled": "已取消",
     "Paid": "已支付",
+    "Delivered Today": "今日送达",
+    "Total Deliveries": "总送达次数",
     "Unpaid": "未支付",
     "Mark Paid": "标记为已付款",
     "Mark Unpaid": "标记为未付款",
@@ -777,6 +779,8 @@
     "Top 10 products by current stock quantity.": "当前库存数量排名前10的产品。",
     "Movement Type Distribution": "变动类型分布",
     "Breakdown of all inventory movement types.": "所有库存变动类型的分类。",
+    "orders per active employee": "每位活跃员工的订单数",
+    "orders per active customer": "每位活跃客户的订单数",
 
     "January": "一月",
     "February": "二月",
@@ -792,6 +796,9 @@
     "December": "十二月",
     "AM": "上午",
     "PM": "下午",
+    "7 Days": "1周",
+    "30 Days": "1月",
+    "This Month's Repeated Customers": "本月重复客户",
 
     "Log in": "登录",
     "Created :name account": "已创建 :name 的账户",

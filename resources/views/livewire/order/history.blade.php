@@ -9,6 +9,52 @@
             orders: '{{ __('Orders') }}'
         };
     </script>
+    <script>
+        (function () {
+            const readChartData = (id) => {
+                const el = document.getElementById(id);
+                if (!el) return null;
+
+                try {
+                    return JSON.parse(el.textContent || '{}');
+                } catch (error) {
+                    console.error('Failed to parse orders chart payload', id, error);
+                    return null;
+                }
+            };
+
+            const emitChartData = () => {
+                const statusData = readChartData('payment-status-chart-data');
+                if (statusData) {
+                    window.dispatchEvent(new CustomEvent('payment-status-chart-data', {
+                        detail: { data: statusData },
+                    }));
+                }
+
+                const methodsData = readChartData('payment-methods-chart-data');
+                if (methodsData) {
+                    window.dispatchEvent(new CustomEvent('payment-methods-chart-data', {
+                        detail: { data: methodsData },
+                    }));
+                }
+            };
+
+            const scheduleEmit = () => {
+                requestAnimationFrame(() => setTimeout(emitChartData, 0));
+            };
+
+            document.addEventListener('DOMContentLoaded', scheduleEmit, { once: true });
+            window.addEventListener('pageshow', scheduleEmit);
+            document.addEventListener('livewire:navigated', scheduleEmit);
+            document.addEventListener('livewire:message.processed', scheduleEmit);
+
+            if (window.__ordersChartsReady) {
+                scheduleEmit();
+            } else {
+                window.addEventListener('orders-charts-ready', scheduleEmit, { once: true });
+            }
+        })();
+    </script>
 @endpush
 
 <div id="order-history-content"
@@ -230,12 +276,12 @@
 
     {{-- Charts and Analytics --}}
     <div class="w-full my-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200/50 dark:border-zinc-700/50 p-3">
+        <div wire:ignore class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200/50 dark:border-zinc-700/50 p-3">
             <div class="text-sm text-zinc-500 dark:text-zinc-400 mb-2">{{ __('Payment Status') }}</div>
             <canvas id="paymentStatusChart" class="w-full" style="max-height: 192px;"></canvas>
         </div>
 
-        <div class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200/50 dark:border-zinc-700/50 p-3">
+        <div wire:ignore class="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200/50 dark:border-zinc-700/50 p-3">
             <div class="text-sm text-zinc-500 dark:text-zinc-400 mb-2">{{ __('Payment Method') }}</div>
             <canvas id="paymentMethodsChart" class="w-full" style="max-height: 192px;"></canvas>
         </div>

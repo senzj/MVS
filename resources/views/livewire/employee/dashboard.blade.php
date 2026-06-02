@@ -63,6 +63,8 @@
         $archivedPct     = $totalEmployees ? round(($archivedCount / $totalEmployees) * 100) : 0;
 
         $deliveredStatuses = ['delivered', 'completed'];
+        $todayDelivered     = \App\Models\Order::whereIn('status', $deliveredStatuses)->whereDate('updated_at', now())->count();
+        $totalDelivered     = \App\Models\Order::whereIn('status', $deliveredStatuses)->count();
         $yesterdayDelivered = \App\Models\Order::whereIn('status', $deliveredStatuses)->whereDate('updated_at', \Carbon\Carbon::yesterday())->count();
         $last7Delivered     = \App\Models\Order::whereIn('status', $deliveredStatuses)->where('updated_at', '>=', now()->subDays(7))->count();
         $last30Delivered    = \App\Models\Order::whereIn('status', $deliveredStatuses)->where('updated_at', '>=', now()->subDays(30))->count();
@@ -120,22 +122,30 @@
                     <div class="text-xs text-zinc-400 dark:text-zinc-500">{{ __('Delivered Orders') }}</div>
                 </div>
             </div>
-            <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="grid grid-cols-2 gap-2 text-center sm:grid-cols-3 lg:grid-cols-5">
+                <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl py-2">
+                    <div class="text-lg font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($todayDelivered) }}</div>
+                    <div class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">{{ __('Today') }}</div>
+                </div>
                 <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl py-2">
                     <div class="text-lg font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($yesterdayDelivered) }}</div>
                     <div class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">{{ __('Yesterday') }}</div>
                 </div>
                 <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl py-2">
                     <div class="text-lg font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($last7Delivered) }}</div>
-                    <div class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">{{ __('Last 7 Days') }}</div>
+                    <div class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">{{ __('7 Days') }}</div>
                 </div>
                 <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl py-2">
                     <div class="text-lg font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($last30Delivered) }}</div>
-                    <div class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">{{ __('Last 30 Days') }}</div>
+                    <div class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">{{ __('30 Days') }}</div>
+                </div>
+                <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl py-2">
+                    <div class="text-lg font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($totalDelivered) }}</div>
+                    <div class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">{{ __('Total') }}</div>
                 </div>
             </div>
             <p class="text-center text-xs text-zinc-400 dark:text-zinc-500 mt-2">
-                {{ __('Average of') }} <span class="font-semibold text-zinc-700 dark:text-zinc-300">{{ $avgPerActive7 }}</span> {{ __('orders') }} / {{ __('active employee') }}
+                {{ __('Average of') }} <span class="font-semibold text-zinc-700 dark:text-zinc-300">{{ $avgPerActive7 }}</span> {{ __('orders per active employee') }}
             </p>
         </div>
 
@@ -183,9 +193,7 @@
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════════
-         SEARCH & FILTER
-    ════════════════════════════════════════════════ --}}
+    {{-- SEARCH & FILTER --}}
     <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 mb-4">
         <div class="flex flex-col sm:flex-row gap-3">
             {{-- Search --}}
@@ -230,9 +238,7 @@
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════════
-         EMPLOYEE LIST
-    ════════════════════════════════════════════════ --}}
+    {{-- EMPLOYEE LIST --}}
 
     {{-- ── Mobile Cards (< lg) ── --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden">
@@ -274,7 +280,11 @@
                         </div>
                         <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
                             <i class="fas fa-box w-3.5 shrink-0 text-zinc-400"></i>
-                            {{ $employee->orders_delivered ?: 0 }} {{ __('Orders Delivered') }}
+                            {{ $employee->orders_delivered ?: 0 }} {{ __('Total Deliveries') }}
+                        </div>
+                        <div class="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
+                            <i class="fas fa-box w-3.5 shrink-0 text-zinc-400"></i>
+                            {{ $employee->orders_delivered_today ?: 0 }} {{ __('Deliveries Today') }}
                         </div>
                     </div>
 
@@ -306,9 +316,9 @@
                 <thead class="bg-zinc-50 dark:bg-zinc-900/60">
                     <tr>
                         <th wire:click="sortByField('name')"
-                            class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
-                            <div class="flex items-center gap-1">
-                                {{ __('Employee') }}
+                            class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
+                            <div class="flex items-center justify-center gap-1">
+                                {{ __('Employees') }}
                                 @if($sortBy === 'name')
                                     <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500"></i>
                                 @else
@@ -316,10 +326,12 @@
                                 @endif
                             </div>
                         </th>
+
+                        {{-- Delivered Today --}}
                         <th wire:click="sortByField('orders_delivered')"
                             class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
                             <div class="flex items-center justify-center gap-1">
-                                {{ __('Orders Delivered') }}
+                                {{ __('Delivered Today') }}
                                 @if($sortBy === 'orders_delivered')
                                     <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500"></i>
                                 @else
@@ -327,6 +339,21 @@
                                 @endif
                             </div>
                         </th>
+
+                        {{-- Total Deliveries --}}
+                        <th wire:click="sortByField('orders_delivered')"
+                            class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
+                            <div class="flex items-center justify-center gap-1">
+                                {{ __('Total Deliveries') }}
+                                @if($sortBy === 'orders_delivered')
+                                    <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500"></i>
+                                @else
+                                    <i class="fas fa-sort text-zinc-300 dark:text-zinc-600"></i>
+                                @endif
+                            </div>
+                        </th>
+
+                        {{-- Status --}}
                         <th wire:click="sortByField('status')"
                             class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
                             <div class="flex items-center justify-center gap-1">
@@ -348,6 +375,7 @@
                         <tr wire:key="desktop-emp-{{ $employee->id }}"
                             class="hover:bg-zinc-50 dark:hover:bg-zinc-700/40 transition-colors">
 
+                            {{-- Name --}}
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center shrink-0 shadow-sm">
@@ -360,10 +388,22 @@
                                 </div>
                             </td>
 
+                            {{-- Contact Number --}}
                             <td class="px-4 py-3 text-center text-sm text-zinc-700 dark:text-zinc-300 hidden">
                                 <i class="fas fa-phone mr-1 text-zinc-400 text-xs"></i>{{ $employee->contact_number ?: 'N/A' }}
                             </td>
 
+                            {{-- Delivered Today --}}
+                            <td class="px-4 py-3 text-center">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
+                                             {{ ($employee->orders_delivered_today ?: 0) > 0
+                                                 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                                 : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400' }}">
+                                    <i class="fas fa-calendar-day text-[10px]"></i>{{ $employee->orders_delivered_today ?: 0 }}
+                                </span>
+                            </td>
+
+                            {{-- Total Deliveries --}}
                             <td class="px-4 py-3 text-center">
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
                                              {{ ($employee->orders_delivered ?: 0) > 0
@@ -373,6 +413,7 @@
                                 </span>
                             </td>
 
+                            {{-- Status --}}
                             <td class="px-4 py-3 text-center">
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
                                              bg-{{ $employee->status_color }}-100 text-{{ $employee->status_color }}-800
