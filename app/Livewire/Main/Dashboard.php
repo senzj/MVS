@@ -93,6 +93,11 @@ class Dashboard extends Component
             $start = $date->copy()->startOfMonth();
             $end = $date->copy()->endOfMonth();
             $periodOrders = $this->filterOrders($orders, $start, $end);
+
+            if ($periodOrders->isEmpty()) {
+                continue;
+            }
+
             $sales = round((float) $periodOrders->sum('order_total'), 2);
             $monthLabels[] = $label;
             $monthOrders[] = $periodOrders->count();
@@ -127,6 +132,11 @@ class Dashboard extends Component
             $group = $orders90->filter(function ($o) use ($dayIso) {
                 return Carbon::parse($o->created_at)->dayOfWeekIso === $dayIso;
             });
+
+            if ($group->isEmpty()) {
+                continue;
+            }
+
             $sales = round((float) $group->sum('order_total'), 2);
             $weekDays[] = $label;
             $weekdayOrders[] = $group->count();
@@ -153,6 +163,11 @@ class Dashboard extends Component
             $group = $orders30->filter(function ($o) use ($h) {
                 return (int) Carbon::parse($o->created_at)->format('G') === $h;
             });
+
+            if ($group->isEmpty()) {
+                continue;
+            }
+
             $sales = round((float) $group->sum('order_total'), 2);
             $hourLabels[] = $label;
             $hourOrders[] = $group->count();
