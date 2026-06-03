@@ -19,19 +19,19 @@ class UserSeeder extends Seeder
             'password' => Hash::make('123'),
         ]);
 
-        $staffUsers = [
-            ['name' => 'Mia Santos', 'username' => 'mia.santos'],
-            ['name' => 'Noah Reyes', 'username' => 'noah.reyes'],
-            ['name' => 'Liam Cruz', 'username' => 'liam.cruz'],
-            ['name' => 'Ava Garcia', 'username' => 'ava.garcia'],
-        ];
+        // $staffUsers = [
+        //     ['name' => 'Mia Santos', 'username' => 'mia.santos'],
+        //     ['name' => 'Noah Reyes', 'username' => 'noah.reyes'],
+        //     ['name' => 'Liam Cruz', 'username' => 'liam.cruz'],
+        //     ['name' => 'Ava Garcia', 'username' => 'ava.garcia'],
+        // ];
 
-        foreach ($staffUsers as $staffUser) {
-            User::create([
-                'name' => $staffUser['name'],
-                'username' => $staffUser['username'],
-                'password' => Hash::make('password123'),
-            ]);
-        }
+        // foreach ($staffUsers as $staffUser) {
+        //     User::create([
+        //         'name' => $staffUser['name'],
+        //         'username' => $staffUser['username'],
+        //         'password' => Hash::make('password123'),
+        //     ]);
+        // }
     }
 }
