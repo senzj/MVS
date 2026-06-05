@@ -41,7 +41,10 @@ class Payment extends Component
             $this->show = false;
             return;
         }
-        $this->amountReceived = $this->order->amount_received ?? $this->order->order_total;
+
+        // $this->amountReceived = $this->order->amount_received ?? $this->order->order_total;
+        $this->amountReceived = (float) ($this->order->amount_received ?? 0);
+
         $this->show = true;
     }
 
@@ -92,8 +95,14 @@ class Payment extends Component
             if ($isWalkInOrder) {
                 $this->order->status = 'completed';
             }
-            $this->order->amount_received = $this->amountReceived ?? $this->order->order_total;
-            $this->order->change_amount   = max(0, ($this->amountReceived ?? 0) - ($this->order->order_total ?? 0));
+
+            // $this->order->amount_received = $this->amountReceived ?? $this->order->order_total;
+            $this->order->amount_received = (float) $this->amountReceived;
+
+            $received = (float) $this->amountReceived;
+            $total = (float) $this->order->order_total;
+
+            $this->order->change_amount = max(0, $received - $total);
 
             if ($proofPath) {
                 $this->order->proof_of_payment = $proofPath;

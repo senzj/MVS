@@ -194,11 +194,11 @@
                     <div class="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/80 dark:bg-zinc-900/40 p-4 space-y-3">
                         <div class="flex items-center justify-between gap-3">
                             <div>
-                                <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">Discount Preset</h4>
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400">Applied before the final total is calculated.</p>
+                                <h4 class="text-sm font-bold text-zinc-900 dark:text-zinc-100">{{ __('Discount') }}</h4>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Applied before the final total is calculated.') }}</p>
                             </div>
                             <a href="{{ route('settings.discounts') }}" wire:navigate class="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                                Manage presets
+                                {{ __('Manage Discount presets') }}
                             </a>
                         </div>
 
@@ -206,7 +206,7 @@
                             class="w-full px-3 py-2.5 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
                                    bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100
                                    focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                            <option value="">No Discount</option>
+                            <option value="">{{ __('No Discount') }}</option>
                             @foreach($discountPresets as $preset)
                                 <option value="{{ $preset['id'] }}">
                                     {{ $preset['name'] }}
@@ -219,13 +219,13 @@
 
                     <div class="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 space-y-3">
                         <div class="flex justify-between items-center text-sm text-zinc-700 dark:text-zinc-300">
-                            <span class="font-semibold uppercase tracking-wide">Subtotal</span>
+                            <span class="font-semibold uppercase tracking-wide">{{ __('Subtotal') }}</span>
                             <span class="font-bold font-mono text-lg">₱{{ number_format($this->totalAmount, 2) }}</span>
                         </div>
 
                         @if($discountPresetId && $this->orderDiscountAmount > 0)
                             <div class="flex justify-between items-center text-sm text-zinc-700 dark:text-zinc-300">
-                                <span class="font-semibold uppercase tracking-wide">Order Discount</span>
+                                <span class="font-semibold uppercase tracking-wide">{{ __('Discount') }}</span>
                                 <span class="font-bold font-mono text-lg">{{ $this->orderDiscountDisplay }}</span>
                             </div>
                         @endif

@@ -209,10 +209,10 @@ class Create extends Component
     {
         $amount = (float) $this->orderDiscountAmount;
         if ($amount <= 0) {
-            return '-P0';
+            return '-₱0';
         }
 
-        $formattedAmount = 'P' . $this->formatMoneyCompact($amount);
+        $formattedAmount = '₱' . $this->formatMoneyCompact($amount);
 
         if ($this->discountType === 'percentage') {
             $percent = rtrim(rtrim(number_format((float) $this->discountValue, 2, '.', ''), '0'), '.');

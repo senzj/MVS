@@ -102,6 +102,7 @@
             </label>
             <input type="number"
                 wire:model.blur="orderItems.{{ $index }}.price"
+                wire:change="$wire.call('handleUpdatedOrderItem', $event.target.value, '{{ $index }}.price')"
                 data-field="orderItems.{{ $index }}.price"
                 min="0" step="0.01"
                 class="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg
