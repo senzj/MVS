@@ -178,7 +178,7 @@ class Dashboard extends Component
 
     public function togglePaid($orderId)
     {
-        // Dispatch to the Payment child component using Livewire v3 syntax
+        // Dispatch to the Payment
         $this->dispatch('openPaymentModal', orderId: $orderId);
     }
 

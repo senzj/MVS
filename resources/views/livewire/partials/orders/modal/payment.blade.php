@@ -82,8 +82,55 @@
                                     </span>
                                 </p>
                             </div>
+
+                            {{-- Payment due info --}}
                             <div class="text-right">
-                                <p class="text-xs text-zinc-500">{{ __('Total due') }}</p>
+                                {{-- Discount --}}
+                                @php
+                                    $subtotal    = 0;
+                                    $discountSum = 0;
+
+                                    foreach ($order->orderItems as $item) {
+                                        $itemTotal = $item->quantity * $item->unit_price;
+                                        $subtotal += $itemTotal;
+
+                                        if ($order->discount_type === 'percentage') {
+                                            $discountSum += $itemTotal * ($order->discount_value / 100);
+                                        } elseif ($order->discount_type === 'fixed') {
+                                            // will be set cleanly after the loop
+                                        }
+                                    }
+
+                                    // Fixed discount is a flat amount, not distributed per-item
+                                    if ($order->discount_type === 'fixed') {
+                                        $discountSum = (float) $order->discount_value;
+                                    }
+
+                                    // Build the label: "PWD - 15%" or "PWD - ₱50.00"
+                                    $preset      = $order->discountPreset;
+                                    $presetLabel = null;
+                                    if ($preset) {
+                                        $valueStr    = $order->discount_type === 'percentage'
+                                            ? number_format($order->discount_value, 0) . '%'
+                                            : '₱' . number_format($order->discount_value, 2);
+                                        $presetLabel = $preset->name . ' · ' . $valueStr;
+                                    }
+                                @endphp
+
+                                @if ($discountSum > 0)
+                                    <p class="text-xs text-zinc-500">
+                                        {{ __('Discount') }}
+                                        @if ($presetLabel)
+                                            <span class="ml-1 font-medium text-zinc-600 dark:text-zinc-300">({{ $presetLabel }})</span>
+                                        @endif
+                                    </p>
+                                    <p class="text-sm font-medium text-red-600 dark:text-red-400">
+                                        -₱{{ number_format($discountSum, 2) }}
+                                    </p>
+                                @endif
+
+                                {{-- Total due --}}
+                                <p class="text-xs text-zinc-500 mt-1">{{ __('Total due') }}</p>
                                 <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                                     ₱{{ number_format($order->order_total, 2) }}
                                 </p>
@@ -93,8 +140,8 @@
                         {{-- Amount received & Change —  Alpine local buffer prevents interrupting typing --}}
                         <div class="space-y-3"
                              x-data="{
-                                amount: {{ (float)($amountReceived ?? $order->order_total) }},
-                                total: {{ (float)($order->order_total ?? 0) }},
+                                amount: Number(@js($amountReceived ?? $order->order_total)),
+                                total: Number(@js($order->order_total ?? 0)),
                                 commit() {
                                     if (!this.amount || this.amount < 0) this.amount = 0;
                                     $wire.amountReceived = this.amount;
@@ -133,10 +180,103 @@
                                 @enderror
                             </div>
 
+                            {{-- Quick Fill Buttons --}}
+                            <div class="my-4 grid grid-cols-3 sm:grid-cols-4 gap-2">
+
+                                {{-- EXACT --}}
+                                <button type="button"
+                                    class="px-3 py-4 rounded-lg text-sm font-semibold
+                                        bg-emerald-100 text-emerald-800
+                                        dark:bg-emerald-900/30 dark:text-emerald-300
+                                        hover:bg-emerald-200 dark:hover:bg-emerald-800/40 transition"
+                                    @click="amount = total">
+                                    Exact
+                                </button>
+
+                                {{-- ROUND UP --}}
+                                <button type="button"
+                                    class="px-3 py-4 rounded-lg text-sm font-semibold
+                                        bg-blue-100 text-blue-800
+                                        dark:bg-blue-900/30 dark:text-blue-300
+                                        hover:bg-blue-200 dark:hover:bg-blue-800/40 transition"
+                                    @click="amount = Math.ceil(total)">
+                                    Round Up
+                                </button>
+
+                                {{-- +10 --}}
+                                <button type="button"
+                                    class="px-3 py-4 rounded-lg text-sm font-semibold
+                                        bg-indigo-100 text-indigo-800
+                                        dark:bg-indigo-900/30 dark:text-indigo-300
+                                        hover:bg-indigo-200 dark:hover:bg-indigo-800/40 transition"
+                                    @click="amount = total + 10">
+                                    +10
+                                </button>
+
+                                {{-- +50 --}}
+                                <button type="button"
+                                    class="px-3 py-4 rounded-lg text-sm font-semibold
+                                        bg-indigo-100 text-indigo-800
+                                        dark:bg-indigo-900/30 dark:text-indigo-300
+                                        hover:bg-indigo-200 dark:hover:bg-indigo-800/40 transition"
+                                    @click="amount = total + 50">
+                                    +50
+                                </button>
+
+                                {{-- +100 --}}
+                                <button type="button"
+                                    class="px-3 py-4 rounded-lg text-sm font-semibold
+                                        bg-amber-100 text-amber-900
+                                        dark:bg-amber-900/30 dark:text-amber-300
+                                        hover:bg-amber-200 dark:hover:bg-amber-800/40 transition"
+                                    @click="amount = total + 100">
+                                    +100
+                                </button>
+
+                                {{-- +500 --}}
+                                <button type="button"
+                                    class="px-3 py-4 rounded-lg text-sm font-semibold
+                                        bg-orange-100 text-orange-900
+                                        dark:bg-orange-900/30 dark:text-orange-300
+                                        hover:bg-orange-200 dark:hover:bg-orange-800/40 transition"
+                                    @click="amount = total + 500">
+                                    +500
+                                </button>
+
+                                {{-- CUSTOM ROUND (nearest 5) --}}
+                                <button type="button"
+                                    class="px-3 py-4 rounded-lg text-sm font-semibold
+                                        bg-sky-100 text-sky-900
+                                        dark:bg-sky-900/30 dark:text-sky-300
+                                        hover:bg-sky-200 dark:hover:bg-sky-800/40 transition"
+                                    @click="amount = Math.ceil(total / 5) * 5">
+                                    Round 5s
+                                </button>
+
+                                {{-- CLEAR --}}
+                                <button type="button"
+                                    class="px-3 py-4 rounded-lg text-sm font-semibold
+                                        bg-red-100 text-red-800
+                                        dark:bg-red-900/30 dark:text-red-300
+                                        hover:bg-red-200 dark:hover:bg-red-800/40 transition"
+                                    @click="amount = 0">
+                                    Clear
+                                </button>
+
+                            </div>
+
                             {{-- Change — computed client-side for instant feedback --}}
-                            <div class="flex items-center justify-between rounded-lg px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20">
+                            <div
+                                :class="change >= 0
+                                    ? 'bg-emerald-50 dark:bg-emerald-900/20'
+                                    : 'bg-red-50 dark:bg-red-900/20'"
+                                class="flex items-center justify-between rounded-lg px-3 py-2"
+                            >
                                 <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Change') }}</p>
-                                <p class="font-mono text-base font-semibold text-emerald-700 dark:text-emerald-400">
+                                <p :class="change >= 0
+                                    ? 'text-emerald-700 dark:text-emerald-400'
+                                    : 'text-red-600 dark:text-red-400'"
+                                    class="font-mono text-base font-semibold">
                                     ₱<span x-text="change.toFixed(2)">0.00</span>
                                 </p>
                             </div>

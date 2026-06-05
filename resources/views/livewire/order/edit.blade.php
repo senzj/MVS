@@ -11,7 +11,7 @@
             </h2>
             @include('livewire.partials.clock')
         </div>
-        <button wire:click="cancel"
+        <button href="{{ route('orders') }}" wire:navigate
             class="cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-lg
                    bg-gray-200 text-gray-800 hover:bg-gray-300 transition
                    dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 text-sm font-medium">

@@ -74,7 +74,9 @@
     })"
 >
 
-    <template x-if="show">
+    <div x-show="show"
+         style="display:none"
+         class="fixed inset-0 z-50 overflow-y-auto">
 
         <div class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex items-end sm:items-center justify-center min-h-screen p-0 sm:p-4 bg-black/60">
@@ -332,6 +334,6 @@
             </div>
         </div>
 
-    </template>
+    </div>
 
 </div>

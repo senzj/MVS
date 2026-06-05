@@ -3,6 +3,7 @@ namespace App\Livewire\Partials\Orders\Modal;
 
 use App\Models\Order;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -13,9 +14,10 @@ class Payment extends Component
     public bool $show   = false;
     public ?int $orderId = null;
     public ?Order $order = null;
+    public float $discountAmount = 0;
 
     public ?float $amountReceived = null;
-    public $proofOfPayment        = null;
+    public ?string $proofOfPayment = null;
 
     protected $listeners = [
         'openPaymentModal' => 'open',
@@ -30,6 +32,7 @@ class Payment extends Component
     {
         $this->resetValidation();
         $this->proofOfPayment = null;
+        $this->order = Order::with(['customer', 'discountPreset'])->find($orderId);
 
         $this->orderId = $orderId;
         $this->order   = Order::with('customer')->find($orderId);
@@ -38,7 +41,6 @@ class Payment extends Component
             $this->show = false;
             return;
         }
-
         $this->amountReceived = $this->order->amount_received ?? $this->order->order_total;
         $this->show = true;
     }
@@ -50,6 +52,7 @@ class Payment extends Component
         $this->orderId = null;
         $this->order   = null;
         $this->amountReceived = null;
+        $this->discountAmount = 0;
         $this->proofOfPayment = null;
         $this->resetValidation();
     }
@@ -57,6 +60,12 @@ class Payment extends Component
     public function updatedProofOfPayment(): void
     {
         $this->validateOnly('proofOfPayment');
+    }
+
+    public function updatedDiscountAmount(): void
+    {
+        if (! $this->order) return;
+        $this->discountAmount = max(0, min((float) $this->discountAmount, (float) $this->order->order_total));
     }
 
     public function confirmPayment(): void
