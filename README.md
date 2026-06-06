@@ -197,6 +197,8 @@ From `.env.example`, these values control business defaults:
 - `STORE_OPEN_DAYS`: Comma-separated open days (`1` = Monday, `7` = Sunday)
 - `ORDER_EDIT_LOCK_STATUS`: Comma-separated order statuses where editing should be locked
 	- Example: `in_transit,delivered,completed,cancelled`
+- `OTHER_PAYMENT_TYPES`: Additional Comma-separated payment types aside from cash
+- `SESSION_EXPIRE_DAYS`: Sets a device or account to be auto-logged out for the set days.
 
 The dashboard weekday analytics chart uses `STORE_OPEN_DAYS`, so it only shows the days your store is actually open.
 
@@ -347,8 +349,8 @@ Laragon makes this much simpler! Here's how:
 ### Step 2: Configure Virtual Hosts
 
 1. Right-click the **Laragon** icon in the system tray (bottom right)
-2. Click **Menu** → **Apache** → **httpd-vhosts.conf**
-3. A text editor will open
+2. Click **Menu** → **Apache** → **sites-enabled** → **00-default.conf**
+3. A text editor will open (like Notepad++)
 
 4. Add this configuration at the end (replace `192.168.1.20` with your IP from Step 1):
 
