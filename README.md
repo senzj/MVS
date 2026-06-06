@@ -348,8 +348,7 @@ Laragon makes this much simpler! Here's how:
 
 ### Step 2: Configure Laragon Settings
 1. Make sure that **Auto-create Virtual Hosts** is toggled checked, if not toggle it and restart laragon
-2. Toggle all settings that is needed like **Run Laragon when Windows starts** or **Run minimized** or Start **All automatically** (Recommended all are toggled)
-3. On the Services & Ports tab make sure that **Apache** and **MySQL** are toggled. Toggle other services if you need them, otherwise don't.
+2. On the Services & Ports tab make sure that **Apache** and **MySQL** are toggled. Toggle other services if you need them, otherwise don't.
 
 ### Step 3: Configure Apache Main Config
 
@@ -395,20 +394,20 @@ Laragon makes this much simpler! Here's how:
 
 5. Save and close the file
 
-### Step 4: Update Your Environment File
+### Step 5: Update Your Environment File
 
 1. Open the `.env` file in your MVS project
 2. Find: `APP_URL=http://localhost`
 3. Change to: `APP_URL=http://192.168.1.20` (use your actual IP)
 
-### Step 5: Restart Laragon
+### Step 6: Restart Laragon
 
 1. Right-click **Laragon** in the system tray
 2. Click **Stop All**
 3. Wait a moment
 4. Click **Start All**
 
-### Step 6: Allow Through Windows Firewall
+### Step 7: Allow Through Windows Firewall
 
 1. Open **Windows Defender Firewall**
 2. Click **Allow an app through firewall**
@@ -417,7 +416,7 @@ Laragon makes this much simpler! Here's how:
    - Laragon
 4. Make sure **Private Network** is checked
 
-### Step 7: Test Access
+### Step 8: Test Access
 
 **On your computer:**
 - Open browser → go to: `http://192.168.1.20`
@@ -434,6 +433,7 @@ Laragon makes this much simpler! Here's how:
 3. Check:
    - "Start Laragon when Windows starts"
    - "Start All when Laragon starts"
+   - "Run minimized"
 4. Click **Save**
 
 ---
