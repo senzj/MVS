@@ -346,7 +346,19 @@ Laragon makes this much simpler! Here's how:
 2. Type: `ipconfig`
 3. Look for **IPv4 Address** — write this down (e.g., `192.168.1.20`)
 
-### Step 2: Configure Virtual Hosts
+### Step 2: Configure Laragon Settings
+1. Make sure that **Auto-create Virtual Hosts** is toggled checked, if not toggle it and restart laragon
+2. Toggle all settings that is needed like **Run Laragon when Windows starts** or **Run minimized** or Start **All automatically** (Recommended all are toggled)
+3. On the Services & Ports tab make sure that **Apache** and **MySQL** are toggled. Toggle other services if you need them, otherwise don't.
+
+### Step 3: Configure Apache Main Config
+
+1. Right-click **Laragon** → **Menu** → **Apache** → **httpd.conf**
+2. Search for: `Listen 80`
+3. Add below it: `NameVirtualHost *:80`
+4. Save and close
+
+### Step 4: Configure Virtual Hosts (Optional, IF ONLY **STEP 3** DID NOT WORK)
 
 1. Right-click the **Laragon** icon in the system tray (bottom right)
 2. Click **Menu** → **Apache** → **sites-enabled** → **00-default.conf**
@@ -356,15 +368,9 @@ Laragon makes this much simpler! Here's how:
 
 ```apache
 # MVS LAN Server
-<VirtualHost *:80>
-    ServerName mgm.store
-    DocumentRoot "C:/laragon/www/MVS/public"
-
-    <Directory "C:/laragon/www/MVS/public">
-        AllowOverride All
-        Require all granted
-    </Directory>
-</VirtualHost>
+    # ServerAlias is not needed for IP access if VirtualHost is *:80
+    # But you can add domain wildcards here if needed:
+    # ServerAlias *.mgm.store 
 
 <VirtualHost *:80>
     ServerName localhost
@@ -388,13 +394,6 @@ Laragon makes this much simpler! Here's how:
 ```
 
 5. Save and close the file
-
-### Step 3: Configure Apache Main Config
-
-1. Right-click **Laragon** → **Menu** → **Apache** → **httpd.conf**
-2. Search for: `Listen 80`
-3. Add below it: `NameVirtualHost *:80`
-4. Save and close
 
 ### Step 4: Update Your Environment File
 
