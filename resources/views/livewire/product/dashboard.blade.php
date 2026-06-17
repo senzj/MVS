@@ -1,31 +1,63 @@
 @section('title', __('Product Inventory'))
 
 <div class="w-full max-w-full overflow-x-hidden px-2 sm:px-4 pb-8"
-     x-data="{
-         showCreateModal: false,
-         showEditModal: false,
-         showDeleteModal: false,
-         showArchiveModal: false,
+    x-data="{
+        showCreateModal: false,
+        showEditModal: false,
+        showDeleteModal: false,
+        showArchiveModal: false,
+        editLoading: false,
 
-         openCreateModal()  { $wire.openCreateModal();  this.showCreateModal  = true; },
-         closeCreateModal() { this.showCreateModal  = false; $wire.resetForm(); },
-         openEditModal(id)  { this.showEditModal = false; $wire.openEditModal(id); },
-         closeEditModal()   { this.showEditModal = false; $wire.resetForm(); },
-         openDeleteModal(id)  { this.showDeleteModal = false; $wire.openDeleteModal(id); },
-         closeDeleteModal()   { this.showDeleteModal = false; $wire.resetForm(); },
-         openArchiveModal(id) { $wire.openArchiveModal(id); this.showArchiveModal = true; },
-         closeArchiveModal()  { this.showArchiveModal = false; $wire.selectedProductId = null; },
-     }"
-     @close-create-modal.window="closeCreateModal()"
-     @close-edit-modal.window="closeEditModal()"
-     @close-delete-modal.window="closeDeleteModal()"
-     @close-archive-modal.window="closeArchiveModal()"
-     @edit-product-loaded.window="showEditModal = true"
-     @delete-product-loaded.window="showDeleteModal = true">
+        openCreateModal() {
+            $wire.openCreateModal();
+            this.showCreateModal = true;
+        },
+        closeCreateModal() {
+            this.showCreateModal = false;
+            $wire.resetForm();
+        },
 
-    {{-- ═══════════════════════════════════════════════
-         HEADER
-    ════════════════════════════════════════════════ --}}
+        // Show modal immediately; spinner covers form until data arrives
+        openEditModal(id) {
+            this.editLoading = true;
+            this.showEditModal = true;
+            $wire.openEditModal(id);
+        },
+        closeEditModal() {
+            this.showEditModal = false;
+            this.editLoading = false;
+            $wire.resetForm();
+        },
+
+        // No server round-trip needed — just set the ID and open
+        openDeleteModal(id) {
+            $wire.selectedProductId = id;
+            this.showDeleteModal = true;
+        },
+        closeDeleteModal() {
+            this.showDeleteModal = false;
+            $wire.resetForm();
+        },
+
+        // Archive also opens immediately
+        openArchiveModal(id) {
+            $wire.selectedProductId = id;
+            this.showArchiveModal = true;
+        },
+        closeArchiveModal() {
+            this.showArchiveModal = false;
+            $wire.selectedProductId = null;
+        },
+    }"
+
+    @close-create-modal.window="closeCreateModal()"
+    @close-edit-modal.window="closeEditModal()"
+    @close-delete-modal.window="closeDeleteModal()"
+    @close-archive-modal.window="closeArchiveModal()"
+    @edit-product-loaded.window="editLoading = false"
+    >
+
+    {{-- HEADER --}}
     <div class="flex items-start justify-between gap-3 py-2 mb-4">
         <div>
             <h2 class="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
@@ -44,9 +76,7 @@
         </button>
     </div>
 
-    {{-- ═══════════════════════════════════════════════
-         QUICK STATS  (2×2 on mobile, 4-col on md+)
-    ════════════════════════════════════════════════ --}}
+    {{-- QUICK STATS  (2×2 on mobile, 4-col on md+) --}}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
 
         {{-- Total --}}
@@ -187,7 +217,6 @@
     @endphp
 
     {{-- PRODUCT LIST --}}
-
     {{-- ── Mobile Cards (< lg) ── --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden"
          wire:loading.class="opacity-50 pointer-events-none"
@@ -537,12 +566,27 @@
     </div>
 
 
-    {{-- ═══════════════════════════════════════════════
-         CREATE PRODUCT MODAL
-    ════════════════════════════════════════════════ --}}
-    <div x-show="showCreateModal" x-cloak
-         class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-        <div class="bg-white dark:bg-zinc-800 w-full sm:rounded-2xl sm:max-w-2xl max-h-[92dvh] overflow-y-auto shadow-2xl">
+    {{-- MODALS --}}
+    {{-- CREATE PRODUCT MODAL --}}
+    <div x-show="showCreateModal"
+        x-cloak
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50"
+        @click.self="closeCreateModal()">
+
+        <div x-show="showCreateModal"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 sm:scale-95"
+            class="bg-white dark:bg-zinc-800 w-full sm:rounded-2xl sm:max-w-2xl max-h-[92dvh] overflow-y-auto shadow-2xl">
 
             <div class="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 z-10">
                 <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
@@ -638,14 +682,38 @@
                 </div>
             </form>
         </div>
-    </div>
+    </div>>
 
-    {{-- ═══════════════════════════════════════════════
-         EDIT PRODUCT MODAL
-    ════════════════════════════════════════════════ --}}
-    <div x-show="showEditModal" x-cloak
-         class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-        <div class="bg-white dark:bg-zinc-800 w-full sm:rounded-2xl sm:max-w-2xl max-h-[92dvh] overflow-y-auto shadow-2xl">
+    {{-- EDIT PRODUCT MODAL --}}
+    <div x-show="showEditModal"
+        x-cloak
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50"
+        @click.self="closeEditModal()">
+
+        <div x-show="showEditModal"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 sm:scale-95"
+            class="relative bg-white dark:bg-zinc-800 w-full sm:rounded-2xl sm:max-w-2xl max-h-[92dvh] overflow-y-auto shadow-2xl">
+
+            {{-- Loading overlay — shown while Livewire fetches product data --}}
+            <div x-show="editLoading"
+                class="absolute inset-0 z-20 bg-white/80 dark:bg-zinc-800/80 flex flex-col items-center justify-center rounded-2xl gap-3">
+                <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Loading product…') }}</p>
+            </div>
 
             <div class="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 z-10">
                 <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
@@ -657,7 +725,8 @@
                 </button>
             </div>
 
-            <form wire:submit.prevent="updateProduct" @submit="closeEditModal()" class="p-5 space-y-4">
+            {{-- NOTE: @submit="closeEditModal()" was removed — modal closes via close-edit-modal event --}}
+            <form wire:submit.prevent="updateProduct" class="p-5 space-y-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
@@ -745,27 +814,41 @@
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════════
-         HIDE / ARCHIVE CONFIRM MODAL
-    ════════════════════════════════════════════════ --}}
-    <div x-show="showArchiveModal" x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-        <div class="relative w-full max-w-sm bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
+    {{-- HIDE / ARCHIVE CONFIRM MODAL --}}
+    <div x-show="showArchiveModal"
+        x-cloak
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4">
+
+        <div class="absolute inset-0 bg-black/50" @click="closeArchiveModal()"></div>
+
+        <div x-show="showArchiveModal"
+            x-transition:enter="transition ease-out duration-150"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-100"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            class="relative w-full max-w-sm bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
             <div class="p-6 text-center">
                 <div class="w-14 h-14 rounded-2xl bg-green-100 dark:bg-green-900/40 flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-eye-slash text-green-600 dark:text-green-400 text-2xl"></i>
                 </div>
                 <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-2">{{ __('Hide Product') }}</h3>
                 <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
-                    {{ __('Are you sure you want to Hide this product? This will mark it as unavailable for sale.') }}
+                    {{ __('Are you sure you want to hide this product? It will be marked as unavailable for sale.') }}
                 </p>
                 <div class="flex justify-center gap-2">
                     <button @click="closeArchiveModal()"
                         class="cursor-pointer px-4 py-2 text-sm font-medium rounded-xl border border-zinc-200 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                         <i class="fas fa-times mr-1"></i>{{ __('Cancel') }}
                     </button>
-                    <button wire:click="archiveProduct"
+                    <button wire:click="archiveProduct" @click="closeArchiveModal()"
                         class="cursor-pointer px-4 py-2 text-sm font-semibold rounded-xl bg-green-600 text-white hover:bg-green-700 active:scale-95 transition-all">
                         <i class="fas fa-eye-slash mr-1"></i>{{ __('Confirm Hide') }}
                     </button>
@@ -774,13 +857,27 @@
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════════
-         DELETE CONFIRM MODAL
-    ════════════════════════════════════════════════ --}}
-    <div x-show="showDeleteModal" x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-        <div class="relative w-full max-w-sm bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
+    {{-- DELETE CONFIRM MODAL --}}
+    <div x-show="showDeleteModal"
+        x-cloak
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4">
+
+        <div class="absolute inset-0 bg-black/50" @click="closeDeleteModal()"></div>
+
+        <div x-show="showDeleteModal"
+            x-transition:enter="transition ease-out duration-150"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-100"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            class="relative w-full max-w-sm bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
             <div class="p-6 text-center">
                 <div class="w-14 h-14 rounded-2xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-trash text-red-600 dark:text-red-400 text-2xl"></i>
@@ -794,7 +891,7 @@
                         class="cursor-pointer px-4 py-2 text-sm font-medium rounded-xl border border-zinc-200 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                         <i class="fas fa-times mr-1"></i>{{ __('Cancel') }}
                     </button>
-                    <button wire:click="deleteProduct"
+                    <button wire:click="deleteProduct" @click="closeDeleteModal()"
                         class="cursor-pointer px-4 py-2 text-sm font-semibold rounded-xl bg-red-600 text-white hover:bg-red-700 active:scale-95 transition-all">
                         <i class="fas fa-trash mr-1"></i>{{ __('Delete') }}
                     </button>
