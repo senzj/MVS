@@ -235,6 +235,10 @@ class Add extends Component
 
     public function updatedOrderItems($value, $key): void
     {
+        if (! $key) {
+            return;
+        }
+        
         $this->handleUpdatedOrderItem($value, $key);
     }
 

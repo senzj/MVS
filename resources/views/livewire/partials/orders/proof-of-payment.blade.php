@@ -21,7 +21,7 @@
         : 'rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-900/40 p-4 space-y-3';
 @endphp
 
-<div x-data="{ captureMode: null }" class="relative overflow-hidden {{ $borderClass }}">
+<div x-data="{ captureMode: null }" class="relative overflow-visible {{ $borderClass }}">
 
     {{-- ── Cash payments: display only if there is an existing proof ───────── --}}
     @if($isCashPayment)
@@ -41,6 +41,7 @@
                          alt="{{ __('Image of Payment') }}"
                          class="w-full max-h-60 object-contain bg-white dark:bg-zinc-800">
                 </a>
+
                 <p class="text-xs text-zinc-400 text-center">
                     {{ __('Tap image to open full size') }}
                 </p>
@@ -68,6 +69,7 @@
                          alt="{{ __('Image of Payment') }}"
                          class="w-full max-h-60 object-contain bg-white dark:bg-zinc-800">
                 </a>
+
                 <p class="text-xs text-zinc-400 text-center">
                     {{ __('Tap image to open full size') }}
                 </p>
@@ -100,6 +102,7 @@
                     <img src="{{ $existingProofUrl }}"
                          alt="{{ __('Image of Payment') }}"
                          class="w-full max-h-48 object-contain bg-white dark:bg-zinc-800">
+
                     <button type="button"
                         wire:click="removeProof"
                         class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center
@@ -122,6 +125,7 @@
                        hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
                 <i class="fas fa-upload" aria-hidden="true"></i>{{ __('Upload') }}
             </button>
+
             @if($allowCamera)
                 <button type="button"
                     x-on:click="captureMode = 'environment'; $refs.proofInput.click()"
@@ -155,6 +159,7 @@
                     <img src="{{ $proofOfPayment->temporaryUrl() }}"
                          alt="{{ __('Proof of payment preview') }}"
                          class="w-full max-h-52 object-contain bg-white dark:bg-zinc-800">
+
                     <button type="button"
                         wire:click="$set('proofOfPayment', null)"
                         class="absolute top-2 right-2 w-7 h-7 flex items-center justify-center
@@ -168,11 +173,12 @@
 
         <div wire:loading.flex wire:target="proofOfPayment"
              class="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
-            <div class="flex flex-col items-center gap-2 rounded-xl border border-white/15 bg-white/90 px-4 py-3 shadow-lg max-w-[14rem] mx-3 dark:bg-zinc-900/90">
+            <div class="flex flex-col items-center gap-2 rounded-xl border border-white/15 bg-white/90 px-4 py-3 shadow-lg max-w-56 mx-3 dark:bg-zinc-900/90">
                 <div class="relative flex h-9 w-9 items-center justify-center">
                     <div class="absolute inset-0 rounded-full border-3 border-blue-200 dark:border-blue-900"></div>
                     <div class="absolute inset-0 rounded-full border-3 border-transparent border-t-blue-600 dark:border-t-blue-400 animate-spin"></div>
                 </div>
+
                 <div class="text-center">
                     <p class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                         {{ __('Uploading proof of payment') }}

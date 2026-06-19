@@ -169,6 +169,6 @@ class OrderSeeder extends Seeder
             $successfulOrders++;
         }
 
-        $this->command->line("{$successfulOrders} orders seeded");
+        $this->command->line("{$successfulOrders} orders added");
     }
 }

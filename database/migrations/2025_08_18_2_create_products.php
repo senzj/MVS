@@ -16,6 +16,8 @@ return new class extends Migration
             $table->unsignedBigInteger('category_id')->nullable()->index();
             $table->string('name');
             $table->text('description')->nullable();
+            $table->string('image_url')->nullable();
+            $table->string('color')->nullable()->unique();
             $table->integer('stocks');
             $table->integer('sold')->default(0); // Track how many items have been sold
             $table->boolean('is_in_stock')->default(true);

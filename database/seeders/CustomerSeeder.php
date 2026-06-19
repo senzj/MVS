@@ -12,13 +12,18 @@ class CustomerSeeder extends Seeder
      */
     public function run(): void
     {
-        for ($i = 1; $i <= 25; $i++) {
+        $RandomCount = fake()->numberBetween(8, 25);
+        $successfulCreate = 0;
+        for ($i = 1; $i <= $RandomCount; $i++) {
             Customer::create([
                 'name' => fake()->name(),
                 'unit' => fake()->boolean(70) ? 'Unit ' . fake()->numberBetween(1, 40) : null,
                 'address' => fake()->address(),
                 'contact_number' => '09' . fake()->numerify('#########'),
             ]);
+            $successfulCreate++;
         }
+
+        $this->command->line("{$successfulCreate} customers spawned");
     }
 }

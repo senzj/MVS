@@ -57,14 +57,13 @@ trait HasOrderForm
         }
 
         $this->selectedCustomerId    = $customer->id;
-        $this->customerName          = $customer->name          ?? '';
-        $this->customerUnit          = $customer->unit          ?? '';
-        $this->customerAddress       = $customer->address       ?? '';
+        $this->customerName          = $customer->name           ?? '';
+        $this->customerUnit          = $customer->unit           ?? '';
+        $this->customerAddress       = $customer->address        ?? '';
         $this->customerContact       = $customer->contact_number ?? '';
         $this->isCreatingNewCustomer = false;
         $this->customerSearch        = '';
 
-        // Clear any customer validation errors so the section unlocks immediately
         $this->resetErrorBag([
             'selectedCustomerId',
             'customerName',
@@ -114,7 +113,7 @@ trait HasOrderForm
 
     public function getFilteredEmployeesProperty()
     {
-        $q    = Employee::query()
+        $q = Employee::query()
             ->where('status',      'active')
             ->where('is_archived', false);
 
@@ -149,7 +148,6 @@ trait HasOrderForm
             return;
         }
 
-        // Support both property names used across the three components
         if (property_exists($this, 'selectedEmployeeId')) {
             $this->selectedEmployeeId = $employee->id;
         }
@@ -181,16 +179,16 @@ trait HasOrderForm
 
     public function getFilteredProductsProperty()
     {
-        $q    = Product::query()
+        $q = Product::query()
             ->where('is_in_stock', true)
             ->where('stocks',      '>', 0);
 
         $term = trim($this->productSearch ?? '');
         if ($term !== '') {
             $q->where(function ($sub) use ($term) {
-                $sub->where('name',        'like', "%{$term}%")
+                $sub->where('name',         'like', "%{$term}%")
                     ->orWhere('description','like', "%{$term}%")
-                    ->orWhereHas('categoryRecord', fn ($categoryQuery) => $categoryQuery->where('name', 'like', "%{$term}%"));
+                    ->orWhereHas('categoryRecord', fn ($cq) => $cq->where('name', 'like', "%{$term}%"));
             });
         }
 
@@ -200,21 +198,21 @@ trait HasOrderForm
     public function selectProduct(int $productId, int $itemIndex): void
     {
         $product = Product::query()
-            ->where('id',         $productId)
+            ->where('id',          $productId)
             ->where('is_in_stock', true)
-            ->where('stocks',     '>', 0)
+            ->where('stocks',      '>', 0)
             ->first();
 
         if (! $product || ! isset($this->orderItems[$itemIndex])) {
             return;
         }
 
-        $this->orderItems[$itemIndex]['product_id']   = $product->id;
-        $this->orderItems[$itemIndex]['product_name'] = $product->name;
-        $this->orderItems[$itemIndex]['stocks']       = (int) $product->stocks;
-        $this->orderItems[$itemIndex]['price']        = (float) $product->price;
+        $this->orderItems[$itemIndex]['product_id']     = $product->id;
+        $this->orderItems[$itemIndex]['product_name']   = $product->name;
+        $this->orderItems[$itemIndex]['stocks']         = (int)   $product->stocks;
+        $this->orderItems[$itemIndex]['price']          = (float) $product->price;
         $this->orderItems[$itemIndex]['original_price'] = (float) $product->price;
-        $this->orderItems[$itemIndex]['discount']     = (float) ($this->orderItems[$itemIndex]['discount'] ?? 0);
+        $this->orderItems[$itemIndex]['discount']       = (float) ($this->orderItems[$itemIndex]['discount'] ?? 0);
 
         // Clamp qty to available stock
         $currentQty = (int) ($this->orderItems[$itemIndex]['quantity'] ?? 1);
@@ -223,6 +221,53 @@ trait HasOrderForm
         $this->calculateItemTotal($itemIndex);
 
         $this->productSearch = '';
+    }
+
+    /**
+     * POS-style add: called when the user clicks a product card in the grid.
+     *
+     * • Already in cart  → increments qty by 1 (capped at stock level)
+     * • Blank slot exists → fills it via selectProduct()
+     * • No blank slot     → appends a new blank row then fills it
+     *
+     * Reuses addOrderItem() and selectProduct() so all business logic
+     * (stock clamping, total calculation, etc.) stays in one place.
+     */
+    public function addProductToCart(int $productId): void
+    {
+        // ── Already in cart? Increment qty ──────────────────────────
+        foreach ($this->orderItems as $index => $item) {
+            if ((int) ($item['product_id'] ?? 0) === $productId) {
+                $currentQty = (int) ($item['quantity'] ?? 1);
+                $maxStock   = (int) ($item['stocks']   ?? 0);
+
+                // Only increment if stock allows
+                if ($maxStock > 0 && $currentQty < $maxStock) {
+                    $this->orderItems[$index]['quantity'] = $currentQty + 1;
+                    $this->calculateItemTotal($index);
+                }
+
+                return; // Either incremented or already at max — either way, done.
+            }
+        }
+
+        // ── Find any blank slot (no product selected yet) ────────────
+        $targetIndex = null;
+        foreach ($this->orderItems as $index => $item) {
+            if (empty($item['product_id'])) {
+                $targetIndex = $index;
+                break;
+            }
+        }
+
+        // ── No blank slot → append a fresh row ───────────────────────
+        if ($targetIndex === null) {
+            $this->addOrderItem();
+            $targetIndex = array_key_last($this->orderItems);
+        }
+
+        // ── Fill the slot (selectProduct handles stock check + totals) ─
+        $this->selectProduct($productId, $targetIndex);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -254,6 +299,7 @@ trait HasOrderForm
         unset($this->orderItems[$index]);
         $this->orderItems = array_values($this->orderItems);
 
+        // Keep at least one blank row so the cart never looks broken
         if (empty($this->orderItems)) {
             $this->addOrderItem();
         }
@@ -261,7 +307,7 @@ trait HasOrderForm
 
     /**
      * Central total calculator.
-     * Call this any time quantity, price, or is_free changes.
+     * Call this any time quantity, price, discount, or is_free changes.
      */
     public function calculateItemTotal(int $index): void
     {
@@ -269,35 +315,37 @@ trait HasOrderForm
             return;
         }
 
-        $isFree = (bool) ($this->orderItems[$index]['is_free'] ?? false);
+        $isFree   = (bool)  ($this->orderItems[$index]['is_free']  ?? false);
         $discount = max(0, (float) ($this->orderItems[$index]['discount'] ?? 0));
 
         if ($isFree) {
             $this->orderItems[$index]['discount'] = 0;
-            $this->orderItems[$index]['total'] = 0;
+            $this->orderItems[$index]['total']    = 0;
             return;
         }
 
-        $qtyRaw  = $this->orderItems[$index]['quantity'] ?? null;
-        $qty     = (is_numeric($qtyRaw) && $qtyRaw !== '') ? max(1, (int) $qtyRaw) : 0;
-        $price   = max(0, (float) ($this->orderItems[$index]['price'] ?? 0));
+        $qtyRaw   = $this->orderItems[$index]['quantity'] ?? null;
+        $qty      = (is_numeric($qtyRaw) && $qtyRaw !== '') ? max(1, (int) $qtyRaw) : 0;
+        $price    = max(0, (float) ($this->orderItems[$index]['price'] ?? 0));
         $subtotal = $qty * $price;
         $discount = min($discount, $subtotal);
 
         $this->orderItems[$index]['discount'] = $discount;
-        $this->orderItems[$index]['total'] = max(0, $subtotal - $discount);
+        $this->orderItems[$index]['total']    = max(0, $subtotal - $discount);
     }
 
     /**
      * Handles Livewire's updatedOrderItems lifecycle hook.
      * Call from your component's updatedOrderItems() method.
-     *
-     * The quantity field uses a stable Alpine guard (see itemrow partial),
-     * so Livewire only receives the final committed value on blur/enter —
-     * this eliminates the "field clears while typing" bug.
      */
-    public function handleUpdatedOrderItem(mixed $value, string $key): void
+    public function handleUpdatedOrderItem(mixed $value, ?string $key): void
     {
+        // Checks to prevent "undefined index" errors when Livewire
+        // triggers updatedOrderItems without a key (e.g. after adding a new item).
+        if (! $key) {
+            return;
+        }
+
         [$index, $field] = array_pad(explode('.', $key, 2), 2, null);
         $index = (int) $index;
 
@@ -322,7 +370,7 @@ trait HasOrderForm
 
         if ($product && $product->is_in_stock && $product->stocks > 0) {
             $this->orderItems[$index]['product_name']   = $product->name;
-            $this->orderItems[$index]['stocks']         = (int) $product->stocks;
+            $this->orderItems[$index]['stocks']         = (int)   $product->stocks;
             $this->orderItems[$index]['price']          = (float) $product->price;
             $this->orderItems[$index]['original_price'] = (float) $product->price;
 
@@ -348,8 +396,6 @@ trait HasOrderForm
     {
         $raw = $this->orderItems[$index]['quantity'] ?? null;
 
-        // Allow blank while typing — Alpine commits only on blur/enter so this
-        // path is only hit when a real value arrives; still guard just in case.
         if ($raw === '' || $raw === null) {
             return;
         }
@@ -382,7 +428,7 @@ trait HasOrderForm
     }
 
     // ──────────────────────────────────────────────────────────────
-    // Order total
+    // Order total (computed property)
     // ──────────────────────────────────────────────────────────────
 
     public function getTotalAmountProperty(): float
@@ -406,8 +452,8 @@ trait HasOrderForm
 
     public function openProductForm(?int $itemIndex = null): void
     {
-        $this->showProductForm     = true;
-        $this->productTargetIndex  = $itemIndex;
+        $this->showProductForm    = true;
+        $this->productTargetIndex = $itemIndex;
         $this->resetProductForm();
     }
 
@@ -416,7 +462,13 @@ trait HasOrderForm
         $this->showProductForm    = false;
         $this->productTargetIndex = null;
         $this->resetProductForm();
-        $this->resetErrorBag(['productName', 'productDescription', 'productCategory', 'productStocks', 'productPrice']);
+        $this->resetErrorBag([
+            'productName',
+            'productDescription',
+            'productCategory',
+            'productStocks',
+            'productPrice',
+        ]);
     }
 
     public function resetProductForm(): void
@@ -438,23 +490,26 @@ trait HasOrderForm
             'productPrice'       => 'required|numeric|min:0',
         ]);
 
-        $product = \App\Models\Product::create([
+        $product = Product::create([
             'name'        => ucwords(trim($this->productName)),
             'description' => trim((string) $this->productDescription),
-            'stocks'      => (int) $this->productStocks,
+            'stocks'      => (int)   $this->productStocks,
             'sold'        => 0,
-            'is_in_stock' => (int) $this->productStocks > 0,
+            'is_in_stock' => (int)   $this->productStocks > 0,
             'category'    => $this->productCategory,
             'price'       => (float) $this->productPrice,
         ]);
 
-        // If component has loadData(), refresh the lists
         if (method_exists($this, 'loadData')) {
             $this->loadData();
         }
 
+        // If a target slot was specified, fill it; otherwise use addProductToCart
+        // so the new product lands in the cart automatically.
         if ($this->productTargetIndex !== null && isset($this->orderItems[$this->productTargetIndex])) {
             $this->selectProduct($product->id, $this->productTargetIndex);
+        } else {
+            $this->addProductToCart($product->id);
         }
 
         $this->closeProductForm();

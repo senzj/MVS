@@ -2,34 +2,29 @@
 
 <div class="w-full max-w-full overflow-x-hidden px-2 sm:px-4 pb-8"
     x-data="{
-        showCreateModal: false,
-        showEditModal: false,
-        showDeleteModal: false,
+        showFormModal: false,
+        formMode: 'create',
         showArchiveModal: false,
+        showDeleteModal: false,
         editLoading: false,
 
         openCreateModal() {
+            this.formMode = 'create';
             $wire.openCreateModal();
-            this.showCreateModal = true;
+            this.showFormModal = true;
         },
-        closeCreateModal() {
-            this.showCreateModal = false;
-            $wire.resetForm();
-        },
-
-        // Show modal immediately; spinner covers form until data arrives
         openEditModal(id) {
+            this.formMode = 'edit';
             this.editLoading = true;
-            this.showEditModal = true;
+            this.showFormModal = true;
             $wire.openEditModal(id);
         },
-        closeEditModal() {
-            this.showEditModal = false;
+        closeFormModal() {
+            this.showFormModal = false;
             this.editLoading = false;
             $wire.resetForm();
         },
 
-        // No server round-trip needed — just set the ID and open
         openDeleteModal(id) {
             $wire.selectedProductId = id;
             this.showDeleteModal = true;
@@ -39,7 +34,6 @@
             $wire.resetForm();
         },
 
-        // Archive also opens immediately
         openArchiveModal(id) {
             $wire.selectedProductId = id;
             this.showArchiveModal = true;
@@ -50,8 +44,7 @@
         },
     }"
 
-    @close-create-modal.window="closeCreateModal()"
-    @close-edit-modal.window="closeEditModal()"
+    @close-form-modal.window="closeFormModal()"
     @close-delete-modal.window="closeDeleteModal()"
     @close-archive-modal.window="closeArchiveModal()"
     @edit-product-loaded.window="editLoading = false"
@@ -207,7 +200,7 @@
 
     {{-- Loading overlay --}}
     @include('livewire.partials.loading-overlay', [
-        'wireTarget' => 'categoryFilter,stockFilter,search,sortByField,openEditModal,openDeleteModal,createProduct,updateProduct,archiveProduct,deleteProduct,makeAvailable',
+        'wireTarget' => 'categoryFilter,stockFilter,search,sortByField,openEditModal,openDeleteModal,save,archiveProduct,deleteProduct,makeAvailable',
         'title' => __('Updating...'),
         'message' => __('Please wait while we process your request'),
     ])
@@ -218,345 +211,10 @@
 
     {{-- PRODUCT LIST --}}
     {{-- ── Mobile Cards (< lg) ── --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:hidden"
-         wire:loading.class="opacity-50 pointer-events-none"
-         wire:target="categoryFilter,stockFilter,search,sortByField"
-         wire:key="mobile-products-{{ $categoryFilter }}-{{ $stockFilter }}-{{ $search }}">
-
-        @forelse($products as $product)
-            @php
-                $isOutOfStock = empty($product->stocks) || (int)$product->stocks === 0;
-                $catLabel = $categoryNames[$product->category] ?? __('Uncategorized');
-            @endphp
-
-            <div wire:key="mobile-card-{{ $product->id }}"
-                 class="bg-white dark:bg-zinc-800 rounded-2xl border shadow-sm overflow-hidden transition-all
-                        {{ $isOutOfStock
-                            ? 'border-red-200 dark:border-red-900/50'
-                            : 'border-zinc-100 dark:border-zinc-700' }}">
-
-                {{-- Top accent strip (stock color) --}}
-                @php
-                    $strip = $isOutOfStock ? 'bg-red-400'
-                        : ($product->stock_status === 'low_stock' ? 'bg-yellow-400'
-                        : ($product->is_in_stock ? 'bg-green-500' : 'bg-orange-400'));
-                @endphp
-                <div class="h-1 w-full {{ $strip }}"></div>
-
-                <div class="p-4 space-y-3">
-                    {{-- Name + ID + Category --}}
-                    <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <p class="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{{ $product->name }}</p>
-                            <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
-                                <i class="fas fa-hashtag mr-0.5"></i>{{ $product->id }}
-                            </p>
-                        </div>
-                        <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium shrink-0
-                                     bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                            <i class="fas fa-tag text-[10px]"></i>{{ __($catLabel) }}
-                        </span>
-                    </div>
-
-                    {{-- Stats row --}}
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl px-3 py-2 text-center">
-                            <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ __('Price') }}</p>
-                            <p class="text-sm font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($product->price, 2) }}</p>
-                        </div>
-                        <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl px-3 py-2 text-center">
-                            <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ __('Stock') }}</p>
-                            <p class="text-sm font-bold {{ $isOutOfStock ? 'text-red-600 dark:text-red-400' : ($product->stock_status === 'low_stock' ? 'text-yellow-600 dark:text-yellow-400' : 'text-zinc-900 dark:text-zinc-100') }}">
-                                {{ $product->stocks }}
-                            </p>
-                        </div>
-                        <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl px-3 py-2 text-center">
-                            <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ __('Sold') }}</p>
-                            <p class="text-sm font-bold text-green-600 dark:text-green-400">{{ $product->sold }}</p>
-                        </div>
-                    </div>
-
-                    {{-- Status badge --}}
-                    <div>
-                        @if($isOutOfStock)
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                <i class="fas fa-times-circle"></i>{{ __('Out of Stock') }}
-                            </span>
-                        @elseif(!$product->is_in_stock)
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                                <i class="fas fa-ban"></i>{{ __('Hidden') }}
-                            </span>
-                        @elseif($product->stock_status === 'low_stock')
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
-                                <i class="fas fa-exclamation-triangle"></i>{{ __('Low Stock') }}
-                            </span>
-                        @else
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                <i class="fas fa-check-circle"></i>{{ __('In Stock') }}
-                            </span>
-                        @endif
-                    </div>
-
-                    {{-- Actions --}}
-                    <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-100 dark:border-zinc-700 flex-wrap">
-
-                        {{-- Availability toggle --}}
-                        @if($product->is_in_stock)
-                            <button @click="openArchiveModal({{ $product->id }})"
-                                class="prod-card-btn text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
-                                <i class="fas fa-eye-slash"></i>{{ __('Hide') }}
-                            </button>
-                        @elseif($isOutOfStock)
-                            <span class="prod-card-btn text-zinc-400 cursor-not-allowed opacity-60"
-                                  title="{{ __('This product is out of stock. Edit to add more stocks.') }}">
-                                <i class="fas fa-ban"></i>{{ __('Out Of Stock') }}
-                            </span>
-                        @else
-                            <button wire:click="makeAvailable({{ $product->id }})"
-                                class="prod-card-btn text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20">
-                                <i class="fas fa-eye"></i>{{ __('Show') }}
-                            </button>
-                        @endif
-
-                        {{-- Edit --}}
-                        <button @click="openEditModal({{ $product->id }})"
-                            class="prod-card-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
-                            <i class="fas fa-edit"></i>{{ __('Edit') }}
-                        </button>
-
-                        {{-- Delete --}}
-                        @if(($product->order_items_count ?? 0) === 0)
-                            <button @click="openDeleteModal({{ $product->id }})"
-                                class="prod-card-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 ml-auto">
-                                <i class="fas fa-trash"></i>{{ __('Delete') }}
-                            </button>
-                        @else
-                            <span class="prod-card-btn text-zinc-400 opacity-60 cursor-not-allowed ml-auto"
-                                  title="{{ __('Cannot delete - has ongoing order') }}">
-                                <i class="fas fa-ban"></i>{{ __('Pending') }}
-                            </span>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
-        @empty
-            <div class="sm:col-span-2 flex flex-col items-center justify-center py-20 text-zinc-400 dark:text-zinc-500">
-                <i class="fas fa-box-open text-5xl mb-4 opacity-40"></i>
-                <p class="text-sm">{{ __('No products found.') }}</p>
-                <p class="text-xs mt-1 opacity-70">{{ __('Try adjusting your search or filter criteria.') }}</p>
-            </div>
-        @endforelse
-    </div>
+    @include('livewire.partials.products.orientation.mobile')
 
     {{-- ── Desktop Table (≥ lg) ── --}}
-    <div class="hidden lg:block bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm overflow-hidden"
-         wire:key="desktop-products-{{ $categoryFilter }}-{{ $stockFilter }}-{{ $search }}">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-zinc-100 dark:divide-zinc-700"
-                   wire:loading.class="opacity-40 pointer-events-none"
-                   wire:target="categoryFilter,stockFilter,search,sortByField">
-                <thead class="bg-zinc-50 dark:bg-zinc-900/60">
-                    <tr>
-                        <th wire:click="sortByField('name')"
-                            class="px-4 py-3 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
-                            <div class="flex items-center gap-1">
-                                {{ __('Product Name') }}
-                                @if($sortBy === 'name')
-                                    <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500"></i>
-                                @else
-                                    <i class="fas fa-sort text-zinc-300 dark:text-zinc-600"></i>
-                                @endif
-                            </div>
-                        </th>
-                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                            {{ __('Category') }}
-                        </th>
-                        <th wire:click="sortByField('price')"
-                            class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
-                            <div class="flex items-center justify-center gap-1">
-                                {{ __('Price') }}
-                                @if($sortBy === 'price')
-                                    <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500"></i>
-                                @else
-                                    <i class="fas fa-sort text-zinc-300 dark:text-zinc-600"></i>
-                                @endif
-                            </div>
-                        </th>
-                        <th wire:click="sortByField('sold')"
-                            class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
-                            <div class="flex items-center justify-center gap-1">
-                                {{ __('Sold') }}
-                                @if($sortBy === 'sold')
-                                    <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500"></i>
-                                @else
-                                    <i class="fas fa-sort text-zinc-300 dark:text-zinc-600"></i>
-                                @endif
-                            </div>
-                        </th>
-                        <th wire:click="sortByField('stocks')"
-                            class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
-                            <div class="flex items-center justify-center gap-1">
-                                {{ __('Stock') }}
-                                @if($sortBy === 'stocks')
-                                    <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500"></i>
-                                @else
-                                    <i class="fas fa-sort text-zinc-300 dark:text-zinc-600"></i>
-                                @endif
-                            </div>
-                        </th>
-                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                            {{ __('Status') }}
-                        </th>
-                        <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                            {{ __('Actions') }}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-zinc-100 dark:divide-zinc-700">
-                    @forelse($products as $index => $product)
-                        @php
-                            $isOutOfStock  = empty($product->stocks) || (int)$product->stocks === 0;
-                            $catLabel      = $categoryNames[$product->category] ?? __('Uncategorized');
-                        @endphp
-                        <tr wire:key="product-row-{{ $product->id }}-{{ $categoryFilter }}-{{ $stockFilter }}-{{ $search }}-{{ $index }}"
-                            class="transition-colors
-                                   {{ $isOutOfStock
-                                       ? 'bg-red-50/60 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20'
-                                       : 'hover:bg-zinc-50 dark:hover:bg-zinc-700/40' }}">
-
-                            {{-- Name + ID --}}
-                            <td class="px-4 py-3">
-                                <div class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ $product->name }}</div>
-                                <div class="text-xs text-zinc-400 dark:text-zinc-500"><i class="fas fa-hashtag mr-0.5"></i>{{ $product->id }}</div>
-                            </td>
-
-                            {{-- Category --}}
-                            <td class="px-4 py-3 text-center">
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
-                                             bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                                    <i class="fas fa-tag text-[10px]"></i>{{ __($catLabel) }}
-                                </span>
-                            </td>
-
-                            {{-- Price --}}
-                            <td class="px-4 py-3 text-center">
-                                <span class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">₱{{ number_format($product->price, 2) }}</span>
-                            </td>
-
-                            {{-- Sold --}}
-                            <td class="px-4 py-3 text-center">
-                                <span class="text-sm font-medium text-green-600 dark:text-green-400">
-                                    <i class="fas fa-chart-bar mr-1 opacity-70"></i>{{ $product->sold }}
-                                </span>
-                            </td>
-
-                            {{-- Stocks --}}
-                            <td class="px-4 py-3 text-center">
-                                <span class="text-sm font-semibold
-                                    {{ $isOutOfStock ? 'text-red-600 dark:text-red-400'
-                                        : ($product->stock_status === 'low_stock' ? 'text-yellow-600 dark:text-yellow-400'
-                                        : 'text-zinc-900 dark:text-zinc-100') }}">
-                                    <i class="fas fa-cubes mr-1 opacity-60"></i>{{ $product->stocks }}
-                                </span>
-                            </td>
-
-                            {{-- Status --}}
-                            <td class="px-4 py-3 text-center">
-                                @if($isOutOfStock)
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                        <i class="fas fa-times-circle"></i>{{ __('Out of Stock') }}
-                                    </span>
-                                @elseif(!$product->is_in_stock)
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                                        <i class="fas fa-ban"></i>{{ __('Hidden') }}
-                                    </span>
-                                @elseif($product->stock_status === 'low_stock')
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
-                                        <i class="fas fa-exclamation-triangle"></i>{{ __('Low Stock') }}
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                        <i class="fas fa-check-circle"></i>{{ __('In Stock') }}
-                                    </span>
-                                @endif
-                            </td>
-
-                            {{-- Actions --}}
-                            <td class="px-4 py-3">
-                                <div class="flex items-center justify-center gap-1">
-
-                                    {{-- Availability toggle --}}
-                                    @if($product->is_in_stock)
-                                        <button @click="openArchiveModal({{ $product->id }})"
-                                            class="tbl-action-btn text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
-                                            title="{{ __('This Item is Currently for Sale - Mark as Unavailable') }}">
-                                            <i class="fas fa-eye-slash text-sm"></i>
-                                            <span class="text-xs">{{ __('Hide') }}</span>
-                                        </button>
-                                    @elseif($isOutOfStock)
-                                        <span class="tbl-action-btn text-zinc-400 opacity-50 cursor-not-allowed"
-                                              title="{{ __('This product is out of stock. Edit to add more stocks.') }}">
-                                            <i class="fas fa-ban text-sm"></i>
-                                            <span class="text-xs leading-tight">{{ __('Out of Stock') }}</span>
-                                        </span>
-                                    @else
-                                        <button wire:click="makeAvailable({{ $product->id }})"
-                                            class="tbl-action-btn text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20"
-                                            title="{{ __('This Item is Currently Hidden - Make Available for Sale') }}">
-                                            <i class="fas fa-eye text-sm"></i>
-                                            <span class="text-xs">{{ __('Show') }}</span>
-                                        </button>
-                                    @endif
-
-                                    {{-- Edit --}}
-                                    <button @click="openEditModal({{ $product->id }})"
-                                        class="tbl-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
-                                        title="{{ __('Edit Product') }}">
-                                        <i class="fas fa-edit text-sm"></i>
-                                        <span class="text-xs">{{ __('Edit') }}</span>
-                                    </button>
-
-                                    {{-- Delete --}}
-                                    @if(($product->order_items_count ?? 0) === 0)
-                                        <button @click="openDeleteModal({{ $product->id }})"
-                                            class="tbl-action-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                                            title="{{ __('Delete Permanently. This action cannot be undone.') }}">
-                                            <i class="fas fa-trash text-sm"></i>
-                                            <span class="text-xs">{{ __('Delete') }}</span>
-                                        </button>
-                                    @else
-                                        <span class="tbl-action-btn text-zinc-400 opacity-50 cursor-not-allowed"
-                                              title="{{ __('Cannot delete - has ongoing order') }}">
-                                            <i class="fas fa-ban text-sm"></i>
-                                            <span class="text-xs">{{ __('Pending') }}</span>
-                                        </span>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr wire:key="no-products-{{ $categoryFilter }}-{{ $stockFilter }}-{{ $search }}">
-                            <td colspan="8" class="px-6 py-20 text-center">
-                                <div class="flex flex-col items-center text-zinc-400 dark:text-zinc-500">
-                                    <i class="fas fa-box-open text-5xl mb-4 opacity-40"></i>
-                                    <p class="text-sm">{{ __('No products found.') }}</p>
-                                    <p class="text-xs mt-1 opacity-70">{{ __('Try adjusting your search or filter criteria.') }}</p>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        {{-- Pagination --}}
-        @if($products->hasPages())
-            <div class="px-4 py-3 border-t border-zinc-100 dark:border-zinc-700">
-                {{ $products->links() }}
-            </div>
-        @endif
-    </div>
+    @include('livewire.partials.products.orientation.desktop')
 
     {{-- Mobile pagination --}}
     <div class="lg:hidden mt-3">
@@ -565,258 +223,14 @@
         @endif
     </div>
 
-
     {{-- MODALS --}}
-    {{-- CREATE PRODUCT MODAL --}}
-    <div x-show="showCreateModal"
-        x-cloak
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-        class="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50"
-        @click.self="closeCreateModal()">
-
-        <div x-show="showCreateModal"
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95"
-            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-            x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-            x-transition:leave-end="opacity-0 translate-y-4 sm:scale-95"
-            class="bg-white dark:bg-zinc-800 w-full sm:rounded-2xl sm:max-w-2xl max-h-[92dvh] overflow-y-auto shadow-2xl">
-
-            <div class="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 z-10">
-                <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                    <i class="fas fa-plus-circle text-blue-500"></i>{{ __('Add New Product') }}
-                </h3>
-                <button @click="closeCreateModal()"
-                    class="cursor-pointer w-8 h-8 flex items-center justify-center rounded-full text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-
-            <form wire:submit.prevent="createProduct" class="p-5 space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {{-- Product Name --}}
-                    <div>
-                        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                            <i class="fas fa-tag mr-1"></i>{{ __('Product Name') }}
-                        </label>
-                        <input type="text" wire:model="name"
-                            class="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                        @error('name') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
-                    </div>
-
-                    {{-- Category --}}
-                    <div>
-                        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                            <i class="fas fa-folder mr-1"></i>{{ __('Category') }}
-                        </label>
-                        <select wire:model="category"
-                            class="cursor-pointer w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                            <option value="">{{ __('Select Category') }}</option>
-                            @foreach($categories as $key => $categoryName)
-                                <option value="{{ $key }}">{{ __($categoryName) }}</option>
-                            @endforeach
-                        </select>
-                        @error('category') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
-                    </div>
-
-                    {{-- Price --}}
-                    <div>
-                        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                            <i class="fas fa-peso-sign mr-1"></i>{{ __('Price') }}
-                            <span class="normal-case font-normal ml-1">({{ __('per unit or kilo') }})</span>
-                        </label>
-                        <input type="number" step="0.01" wire:model="price"
-                            class="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                        @error('price') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
-                    </div>
-
-                    {{-- Stocks --}}
-                    <div>
-                        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                            <i class="fas fa-cubes mr-1"></i>{{ __('Stocks') }}
-                            <span class="normal-case font-normal ml-1">({{ __('per unit or kilo') }})</span>
-                        </label>
-                        <input type="number" wire:model="stocks"
-                            class="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                        @error('stocks') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
-                    </div>
-
-                    {{-- Available for Sale --}}
-                    <div class="sm:col-span-2">
-                        <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
-                            <input type="checkbox" wire:model="is_in_stock"
-                                class="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500">
-                            <span class="text-sm text-zinc-700 dark:text-zinc-300">
-                                <i class="fas fa-check-circle mr-1 text-green-500"></i>{{ __('Available for Sale') }}
-                            </span>
-                        </label>
-                    </div>
-                </div>
-
-                {{-- Description --}}
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-align-left mr-1"></i>{{ __('Description') }}
-                        <span class="normal-case font-normal ml-1">({{ __('optional') }})</span>
-                    </label>
-                    <textarea wire:model="description" rows="3"
-                        class="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition resize-none"></textarea>
-                    @error('description') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
-                </div>
-
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="closeCreateModal()"
-                        class="cursor-pointer px-4 py-2 text-sm font-medium rounded-xl border border-zinc-200 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
-                        <i class="fas fa-times mr-1"></i>{{ __('Cancel') }}
-                    </button>
-                    <button type="submit"
-                        class="cursor-pointer px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/20">
-                        <i class="fas fa-save mr-1"></i>{{ __('Create Product') }}
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>>
-
-    {{-- EDIT PRODUCT MODAL --}}
-    <div x-show="showEditModal"
-        x-cloak
-        x-transition:enter="transition ease-out duration-200"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="transition ease-in duration-150"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-        class="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50"
-        @click.self="closeEditModal()">
-
-        <div x-show="showEditModal"
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="opacity-0 translate-y-4 sm:scale-95"
-            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-            x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-            x-transition:leave-end="opacity-0 translate-y-4 sm:scale-95"
-            class="relative bg-white dark:bg-zinc-800 w-full sm:rounded-2xl sm:max-w-2xl max-h-[92dvh] overflow-y-auto shadow-2xl">
-
-            {{-- Loading overlay — shown while Livewire fetches product data --}}
-            <div x-show="editLoading"
-                class="absolute inset-0 z-20 bg-white/80 dark:bg-zinc-800/80 flex flex-col items-center justify-center rounded-2xl gap-3">
-                <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                </svg>
-                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Loading product…') }}</p>
-            </div>
-
-            <div class="sticky top-0 flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 z-10">
-                <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                    <i class="fas fa-edit text-blue-500"></i>{{ __('Edit Product') }}
-                </h3>
-                <button @click="closeEditModal()"
-                    class="cursor-pointer w-8 h-8 flex items-center justify-center rounded-full text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-
-            {{-- NOTE: @submit="closeEditModal()" was removed — modal closes via close-edit-modal event --}}
-            <form wire:submit.prevent="updateProduct" class="p-5 space-y-4">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                            <i class="fas fa-tag mr-1"></i>{{ __('Product Name') }}
-                        </label>
-                        <input type="text" wire:model="name"
-                            class="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                        @error('name') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                            <i class="fas fa-folder mr-1"></i>{{ __('Category') }}
-                        </label>
-                        <select wire:model="category"
-                            class="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition cursor-pointer">
-                            <option value="">{{ __('Select Category') }}</option>
-                            @foreach($categories as $key => $categoryName)
-                                <option value="{{ $key }}">{{ __($categoryName) }}</option>
-                            @endforeach
-                        </select>
-                        @error('category') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                            <i class="fas fa-peso-sign mr-1"></i>{{ __('Price') }}
-                            <span class="normal-case font-normal ml-1">({{ __('per unit or kilo') }})</span>
-                        </label>
-                        <input type="number" step="0.01" wire:model="price"
-                            class="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                        @error('price') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                            <i class="fas fa-cubes mr-1"></i>{{ __('Stock') }}
-                        </label>
-                        <input type="number" wire:model="stocks"
-                            class="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                        @error('stocks') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                            <i class="fas fa-chart-line mr-1"></i>{{ __('Sold') }}
-                        </label>
-                        <input type="number" wire:model="sold"
-                            class="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
-                        @error('sold') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
-                    </div>
-
-                    <div class="flex items-center">
-                        <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
-                            <input type="checkbox" wire:model="is_in_stock"
-                                class="h-4 w-4 rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500">
-                            <span class="text-sm text-zinc-700 dark:text-zinc-300">
-                                <i class="fas fa-check-circle mr-1 text-green-500"></i>{{ __('Available for Sale') }}
-                            </span>
-                        </label>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-align-left mr-1"></i>{{ __('Description') }}
-                        <span class="normal-case font-normal ml-1">({{ __('optional') }})</span>
-                    </label>
-                    <textarea wire:model="description" rows="3"
-                        class="w-full px-3 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-700/60 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition resize-none"></textarea>
-                    @error('description') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
-                </div>
-
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" @click="closeEditModal()"
-                        class="cursor-pointer px-4 py-2 text-sm font-medium rounded-xl border border-zinc-200 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
-                        <i class="fas fa-times mr-1"></i>{{ __('Cancel') }}
-                    </button>
-                    <button type="submit"
-                        class="cursor-pointer px-4 py-2 text-sm font-semibold rounded-xl bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition-all shadow-md shadow-blue-500/20">
-                        <i class="fas fa-save mr-1"></i>{{ __('Update Product') }}
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+    {{-- Form Modal (create/edit) --}}
+    @include('livewire.partials.products.form')
 
     {{-- HIDE / ARCHIVE CONFIRM MODAL --}}
     <div x-show="showArchiveModal"
         x-cloak
+        wire:key="archive-confirm-modal"
         x-transition:enter="transition ease-out duration-150"
         x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100"
@@ -860,6 +274,7 @@
     {{-- DELETE CONFIRM MODAL --}}
     <div x-show="showDeleteModal"
         x-cloak
+        wire:key="delete-confirm-modal"
         x-transition:enter="transition ease-out duration-150"
         x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100"

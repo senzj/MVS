@@ -82,7 +82,7 @@
                 :class="dropUp ? 'bottom-full mb-1' : 'top-full mt-1'"
                 class="absolute z-30 w-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-600 rounded-lg shadow-xl">
 
-                <div class="sticky top-0 z-10 p-2 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-600">
+                <div class="sticky top-0 z-50 p-2 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-600">
                     <div class="relative">
                         <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-xs"></i>
                         <input type="text"
