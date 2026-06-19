@@ -105,9 +105,18 @@
                                     <i class="fas fa-image text-2xl"></i>
                                 </div>
                             @endif
+
+                            @if($image || $existingImageUrl)
+                                <button type="button" wire:click="removeImage"
+                                    class="cursor-pointer absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors"
+                                    title="{{ __('Remove image') }}">
+                                    <i class="fas fa-times text-xs"></i>
+                                </button>
+                            @endif
                         </div>
 
-                        <div class="flex-1 min-w-0">
+                        {{-- wire:key forces a fresh, empty <input type="file"> after removal --}}
+                        <div class="flex-1 min-w-0" wire:key="image-upload-{{ $imageVersion }}">
                             <input type="file" accept="image/*" wire:model="image"
                                 class="w-full text-sm text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition cursor-pointer">
 
@@ -127,22 +136,33 @@
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
                         <i class="fas fa-palette mr-1"></i>{{ __('Label Color') }}
-                        <span class="normal-case font-normal ml-1">({{ __('unique, auto-assigned') }})</span>
+                        <span class="normal-case font-normal ml-1">({{ __('optional, unique') }})</span>
                     </label>
 
-                    <div class="flex items-center gap-2" x-data="{ colorValue: $wire.entangle('color') }">
-                        <input type="color"
-                            x-model="colorValue"
-                            @change="$wire.set('color', colorValue)"
-                            class="w-12 h-10 p-0 border-0 bg-transparent cursor-pointer rounded-lg shrink-0">
+                    @if($color)
+                        <div class="flex items-center gap-2" x-data="{ colorValue: $wire.entangle('color') }">
+                            <input type="color"
+                                x-model="colorValue"
+                                @change="$wire.set('color', colorValue)"
+                                class="w-12 h-10 p-0 border-0 bg-transparent cursor-pointer rounded-lg shrink-0">
 
-                        <span class="text-xs text-zinc-500 dark:text-zinc-400 font-mono" x-text="colorValue || '#000000'"></span>
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400 font-mono" x-text="colorValue || '#000000'"></span>
 
+                            <button type="button" wire:click="regenerateColor"
+                                class="cursor-pointer ml-auto text-xs text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1">
+                                <i class="fas fa-dice"></i>{{ __('New') }}
+                            </button>
+                            <button type="button" wire:click="removeColor"
+                                class="cursor-pointer text-xs text-red-600 dark:text-red-400 hover:underline inline-flex items-center gap-1">
+                                <i class="fas fa-times"></i>{{ __('Remove') }}
+                            </button>
+                        </div>
+                    @else
                         <button type="button" wire:click="regenerateColor"
-                            class="cursor-pointer ml-auto text-xs text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1">
-                            <i class="fas fa-dice"></i>{{ __('New color') }}
+                            class="cursor-pointer w-full flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600 text-zinc-400 dark:text-zinc-500 hover:border-blue-400 hover:text-blue-500 transition">
+                            <i class="fas fa-plus"></i>{{ __('Assign a color') }}
                         </button>
-                    </div>
+                    @endif
                     @error('color') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
                 </div>
 

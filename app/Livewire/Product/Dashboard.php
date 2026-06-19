@@ -45,15 +45,23 @@ class Dashboard extends Component
     /** Current image URL shown when editing an existing product */
     public $existingImageUrl = null;
 
+    /** True once the user has explicitly removed the image (vs. just never uploading one) */
+    public $removeExistingImage = false;
+
+    /** Bumped to force the file input to re-render with a fresh, empty state */
+    public $imageVersion = 0;
+
     /** Final square size (px) images are normalized to on disk */
     private const IMAGE_TARGET_SIZE = 800;
 
     protected function rules(): array
     {
-        $colorRule = Rule::unique('products', 'color');
+        // Color is optional now — only validated when one is actually set.
+        $colorRules = ['nullable'];
 
-        if ($this->selectedProductId) {
-            $colorRule->ignore($this->selectedProductId);
+        if (! empty($this->color)) {
+            $colorRules[] = 'regex:/^#[0-9A-Fa-f]{6}$/';
+            $colorRules[] = Rule::unique('products', 'color')->ignore($this->selectedProductId);
         }
 
         return [
@@ -64,8 +72,8 @@ class Dashboard extends Component
             'category' => 'required|exists:product_categories,id',
             'sold' => 'integer|min:0',
             'is_in_stock' => 'boolean',
-            'image' => 'nullable|image|max:4096',
-            'color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/', $colorRule],
+            'image' => 'nullable|image|max:10000', // 10MB max for the original upload before processing
+            'color' => $colorRules,
         ];
     }
 
@@ -80,7 +88,6 @@ class Dashboard extends Component
         'category.required' => 'Category is required.',
         'image.image' => 'The uploaded file must be an image.',
         'image.max' => 'Image size must not exceed 4MB.',
-        'color.required' => 'A label color is required.',
         'color.regex' => 'Please choose a valid color.',
         'color.unique' => 'This color is already assigned to another product. Please pick a different one.',
     ];
@@ -159,6 +166,7 @@ class Dashboard extends Component
             $this->color = $product->color ?: $this->generateUniqueColor();
             $this->image = null;
             $this->existingImageUrl = $product->image_url;
+            $this->removeExistingImage = false;
 
             $this->dispatch('edit-product-loaded');
         } else {
@@ -171,6 +179,30 @@ class Dashboard extends Component
     {
         $this->color = $this->generateUniqueColor();
         $this->resetErrorBag('color');
+    }
+
+    /**
+     * Explicitly clear the color label. The product falls back to a
+     * neutral gray everywhere it's displayed until a color is reassigned.
+     */
+    public function removeColor(): void
+    {
+        $this->color = null;
+        $this->resetErrorBag('color');
+    }
+
+    /**
+     * Clear the chosen/persisted image client-side. Nothing is deleted
+     * from disk yet — that only happens on save(), so cancelling the
+     * modal leaves the original file untouched.
+     */
+    public function removeImage(): void
+    {
+        $this->image = null;
+        $this->existingImageUrl = null;
+        $this->removeExistingImage = true;
+        $this->imageVersion++; // forces the file input to re-render empty
+        $this->resetErrorBag('image');
     }
 
     public function openArchiveModal($productId)
@@ -201,6 +233,8 @@ class Dashboard extends Component
      */
     public function save(AuditLogsService $audit): void
     {
+        $this->normalizeColor();
+
         if ($this->selectedProductId) {
             $this->updateProduct($audit);
         } else {
@@ -259,10 +293,17 @@ class Dashboard extends Component
         $imageUrl = $product->image_url;
 
         if ($this->image) {
+            // New file replaces whatever was there
             if ($product->image_url) {
                 Storage::disk('public')->delete(str_replace('/storage/', '', $product->image_url));
             }
             $imageUrl = $this->storeSquareImage($this->image);
+        } elseif ($this->removeExistingImage) {
+            // User explicitly removed it without uploading a replacement
+            if ($product->image_url) {
+                Storage::disk('public')->delete(str_replace('/storage/', '', $product->image_url));
+            }
+            $imageUrl = null;
         }
 
         try {
@@ -401,8 +442,19 @@ class Dashboard extends Component
         $this->color = '';
         $this->image = null;
         $this->existingImageUrl = null;
+        $this->removeExistingImage = false;
         $this->selectedProductId = null;
         $this->resetErrorBag();
+    }
+
+    /**
+     * Converts an empty-string color (the picker's "nothing chosen" state)
+     * to a real null, since Laravel's `nullable` rule only recognizes
+     * actual null — not an empty string — as "no value."
+     */
+    private function normalizeColor(): void
+    {
+        $this->color = $this->color !== '' ? $this->color : null;
     }
 
     /**
@@ -467,6 +519,53 @@ class Dashboard extends Component
     }
 
     /**
+     * Reads the JPEG's EXIF Orientation tag and physically rotates/flips
+     * the GD image so the pixels match what was actually displayed —
+     * because GD itself ignores this tag when decoding.
+     *
+     * Orientation values per the EXIF spec:
+     * 1=normal 2=flip-h 3=rotate180 4=flip-v
+     * 5=flip-v+rotate90cw 6=rotate90cw 7=flip-h+rotate90cw 8=rotate90ccw
+     */
+    private function applyExifOrientation($image, string $path)
+    {
+        if (! function_exists('exif_read_data')) {
+            return $image; // exif extension not installed — skip silently
+        }
+
+        $exif = @exif_read_data($path);
+        $orientation = $exif['Orientation'] ?? 1;
+
+        switch ($orientation) {
+            case 2:
+                imageflip($image, IMG_FLIP_HORIZONTAL);
+                break;
+            case 3:
+                $image = imagerotate($image, 180, 0);
+                break;
+            case 4:
+                imageflip($image, IMG_FLIP_VERTICAL);
+                break;
+            case 5:
+                imageflip($image, IMG_FLIP_VERTICAL);
+                $image = imagerotate($image, -90, 0);
+                break;
+            case 6:
+                $image = imagerotate($image, -90, 0);
+                break;
+            case 7:
+                imageflip($image, IMG_FLIP_HORIZONTAL);
+                $image = imagerotate($image, -90, 0);
+                break;
+            case 8:
+                $image = imagerotate($image, 90, 0);
+                break;
+        }
+
+        return $image;
+    }
+
+    /**
      * Crop the uploaded image to a centered square and resize it,
      * so the file stored on disk is square — not just square via CSS.
      */
@@ -482,6 +581,13 @@ class Dashboard extends Component
             IMAGETYPE_GIF  => imagecreatefromgif($sourcePath),
             default        => imagecreatefromstring(file_get_contents($sourcePath)),
         };
+
+        // Correct phone-camera rotation BEFORE cropping — only JPEGs carry this tag
+        if ($type === IMAGETYPE_JPEG) {
+            $source = $this->applyExifOrientation($source, $sourcePath);
+            $width = imagesx($source);
+            $height = imagesy($source);
+        }
 
         // Centered square crop
         $side = min($width, $height);

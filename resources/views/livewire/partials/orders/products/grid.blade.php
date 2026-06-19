@@ -46,8 +46,7 @@
 
     {{-- ── Category filter pills ── --}}
     @if(count($categories) > 0)
-        <div class="flex gap-1.5 px-3 py-2 overflow-x-auto pos-no-scroll
-                    border-b border-zinc-100 dark:border-zinc-700 bg-zinc-50/30 dark:bg-zinc-900/10">
+        <div class="flex gap-1.5 px-3 py-2 overflow-x-auto border-b border-zinc-100 dark:border-zinc-700 bg-zinc-50/30 dark:bg-zinc-900/10 scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700/80 scrollbar-track-transparent">
             <button type="button" @click="cat = 'all'"
                 :class="cat === 'all'
                     ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
@@ -68,15 +67,16 @@
     @endif
 
     {{-- ── Product card grid ── --}}
-    <div class="p-3 overflow-y-auto pos-no-scroll"
-         style="min-height: 380px; max-height: clamp(280px, 50vh, 560px);">
+    <div class="p-1 overflow-y-auto max-h-[78vh] scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700/80 scrollbar-track-transparent">
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
 
             @forelse(($this->filteredProducts ?? $products ?? []) as $product)
                 @php
                     $pOOS = ($product->stocks ?? 0) <= 0 || !($product->is_in_stock ?? true);
                     $pLow = !$pOOS && ($product->stocks ?? 0) < 10;
+
+                    $productColor = $product->color ? '' : 'bg-zinc-50/50 dark:bg-zinc-800/50';
                 @endphp
 
                 <button type="button"
@@ -92,17 +92,20 @@
                     @else
                         disabled
                     @endif
+
                     class="relative flex flex-col text-left rounded-xl border overflow-hidden
                            transition-all duration-150 select-none
                            {{ $pOOS
-                               ? 'border-zinc-100 dark:border-zinc-700/40 bg-zinc-50/60 dark:bg-zinc-900/20 opacity-45 cursor-not-allowed'
-                               : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800
+                               ? 'border-zinc-100 dark:border-zinc-700/40 opacity-45 cursor-not-allowed'
+                               : 'border-zinc-200 dark:border-zinc-700
                                   hover:border-blue-400 dark:hover:border-blue-500
-                                  hover:bg-blue-50/50 dark:hover:bg-blue-900/10
-                                  hover:shadow-md cursor-pointer' }}">
+                                  hover:brightness-95 hover:shadow-md cursor-pointer' }}"
+                            style="
+                                {{ $product->color ? "background-color: {$product->color}80;" : '' }}
+                            ">
 
                     {{-- Stock colour strip --}}
-                    <div class="h-[3px] w-full shrink-0
+                    <div class="h-1 w-full shrink-0
                         {{ $pOOS ? 'bg-red-300 dark:bg-red-800' : ($pLow ? 'bg-yellow-400' : 'bg-green-400') }}">
                     </div>
 
@@ -135,7 +138,7 @@
 
                             {{-- Category badge --}}
                             <span class="inline-block self-start px-1.5 py-0.5 rounded text-[10px] font-bold leading-tight
-                                        bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300
+                                        bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100
                                         truncate max-w-full">
                                 {{ $product->category_name }}
                             </span>
@@ -147,17 +150,17 @@
                                          group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
                                 ₱{{ number_format($product->price, 2) }}
                             </span>
+
                             <span class="text-[10px] font-semibold shrink-0
                                 {{ $pOOS
                                     ? 'text-red-500 dark:text-red-400'
-                                    : ($pLow ? 'text-yellow-600 dark:text-yellow-400' : 'text-zinc-400 dark:text-zinc-500') }}">
+                                    : ($pLow ? 'text-yellow-600 dark:text-yellow-400' : 'text-zinc-800 dark:text-gray-100') }}">
                                 <i class="fas fa-box mr-0.5"></i>{{ $product->stocks ?? 0 }}
                                 @if($pOOS) <span class="hidden sm:inline">{{ __('OOS') }}</span> @endif
                             </span>
                         </div>
                     </div>
                 </button>
-
             @empty
                 <div class="col-span-2 sm:col-span-3 xl:col-span-4 py-14
                             flex flex-col items-center text-zinc-400 dark:text-zinc-500">
@@ -170,8 +173,3 @@
         </div>
     </div>
 </div>
-
-<style>
-    .pos-no-scroll::-webkit-scrollbar { display: none; }
-    .pos-no-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-</style>

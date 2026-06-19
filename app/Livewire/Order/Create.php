@@ -252,7 +252,10 @@ class Create extends Component
 
     public function updatedPaymentType(): void
     {
-        if ($this->paymentType !== 'gcash') {
+        // Only clear the proof when switching TO cash — switching between
+        // non-cash methods (e.g. gcash -> maya) should keep whatever was
+        // already uploaded.
+        if ($this->paymentType === 'cash') {
             $this->proofOfPayment = null;
         }
     }
@@ -327,7 +330,7 @@ class Create extends Component
         $this->createOrder();
     }
 
-    /** Walk-in: validate cash / gcash then save */
+    /** Walk-in: validate cash / non-cash then save */
     public function processPayment(): void
     {
         $this->processingPayment = true;
@@ -343,7 +346,7 @@ class Create extends Component
             ]);
         }
 
-        if ($this->paymentType === 'gcash') {
+        if ($this->paymentType !== 'cash') {
             $this->validateOnly('proofOfPayment', [
                 'proofOfPayment' => 'nullable|image|mimes:png,jpg,jpeg,webp|max:10240',
             ]);
@@ -446,14 +449,15 @@ class Create extends Component
             }
         }
 
-        // Store proof image (if any)
+        // Store proof image (if any). Generalized from "=== 'gcash'" to
+        // "!== 'cash'" so any configured non-cash method can attach proof.
         $proofPath     = null;
         $paymentStatus = 'unpaid';
 
         if ($this->paymentType === 'cash') {
             // Cash walk-in is always paid at POS
             $paymentStatus = $this->orderType === 'walk_in' ? 'paid' : 'unpaid';
-        } elseif ($this->paymentType === 'gcash' && $this->proofOfPayment) {
+        } elseif ($this->proofOfPayment) {
             $ext          = strtolower($this->proofOfPayment->getClientOriginalExtension() ?: 'png');
             $dir          = 'order/' . $this->orderNumber;
             $proofPath    = $this->proofOfPayment->storeAs($dir, $this->orderNumber . '.' . $ext, 'public');

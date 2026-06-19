@@ -1,5 +1,5 @@
 {{--
-    Universal Order Modal  (v2)
+    Universal Order Modal
     ===========================
     Modes: 'confirm' | 'walkin' | 'view'
 
@@ -7,6 +7,8 @@
         $modalMode  – string  (controls which sections are shown, which actions are wired, etc.)
         $confirmData – array   (for 'confirm' mode: all data needed to render the order summary)
         $selectedOrder – Order model (for 'view' mode: the order to display)
+        $isEditMode – bool (optional, passed by the Edit page only) — when true,
+                      the proof-of-payment section in confirm mode renders read-only.
     The 'view' mode is used for viewing order details from the orders list, and also for the "receipt" view after confirming a new order or walk-in payment.
 --}}
 
@@ -18,7 +20,7 @@
     $reviewReceiptNumber   = $cd['receiptNumber']      ?? '';
     $reviewDateTime        = $cd['reviewDateTime']     ?? __('N/A');
     $reviewOrderType       = $cd['orderType']          ?? '';
-    $reviewPaymentLabel    = $cd['paymentLabel']       ?? '';
+    $reviewPaymentLabel    = $cd['paymentLabel']       ?? '';  // 'Cash', 'GCash', etc.
     $reviewPaymentStatus   = $cd['paymentStatusLabel'] ?? '';  // 'Unpaid' | 'Paid' | 'Refunded'
     $reviewStatusLabel     = $cd['statusLabel']        ?? '';
     $reviewDeliveredBy     = $cd['deliveredBy']        ?? null;
@@ -35,7 +37,6 @@
     $reviewTotal           = (float) ($cd['totalAmount'] ?? 0);
     $reviewStatusKey       = $cd['statusKey']          ?? strtolower(str_replace(' ', '_', $reviewStatusLabel));
     $isDelivery            = in_array($reviewOrderType, [__('Delivery'), 'Delivery', 'deliver']);
-    $isGcash               = str_contains(strtolower((string)$reviewPaymentLabel), 'gcash');
 
     // ── View mode ───────────────────────────────────────────────────
     $order = $selectedOrder ?? null;
@@ -44,9 +45,12 @@
     $walkinPaymentType = $paymentType  ?? 'cash';
     $walkinChange      = $changeAmount ?? 0;
     $walkinImage       = $currentImage ?? null;
-    // Show QR only for walk-in + gcash + not yet paid
-    $showQr = $walkinPaymentType === 'gcash'
-              || $walkinPaymentType === 'maya'
+
+    // Show QR only for walk-in + (gcash or maya) + not yet paid.
+    // (Previous version: `$a === 'gcash' || $a === 'maya' && !$b && $c` —
+    // && binds tighter than ||, so this always evaluated true for gcash
+    // regardless of delivery/payment status. Wrapped in in_array now.)
+    $showQr = in_array($walkinPaymentType, ['gcash', 'maya'], true)
               && ! $isDelivery
               && in_array($reviewPaymentStatus, [__('Unpaid'), 'Unpaid', 'unpaid']);
 
@@ -64,6 +68,17 @@
     $confirmProofAllowCamera = $modalMode === 'confirm'
         ? $currentOrderType === 'walk_in'
         : false;
+
+    // ── Proof-of-payment visibility (confirm mode: Add / Create / Edit) ──
+    // Raw payment type regardless of host naming convention: Create/Add
+    // expose $paymentType (camelCase), Edit exposes $payment_type (snake).
+    // Falls back to the review label only if neither raw property is in scope.
+    $rawPaymentType = strtolower((string) ($paymentType ?? $payment_type ?? $reviewPaymentLabel ?? ''));
+    $isCashPayment  = $rawPaymentType === 'cash' || $rawPaymentType === strtolower(__('Cash'));
+
+    // Edit's page passes this explicitly — its review modal shows existing
+    // proof for reference only and never allows uploading/replacing it here.
+    $isEditReviewMode = $isEditMode ?? false;
 @endphp
 
 <div
@@ -74,15 +89,13 @@
     })"
 >
 
-    <div x-show="show"
-         style="display:none"
-         class="fixed inset-0 z-50 overflow-y-auto">
+    <div x-show="show" style="display:none" class="fixed inset-0 z-50 overflow-y-auto">
 
         <div class="fixed inset-0 z-50 overflow-y-auto">
             <div class="flex items-end sm:items-center justify-center min-h-screen p-0 sm:p-4 bg-black/60">
 
                 <div class="relative bg-white dark:bg-zinc-800 rounded-lg sm:rounded-2xl shadow-2xl
-                            {{ $panelWidth }} overflow-hidden flex flex-col"
+                    {{ $panelWidth }} overflow-hidden flex flex-col"
                     x-transition:enter="transition ease-out duration-250"
                     x-transition:enter-start="opacity-0 translate-y-8 sm:translate-y-0 sm:scale-95"
                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
@@ -90,13 +103,13 @@
                     x-transition:leave-start="opacity-100"
                     x-transition:leave-end="opacity-0 translate-y-6 sm:scale-95">
 
-                    {{-- ── Header ──────────────────────────────────────────── --}}
-                    <div class="sticky top-0 z-10 flex items-center justify-between gap-3
-                                px-5 sm:px-6 py-4 border-b border-zinc-200 dark:border-zinc-700
-                                bg-white dark:bg-zinc-900">
+                    {{-- Header --}}
+                    <div class="sticky top-0 z-10 flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900">
 
+                        {{-- Title --}}
                         <div class="flex items-center gap-2 min-w-0">
                             <i class="fas fa-file-invoice text-blue-500 shrink-0"></i>
+
                             <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                                 @if($modalMode === 'view')
                                     {{ __('Order Information') }}
@@ -107,7 +120,10 @@
                                 @endif
                             </h3>
                         </div>
+
+                        {{-- Actions --}}
                         <div class="flex items-center gap-1 shrink-0">
+                            {{-- Print Button --}}
                             <button type="button"
                                 onclick="window.__printOrderModal && window.__printOrderModal()"
                                 title="{{ __('Print receipt') }}"
@@ -116,6 +132,8 @@
                                     hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
                                 <i class="fas fa-print text-sm"></i>
                             </button>
+
+                            {{-- Close Button --}}
                             <button type="button" wire:click="{{ $wireClose }}"
                                 class="cursor-pointer w-8 h-8 flex items-center justify-center rounded-full
                                     text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300
@@ -129,17 +147,13 @@
                     <div class="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-5">
 
                         @if($modalMode === 'view' && $order)
-                            {{-- ════════════════════════════════════════════ --}}
-                            {{-- VIEW MODE — receipt layout                   --}}
-                            {{-- ════════════════════════════════════════════ --}}
+                            {{-- VIEW MODE — receipt layout --}}
                             @include('livewire.partials.orders.modal.vieworders', [
                                 'order' => $order
                             ])
 
                         @else
-                            {{-- ════════════════════════════════════════════ --}}
-                            {{-- CONFIRM / WALKIN                             --}}
-                            {{-- ════════════════════════════════════════════ --}}
+                            {{-- CONFIRM / WALKIN --}}
                             @include('livewire.partials.orders.modal.vieworders', [
                                 'previewMode' => true,
                                 'reviewReceiptNumber' => $reviewReceiptNumber,
@@ -168,6 +182,8 @@
                             {{-- ── Walk-in payment ────────────────────────── --}}
                             @if($modalMode === 'walkin')
                                 <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
+
+                                    {{-- Payment Details --}}
                                     <div class="px-4 py-2.5 bg-zinc-100 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-700">
                                         <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
                                             <i class="fas fa-money-bill-wave mr-1"></i>{{ __('Payment') }}
@@ -176,6 +192,8 @@
                                             </span>
                                         </p>
                                     </div>
+
+                                    {{-- Payment Information --}}
                                     <div class="p-4 bg-white dark:bg-zinc-800 space-y-4">
 
                                         {{-- Cash: amount received + change --}}
@@ -236,13 +254,16 @@
                                                 </p>
                                             @endif
 
-                                        {{-- GCash: QR (unpaid walk-in only) + proof upload --}}
+                                        {{-- Non Cash (unpaid walk-in) + proof upload --}}
                                         @elseif($walkinPaymentType != 'cash')
                                             @if($showQr && $walkinImage)
                                                 <div class="text-center space-y-2">
+                                                    {{-- QR Code --}}
                                                     <div class="inline-block rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
                                                         <img src="{{ $walkinImage }}" alt="{{ __('GCash QR') }}" class="max-w-90 max-h-96 object-contain">
                                                     </div>
+
+                                                    {{-- Payment Amount --}}
                                                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
                                                         {{ __('Scan to pay') }}:
                                                         <span class="font-semibold text-zinc-900 dark:text-zinc-100">₱{{ number_format($reviewTotal, 2) }}</span>
@@ -257,17 +278,22 @@
                                                 'paymentType'      => $walkinPaymentType,
                                             ])
                                         @endif
+
                                     </div>
                                 </div>
                             @endif
 
-                            {{-- GCash proof upload — confirm mode (Add / Edit pages) --}}
-                            @if($modalMode === 'confirm' && $isGcash && (! empty($confirmProofUrl) || ! empty($proofOfPayment)))
+                            {{-- Proof of payment — confirm mode (Add / Create / Edit pages).
+                                 Shown for ANY non-cash payment (not just gcash), and shown
+                                 even before a proof has ever been uploaded — otherwise the
+                                 field is unreachable on first upload. Edit's copy is
+                                 reference-only and never allows uploading from here. --}}
+                            @if($modalMode === 'confirm' && ! $isCashPayment)
                                 @include('livewire.partials.orders.proof-of-payment', [
                                     'compact'          => true,
                                     'existingProofUrl' => $confirmProofUrl,
-                                    'paymentType'      => $paymentType ?? $reviewPaymentLabel,
-                                    'readOnly'         => false,
+                                    'paymentType'      => $paymentType ?? $payment_type ?? $reviewPaymentLabel,
+                                    'readOnly'         => $isEditReviewMode,
                                     'allowCamera'      => $confirmProofAllowCamera,
                                 ])
                             @endif

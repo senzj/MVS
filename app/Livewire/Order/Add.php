@@ -256,8 +256,9 @@ class Add extends Component
 
     public function updatedPaymentType(): void
     {
-        // Clear proof when switching away from GCash
-        if ($this->paymentType !== 'gcash') {
+        // Only clear the proof when switching TO cash — switching between
+        // non-cash methods should keep whatever was already uploaded.
+        if ($this->paymentType === 'cash') {
             $this->proofOfPayment = null;
         }
     }
@@ -388,9 +389,11 @@ class Add extends Component
             return;
         }
 
-        // Store proof image
+        // Store proof image. Generalized from "=== 'gcash'" to "!== 'cash'"
+        // so any configured non-cash method can attach proof and auto-upgrade
+        // the payment status.
         $proofPath = null;
-        if ($this->paymentType === 'gcash' && $this->proofOfPayment) {
+        if ($this->paymentType !== 'cash' && $this->proofOfPayment) {
             $ext       = strtolower($this->proofOfPayment->getClientOriginalExtension() ?: 'png');
             $dir       = 'order/' . $this->receiptNumber;
             $proofPath = $this->proofOfPayment->storeAs($dir, $this->receiptNumber . '.' . $ext, 'public');

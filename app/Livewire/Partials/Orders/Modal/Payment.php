@@ -3,7 +3,6 @@ namespace App\Livewire\Partials\Orders\Modal;
 
 use App\Models\Order;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -17,7 +16,8 @@ class Payment extends Component
     public float $discountAmount = 0;
 
     public ?float $amountReceived = null;
-    public ?string $proofOfPayment = null;
+
+    public $proofOfPayment = null;
 
     protected $listeners = [
         'openPaymentModal' => 'open',
@@ -32,17 +32,15 @@ class Payment extends Component
     {
         $this->resetValidation();
         $this->proofOfPayment = null;
-        $this->order = Order::with(['customer', 'discountPreset'])->find($orderId);
 
         $this->orderId = $orderId;
-        $this->order   = Order::with('customer')->find($orderId);
+        $this->order   = Order::with(['customer', 'discountPreset'])->find($orderId);
 
         if (! $this->order) {
             $this->show = false;
             return;
         }
 
-        // $this->amountReceived = $this->order->amount_received ?? $this->order->order_total;
         $this->amountReceived = (float) ($this->order->amount_received ?? 0);
 
         $this->show = true;
@@ -78,10 +76,13 @@ class Payment extends Component
         $this->validate();
 
         DB::transaction(function () {
-            $proofPath = $this->order->proof_of_payment;
+            $proofPath     = $this->order->proof_of_payment;
             $isWalkInOrder = ($this->order->order_type ?? null) === 'walk_in';
+            $isCashPayment = ($this->order->payment_type ?? null) === 'cash';
 
-            if ($this->order->payment_type === 'gcash' && $this->proofOfPayment) {
+            // Generalized from a gcash-only check to "any non-cash method",
+            // matching the same fix applied across Create/Add/Edit.
+            if (! $isCashPayment && $this->proofOfPayment) {
                 $ext       = strtolower($this->proofOfPayment->getClientOriginalExtension() ?: 'png');
                 $dir       = 'order/' . ($this->order->receipt_number ?? uniqid());
                 $proofPath = $this->proofOfPayment->storeAs(
@@ -91,17 +92,15 @@ class Payment extends Component
                 );
             }
 
-            $this->order->payment_status  = 'paid';
+            $this->order->payment_status = 'paid';
             if ($isWalkInOrder) {
                 $this->order->status = 'completed';
             }
 
-            // $this->order->amount_received = $this->amountReceived ?? $this->order->order_total;
             $this->order->amount_received = (float) $this->amountReceived;
 
             $received = (float) $this->amountReceived;
-            $total = (float) $this->order->order_total;
-
+            $total    = (float) $this->order->order_total;
             $this->order->change_amount = max(0, $received - $total);
 
             if ($proofPath) {

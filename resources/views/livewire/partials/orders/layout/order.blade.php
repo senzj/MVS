@@ -344,10 +344,11 @@
         </div>
 
         {{-- Right: Summary --}}
-        <div class="lg:col-span-1 min-w-0 space-y-3 lg:sticky lg:top-24">
+        <div class="lg:col-span-1 min-w-0 space-y-3">
             {{-- CART --}}
-            <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm overflow-hidden">
+            <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm">
 
+                {{-- CART HEADER --}}
                 <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/20">
                     <h3 class="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                         <i class="fas fa-shopping-cart text-blue-500 mr-1.5"></i>{{ __('Cart') }}
@@ -359,21 +360,23 @@
                     @endif
                 </div>
 
-                <div class="divide-y divide-zinc-100 dark:divide-zinc-700/50
-                            {{ $itemCount > 4 ? 'max-h-64 overflow-y-auto' : '' }}">
+                {{-- CART ITEMS --}}
+                <div class="divide-y divide-zinc-100 dark:divide-zinc-700/50 lg:h-[56vh] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700/80 scrollbar-track-transparent">
                     @forelse($filledItems as $cartIndex => $cartItem)
                         @php
                             // Find original index in orderItems for Livewire wire:model paths
                             $origIndex = array_search($cartItem, $orderItems);
                             if ($origIndex === false) $origIndex = $cartIndex;
                         @endphp
+
                         @include('livewire.partials.orders.form.itemrow', [
                             'index' => $origIndex,
                             'item'  => $cartItem,
                             'count' => $itemCount,
                         ])
+
                     @empty
-                        <div class="py-10 flex flex-col items-center text-zinc-400 dark:text-zinc-500">
+                        <div class="py-10 flex flex-col align-center items-center justify-center text-zinc-400 dark:text-zinc-500">
                             <i class="fas fa-shopping-cart text-3xl mb-2 opacity-20"></i>
                             <p class="text-sm font-medium">{{ __('Cart is empty') }}</p>
                             <p class="text-xs mt-0.5 opacity-70">{{ __('Click a product to add it') }}</p>
@@ -494,30 +497,4 @@
         </div>
 
     </div>
-
-    {{-- PROOF OF PAYMENT --}}
-    @php
-        $showProof = ($pageMode === 'record' && $ctPaymentType === 'gcash')
-                    || ($pageMode === 'edit'   && ($ctPaymentType !== 'cash' || !empty($existingProof ?? null)));
-    @endphp
-    @if($showProof)
-        <div class="bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-zinc-700 shadow-sm p-4 space-y-3">
-            @if($pageMode === 'edit' && ($this->showQr ?? false))
-                @php $qrImage = \App\Helpers\PaymentImageHelper::getPaymentImageUrl(); @endphp
-                @if($qrImage)
-                    <div class="flex flex-col items-center gap-2 p-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/40">
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Scan to pay') }}</p>
-                        <img src="{{ $qrImage }}" alt="{{ __('GCash QR') }}" class="max-w-[140px] max-h-[140px] object-contain rounded-lg">
-                    </div>
-                @endif
-            @endif
-
-            @include('livewire.partials.orders.proof-of-payment', [
-                'existingProofUrl' => $pageMode === 'edit' ? (isset($existingProof) && $existingProof ? asset('storage/'.$existingProof) : null) : null,
-                'paymentType'      => $ctPaymentType,
-                'allowCamera'      => $ctOrderType === 'walk_in',
-                'readOnly'         => false,
-            ])
-        </div>
-    @endif
 </div>

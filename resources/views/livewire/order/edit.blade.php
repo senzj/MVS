@@ -1,6 +1,6 @@
 @section('title', __('Edit Order'))
 
-<div class="w-full max-w-full overflow-hidden px-2 sm:px-4 pb-8">
+<div class="w-full max-w-full overflow-hidden px-2 sm:px-4">
 
     {{-- Header --}}
     <div class="flex items-center justify-between py-2 mb-4 gap-3">
@@ -25,6 +25,7 @@
     @include('livewire.partials.orders.modal.order', [
         'modalMode'   => 'confirm',
         'confirmData' => $confirmData,
+        'isEditMode'   => true,
     ])
 
     @include('livewire.partials.loading-overlay', [
