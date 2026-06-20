@@ -46,6 +46,8 @@ class ProductSeeder extends Seeder
             ['name' => 'Pineapple', 'category' => 'Fruits', 'price' => 130.00],
         ];
 
+        $productsCreated = 0;
+
         foreach ($products as $product) {
             $stocks = fake()->numberBetween(20, 120);
             $categoryId = $categoryIds[$product['category']] ?? null;
@@ -59,6 +61,10 @@ class ProductSeeder extends Seeder
                 'category_id' => $categoryId,
                 'price' => $product['price'],
             ]);
+
+            $productsCreated++;
         }
+
+        $this->command->line("{$productsCreated} products added");
     }
 }

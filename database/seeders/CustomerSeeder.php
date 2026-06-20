@@ -13,7 +13,8 @@ class CustomerSeeder extends Seeder
     public function run(): void
     {
         $RandomCount = fake()->numberBetween(8, 25);
-        $successfulCreate = 0;
+        $customerCreated = 0;
+
         for ($i = 1; $i <= $RandomCount; $i++) {
             Customer::create([
                 'name' => fake()->name(),
@@ -21,9 +22,10 @@ class CustomerSeeder extends Seeder
                 'address' => fake()->address(),
                 'contact_number' => '09' . fake()->numerify('#########'),
             ]);
-            $successfulCreate++;
+
+            $customerCreated++;
         }
 
-        $this->command->line("{$successfulCreate} customers spawned");
+        $this->command->line("{$customerCreated} customers spawned");
     }
 }

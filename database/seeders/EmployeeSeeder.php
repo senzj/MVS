@@ -23,6 +23,8 @@ class EmployeeSeeder extends Seeder
             'Nina Mendoza',
         ];
 
+        $successfulEmployees = 0;
+
         foreach ($employees as $name) {
             Employee::create([
                 'name' => $name,
@@ -30,6 +32,10 @@ class EmployeeSeeder extends Seeder
                 'contact_number' => '09' . fake()->numerify('#########'),
                 'is_archived' => false,
             ]);
+
+            $successfulEmployees++;
         }
+
+        $this->command->line("{$successfulEmployees} employees spawned");
     }
 }

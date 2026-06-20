@@ -27,11 +27,17 @@ class ProductCategorySeeder extends Seeder
             ['name' => 'Gas', 'description' => 'Cooking gas and related products.'],
         ];
 
+        $successfulCategories = 0;
+
         foreach ($categories as $category) {
             ProductCategories::query()->updateOrCreate(
                 ['name' => $category['name']],
                 ['description' => $category['description']]
             );
+
+            $successfulCategories++;
         }
+
+        $this->command->line("{$successfulCategories} product categories added or updated");
     }
 }

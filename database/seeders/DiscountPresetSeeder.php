@@ -45,11 +45,17 @@ class DiscountPresetSeeder extends Seeder
             ],
         ];
 
+        $successfulPresets = 0;
+
         foreach ($presets as $preset) {
             DiscountPreset::updateOrCreate(
                 ['name' => $preset['name']],
                 $preset
             );
+
+            $successfulPresets++;
         }
+
+        $this->command->line("{$successfulPresets} discount presets added");
     }
 }

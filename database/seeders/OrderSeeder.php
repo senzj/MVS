@@ -32,7 +32,7 @@ class OrderSeeder extends Seeder
         $discountPresets = DiscountPreset::query()->where('is_active', true)->get();
 
         $random = fake()->numberBetween(8, 30);
-        $successfulOrders = 0;
+        $ordersCreated = 0;
 
         // Create random orders with items
         for ($i = 1; $i <= $random; $i++) {
@@ -166,9 +166,9 @@ class OrderSeeder extends Seeder
                 'payment_status' => $paymentStatus,
             ]);
 
-            $successfulOrders++;
+            $ordersCreated++;
         }
 
-        $this->command->line("{$successfulOrders} orders added");
+        $this->command->line("{$ordersCreated} orders added");
     }
 }
