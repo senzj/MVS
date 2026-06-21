@@ -61,7 +61,7 @@
     @endif
 
     {{-- ── Product card grid ── --}}
-    <div class="p-2 overflow-y-auto max-h-[84vh] scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700/80 scrollbar-track-transparent">
+    <div class="p-2 overflow-y-auto md:max-h-[84vh] max-h-[64vh] scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700/80 scrollbar-track-transparent">
 
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
 
@@ -75,11 +75,6 @@
                     wire:key="pgrid-{{ $product->id }}"
                     x-show="cat === 'all' || cat === '{{ (string)$product->category_id }}'"
                     @if(!$pOOS)
-                        {{--
-                            Dispatch the full product payload upward to the parent layout's
-                            Alpine component. No direct wire call here — the parent batches
-                            and debounces the server sync, giving instant cart feedback.
-                        --}}
                         @click="
                             $dispatch('add-to-cart', {
                                 id:     {{ $product->id }},

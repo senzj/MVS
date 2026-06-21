@@ -12,4 +12,9 @@ return [
     'stock_low_threshold' => env('STOCK_LOW_THRESHOLD', 10),
     'currency_symbol' => env('CURRENCY_SYMBOL', '₱'),
     'currency_code' => env('CURRENCY_CODE', 'PHP'),
+    'password_min_length' => env('PASSWORD_MIN_LENGTH', 8),
+    'password_require_uppercase' => env('PASSWORD_REQUIRE_UPPERCASE', true),
+    'password_require_lowercase' => env('PASSWORD_REQUIRE_LOWERCASE', true),
+    'password_require_number' => env('PASSWORD_REQUIRE_NUMBER', true),
+    'password_require_special' => env('PASSWORD_REQUIRE_SPECIAL', true),
 ];

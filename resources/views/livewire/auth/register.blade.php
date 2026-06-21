@@ -14,6 +14,20 @@ new #[Layout('components.layouts.auth', ['title' => 'Register'])] class extends 
     public string $password = '';
     public string $password_confirmation = '';
 
+    // Password rule
+    private function passwordRule(): Rules\Password
+    {
+        $cfg  = config('storeconfig');
+        $rule = Rules\Password::min($cfg['password_min_length'] ?? 8);
+
+        if ($cfg['password_require_uppercase'] ?? true) $rule = $rule->mixedCase();
+        if ($cfg['password_require_number']    ?? true) $rule = $rule->numbers();
+        if ($cfg['password_require_special']   ?? true) $rule = $rule->symbols();
+        if ($cfg['password_require_lowercase'] ?? true) $rule = $rule->letters();
+
+        return $rule;
+    }
+
     /**
      * Handle an incoming registration request.
      */
@@ -33,13 +47,7 @@ new #[Layout('components.layouts.auth', ['title' => 'Register'])] class extends 
                     }
                 }
             ],
-            'password' => ['required', 'string', 'confirmed',
-                Rules\Password::min(8) // minimum of 8 characters
-                    ->mixedCase() // upper and lower case letters
-                    ->letters() // letters
-                    ->numbers() // numbers
-                    ->symbols() // symbols
-            ],
+            'password' => ['required', 'string', 'confirmed', $this->passwordRule()],
         ]);
 
         $formatted_data = [
