@@ -15,23 +15,23 @@ Route::middleware('guest')->group(function () {
 
     Volt::route('forgot-password', 'auth.forgot-password')
         ->name('password.request');
-
-    Volt::route('reset-password/{token}', 'auth.reset-password')
-        ->name('password.reset');
-
 });
 
 Route::middleware('auth')->group(function () {
-    Volt::route('verify-email', 'auth.verify-email')
-        ->name('verification.notice');
+    Volt::route('reset-password', 'auth.reset-password')
+        ->name('password.reset');
 
-    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
-        ->middleware(['signed', 'throttle:6,1'])
-        ->name('verification.verify');
+    // Volt::route('verify-email', 'auth.verify-email')
+    //     ->name('verification.notice');
 
-    Volt::route('confirm-password', 'auth.confirm-password')
-        ->name('password.confirm');
+    // Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
+    //     ->middleware(['signed', 'throttle:6,1'])
+    //     ->name('verification.verify');
+
+    // Volt::route('confirm-password', 'auth.confirm-password')
+    //     ->name('password.confirm');
 });
 
 Route::post('logout', Logout::class)
+    ->middleware('auth')
     ->name('logout');

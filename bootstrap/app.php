@@ -1,10 +1,9 @@
 <?php
 // middleware class
-use App\Http\Middleware\TrackAuditTrail;
-use App\Http\Middleware\SetLocaleFromSession;
 use App\Http\Middleware\EnsureTemporaryDeviceSession;
-
-// laravel
+use App\Http\Middleware\ForcePasswordChange;
+use App\Http\Middleware\SetLocaleFromSession;
+use App\Http\Middleware\TrackAuditTrail;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', SetLocaleFromSession::class);
         $middleware->appendToGroup('web', EnsureTemporaryDeviceSession::class);
         $middleware->appendToGroup('web', TrackAuditTrail::class);
+        $middleware->appendToGroup('web', ForcePasswordChange::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -17,6 +17,8 @@ class UserSeeder extends Seeder
             'name' => 'Admin User',
             'username' => 'admin',
             'password' => Hash::make('123'),
+            'birth_date' => '2000-01-01',
+            'pin_code' => 123456,
         ]);
 
         // $staffUsers = [

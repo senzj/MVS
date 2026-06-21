@@ -37,9 +37,13 @@ class Users extends Component
     public function mount(AuditLogsService $auditLogsService): void
     {
         $this->users = User::query()
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (User $u) => ['id' => $u->id, 'name' => $u->name])
+            ->orderBy('id', 'desc')
+            ->get(['id', 'name', 'username'])
+            ->map(fn (User $u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'username' => $u->username
+            ])
             ->all();
 
         $this->loadData($auditLogsService);
@@ -211,6 +215,9 @@ class Users extends Component
     {
         $userId = $this->userFilter !== 'all' ? (int) $this->userFilter : null;
 
+        // username lookup keyed by user id (safe even if a user was deleted)
+        $usernameByUserId = collect($this->users)->pluck('username', 'id');
+
         // Detect current remembered device via cookie token
         $currentDeviceToken = request()->cookie('temporary_device_token');
         $currentDeviceId    = null;
@@ -221,7 +228,6 @@ class Users extends Component
             $currentDeviceId = $row ?: null;
         }
 
-        // Serialize every Carbon date → ISO string so Livewire JSON round-trips safely.
         $this->accounts = $auditLogsService->accountSummaries($userId)
             ->map(fn ($a) => [
                 'user_id'       => $a['user']->id,
@@ -231,22 +237,24 @@ class Users extends Component
                 'device_count'  => $a['device_count'],
                 'session_count' => $a['session_count'],
                 'last_login_at' => $a['last_login_at']?->toIso8601String(),
+                'is_current'   => $a['user']->id === Auth::id(),
             ])
             ->all();
 
         $this->sessions = $auditLogsService->sessionsForUsers($userId)
             ->map(fn ($s) => [
-                'id'               => $s['id'],
-                'user_id'          => $s['user_id'],
-                'user_name'        => $s['user_name'],
-                'ip_address'       => $s['ip_address'],
-                'user_agent'       => $s['user_agent'],
-                'device_type'      => $s['device_type'],
-                'browser'          => $s['browser'] ?? null,
-                'platform'         => $s['platform'] ?? null,
-                'is_online'        => $s['is_online'] ?? false,
-                'is_current'       => $s['id'] === request()->session()->getId(),
-                'last_seen_at'     => isset($s['last_seen_at'])
+                'id'           => $s['id'],
+                'user_id'      => $s['user_id'],
+                'user_name'    => $s['user_name'],
+                'username'     => $usernameByUserId->get($s['user_id']),
+                'ip_address'   => $s['ip_address'],
+                'user_agent'   => $s['user_agent'],
+                'device_type'  => $s['device_type'],
+                'browser'      => $s['browser'] ?? null,
+                'platform'     => $s['platform'] ?? null,
+                'is_online'    => $s['is_online'] ?? false,
+                'is_current'   => $s['id'] === request()->session()->getId(),
+                'last_seen_at' => isset($s['last_seen_at'])
                     ? Carbon::parse($s['last_seen_at'])->toIso8601String()
                     : null,
             ])
@@ -260,19 +268,20 @@ class Users extends Component
 
         $this->devices = $auditLogsService->devicesForUsers($userId)
             ->map(fn ($d) => [
-                'id'               => $d['id'],
-                'user_id'          => $d['user_id'],
-                'user_name'        => $d['user_name'],
-                'browser'          => $d['browser'],
-                'platform'         => $d['platform'],
-                'ip_address'       => $d['ip_address'],
-                'user_agent'       => $d['user_agent'],
-                'device_type'      => $d['device_type'],
-                'is_current'       => $d['id'] === $currentDeviceId,
-                'last_used_at'     => isset($d['last_used_at'])
+                'id'           => $d['id'],
+                'user_id'      => $d['user_id'],
+                'user_name'    => $d['user_name'],
+                'username'     => $usernameByUserId->get($d['user_id']),
+                'browser'      => $d['browser'],
+                'platform'     => $d['platform'],
+                'ip_address'   => $d['ip_address'],
+                'user_agent'   => $d['user_agent'],
+                'device_type'  => $d['device_type'],
+                'is_current'   => $d['id'] === $currentDeviceId,
+                'last_used_at' => isset($d['last_used_at'])
                     ? Carbon::parse($d['last_used_at'])->toIso8601String()
                     : null,
-                'expires_at'       => isset($d['expires_at'])
+                'expires_at'   => isset($d['expires_at'])
                     ? Carbon::parse($d['expires_at'])->toIso8601String()
                     : null,
             ])

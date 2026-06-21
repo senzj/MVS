@@ -120,7 +120,7 @@
                             {{-- User cell --}}
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-2.5">
-                                    <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                    <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
                                         <span class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">
                                             {{ substr($account['name'], 0, 1) }}
                                         </span>
@@ -135,6 +135,11 @@
                                             @else
                                                 <span class="inline-flex items-center gap-1 rounded-full bg-zinc-50 dark:bg-zinc-800/30 px-2 py-0.5 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300">
                                                     <i class="fas fa-circle text-[6px]"></i>{{ __('Offline') }}
+                                                </span>
+                                            @endif
+                                            @if ($account['is_current'])
+                                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                                                    <i class="fas fa-circle text-[6px]"></i>{{ __('Current') }}
                                                 </span>
                                             @endif
                                         </div>
@@ -168,8 +173,13 @@
 
                             {{-- Action --}}
                             <td class="px-4 py-3 text-center">
-                                <button type="button" wire:click="confirmDeleteAccount({{ $account['user_id'] }})"
-                                        class="inline-flex items-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300">
+                                {{-- Reset Password --}}
+                                <button type="button" wire:click="confirmResetPassword({{ $account['user_id'] }})" class="inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900/40 dark:bg-blue-950/30 dark:text-blue-300">
+                                    <i class="fas fa-key mr-1.5"></i>{{ __('Reset Password') }}
+                                </button>
+
+                                {{-- Delete Account --}}
+                                <button type="button" wire:click="confirmDeleteAccount({{ $account['user_id'] }})" class="inline-flex items-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300">
                                     <i class="fas fa-trash-can mr-1.5"></i>{{ __('Delete') }}
                                 </button>
                             </td>
@@ -294,6 +304,7 @@
                                                 <i class="fas fa-circle text-[6px]"></i>{{ __('This device') }}
                                             </span>
                                         @endif
+                                        <div class="text-xs text-zinc-500">{{ $device['username'] }}</div>
                                     </div>
                                 </div>
                             </td>
@@ -395,7 +406,7 @@
                             <p class="text-xs text-zinc-500 mt-0.5">{{ ($device['browser'] ?? __('Saved device')) }}{{ $device['platform'] ? ' · ' . $device['platform'] : '' }} · {{ ucfirst($device['device_type'] ?? __('unknown')) }}</p>
                         </div>
                         <button type="button" wire:click="removeDevice({{ $device['id'] }})"
-                                class="flex-shrink-0 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                                class="shrink-0 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
                             <i class="fas fa-xmark mr-1"></i>{{ __('Remove') }}
                         </button>
                     </div>
@@ -478,22 +489,33 @@
                                     </div>
                                     <div>
                                         <div class="flex items-center gap-2 flex-wrap">
-                                            <div class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $session['user_name'] ?? __('System') }}</div>
-                                            @if (! empty($session['is_online']))
-                                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-                                                    <i class="fas fa-circle text-[6px]"></i>{{ __('Online') }}
-                                                </span>
-                                            @else
-                                                <span class="inline-flex items-center gap-1 rounded-full bg-zinc-50 dark:bg-zinc-800/30 px-2 py-0.5 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300">
-                                                    <i class="fas fa-circle text-[6px]"></i>{{ __('Offline') }}
-                                                </span>
-                                            @endif
+                                            {{-- User Name --}}
+                                            <div class="font-semibold text-zinc-900 dark:text-zinc-100">
+                                                {{ $session['user_name'] ?? __('System') }}
+                                            </div>
+
+                                            {{-- Status Tags --}}
+                                            <div class="flex items-center gap-1 flex-wrap">
+                                                @if (! empty($session['is_online']))
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                                                        <i class="fas fa-circle text-[6px]"></i>{{ __('Online') }}
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-zinc-50 dark:bg-zinc-800/30 px-2 py-0.5 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300">
+                                                        <i class="fas fa-circle text-[6px]"></i>{{ __('Offline') }}
+                                                    </span>
+                                                @endif
+
+                                                @if ($session['is_current'])
+                                                    <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                                                        <i class="fas fa-circle text-[6px]"></i>{{ __('Current') }}
+                                                    </span>
+                                                @endif
+                                            </div>
                                         </div>
-                                        @if ($session['is_current'])
-                                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-                                                <i class="fas fa-circle text-[6px]"></i>{{ __('Current') }}
-                                            </span>
-                                        @endif
+
+                                        {{-- Username --}}
+                                        <div class="text-xs text-zinc-500">{{ $session['username'] }}</div>
                                     </div>
                                 </div>
                             </td>
@@ -568,6 +590,7 @@
                                         <i class="fas fa-circle text-[6px]"></i>{{ __('Offline') }}
                                     </span>
                                 @endif
+
                                 @if ($session['is_current'])
                                     <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
                                         <i class="fas fa-circle text-[6px]"></i>{{ __('Current') }}
@@ -577,7 +600,7 @@
                             <p class="text-xs text-zinc-500 mt-0.5">{{ ($session['browser'] ?? ucfirst($session['device_type'] ?? __('unknown'))) }}{{ $session['platform'] ? ' · ' . $session['platform'] : '' }}</p>
                         </div>
                         <button type="button" wire:click="revokeSession('{{ $session['id'] }}')"
-                                class="flex-shrink-0 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300">
+                                class="shrink-0 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-300">
                             <i class="fas fa-right-from-bracket mr-1"></i>{{ __('Log out') }}
                         </button>
                     </div>
@@ -661,7 +684,7 @@
                         <p class="mt-1 text-sm text-zinc-500">{{ __('This removes the account, its sessions, and its remembered devices.') }}</p>
                     </div>
                     <button type="button" wire:click="closeDeleteModal"
-                            class="rounded-full p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">
+                            class="shrink-0 rounded-full p-2 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">
                         <i class="fas fa-xmark"></i>
                     </button>
                 </div>

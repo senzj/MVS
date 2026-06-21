@@ -17,6 +17,9 @@ return new class extends Migration
             $table->string('username')->unique();
             $table->string('password');
             $table->string('lang')->default('en');
+            $table->boolean('change_password')->default(false);
+            $table->date('birth_date');  // used for password reset verification
+            $table->integer('pin_code')->unsigned(); // used for password reset verification
             $table->timestamps();
         });
 

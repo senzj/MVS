@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Livewire\Presets\Discount;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Volt\Volt;
@@ -20,15 +22,17 @@ Volt::route('dashboard', 'main.dashboard')
     ->name('dashboard');
 
 // Auth routes
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['web', 'auth'])->group(function () {
+
     // Settings route
     Route::redirect('settings', 'settings/profile');
     Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
     Volt::route('settings/password', 'settings.password')->name('settings.password');
+    Volt::route('settings/pin', 'settings.pin-code')->name('settings.pin');
     Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
     Volt::route('settings/language', 'settings.language')->name('settings.language');
     Volt::route('settings/qrcode', 'settings.qrcode')->name('settings.qrcode');
-    Route::get('settings/discounts', \App\Livewire\Presets\Discount::class)->name('settings.discounts');
+    Route::get('settings/discounts', Discount::class)->name('settings.discounts');
 
     // Orders route
     Volt::route('orders', 'order.dashboard')->name('orders');

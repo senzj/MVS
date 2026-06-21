@@ -24,6 +24,9 @@ class User extends Authenticatable
         'username',
         'password',
         'lang',
+        'change_password',
+        'pin_code',
+        'birth_date',
     ];
 
     /**
@@ -33,6 +36,9 @@ class User extends Authenticatable
      */
     protected $hidden = [
         'password',
+        'change_password',
+        'pin_code', 
+        'birth_date',
     ];
 
     /**
@@ -45,6 +51,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'change_password' => 'boolean',
+            'pin_code' => 'integer',
+            'birth_date' => 'date',
         ];
     }
 

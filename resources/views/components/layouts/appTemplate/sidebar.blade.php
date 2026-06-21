@@ -45,7 +45,7 @@
                 </flux:navlist.group>
 
                 {{-- products nav group --}}
-                <flux:navlist.group :heading="__('Products')" class="grid mt-2.5">
+                <flux:navlist.group :heading="__('Inventory')" class="grid mt-2.5">
                     {{-- products --}}
                     <flux:navlist.item icon="shopping-bag" :href="route('products')" :current="$productsCurrent" wire:navigate>{{ __('Products') }}</flux:navlist.item>
 
@@ -87,7 +87,7 @@
                     icon:trailing="chevrons-up-down"
                 />
 
-                <flux:menu class="w-[220px]">
+                <flux:menu class="w-55">
                     <flux:menu.radio.group>
                         <div class="p-0 text-sm font-normal">
                             <div class="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
