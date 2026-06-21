@@ -202,7 +202,7 @@
                                     @elseif($isPartiallyRefunded)
                                         <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold
                                                     bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
-                                            <i class="fas fa-undo text-[9px]"></i>{{ __('Partial') }} ({{ $refundedQty }} {{ __('returned') }})
+                                            <i class="fas fa-undo text-[9px]"></i>{{ __('Partial refund') }} ({{ $refundedQty }} {{ __('returned') }})
                                         </span>
                                     @elseif((float) ($item->total_price ?? 0) <= 0 && (int) ($item->quantity ?? 0) > 0)
                                         <span class="inline-flex items-center rounded bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 dark:text-emerald-300">

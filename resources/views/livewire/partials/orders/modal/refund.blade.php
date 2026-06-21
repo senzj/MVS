@@ -96,7 +96,7 @@
                                         <span>{{ __('Ordered') }}: {{ $line['ordered'] }}</span>
                                         @if($line['already_refunded'] > 0)
                                             <span class="text-purple-500">
-                                                {{ __('Already returned') }}: {{ $line['already_refunded'] }}
+                                                {{ __('Returned') }}: {{ $line['already_refunded'] }}
                                             </span>
                                         @endif
                                         <span>₱{{ number_format($line['unit_price'], 2) }}/{{ __('unit') }}</span>
@@ -158,8 +158,8 @@
                                         <p class="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                                             {{ __('Restore to inventory') }}
                                         </p>
-                                        <p class="text-[11px] text-zinc-400 mt-0.5">
-                                            {{ __('Turn off if damaged or unsellable') }}
+                                        <p class="text-xs text-zinc-400 mt-0.5">
+                                            {{ __('Turn off if damaged or unsellable.') }}
                                         </p>
                                     </div>
                                     <button
@@ -203,9 +203,10 @@
                                         fn($l) => (int)($l['refund_qty'] ?? 0) > 0 && !($l['restore_stock'] ?? true)
                                     );
                                 @endphp
+
                                 @if($anyNotRestoring)
                                     <span class="text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                                        · <i class="fas fa-exclamation-triangle"></i> {{ __('Some not restocked') }}
+                                        · <i class="fas fa-exclamation-triangle"></i> {{ __('Partial restocked') }}
                                     </span>
                                 @endif
                             </div>

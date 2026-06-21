@@ -21,12 +21,12 @@
     }"
     @customer-validation-error.window="onError()"
     @customer-validation-clear.window="hasError = false"
-    class="space-y-4"
+    class="space-y-2"
     :class="(hasError && isDelivery) ? 'ring-2 ring-red-400/60 rounded-2xl p-1' : ''">
 
     {{-- Customer picker --}}
     <div>
-        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1 ml-1">
             <i class="fas fa-users mr-1"></i>
             {{ __('Customer') }}
             @if(($order_type ?? 'walk_in') === 'deliver')
@@ -131,7 +131,7 @@
     </div>
 
     {{-- Customer fields panel --}}
-    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/70 dark:bg-zinc-700/30 p-3">
+    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/70 dark:bg-zinc-700/30 p-2">
 
         @if($selectedCustomerId || $isCreatingNewCustomer)
 

@@ -181,10 +181,10 @@
 
                 <div class="text-center">
                     <p class="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                        {{ __('Uploading proof of payment') }}
+                        {{ __('Uploading payment proof') }}
                     </p>
                     <p class="text-[11px] text-zinc-500 dark:text-zinc-400">
-                        {{ __('Please wait while the image is being uploaded') }}
+                        {{ __('Please wait while the image is being uploaded.') }}
                     </p>
                 </div>
             </div>

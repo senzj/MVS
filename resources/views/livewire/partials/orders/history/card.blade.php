@@ -35,7 +35,7 @@
     <button
         wire:click="openOrder({{ $order->id }})"
         class="cursor-pointer text-left w-full p-4 space-y-3"
-        title="{{ __('View order') }}">
+        title="{{ __('View Order') }}">
 
         <div class="flex items-start justify-between">
             <div class="flex items-center">

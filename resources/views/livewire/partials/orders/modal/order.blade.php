@@ -8,7 +8,7 @@
         $confirmData – array   (for 'confirm' mode: all data needed to render the order summary)
         $selectedOrder – Order model (for 'view' mode: the order to display)
         $isEditMode – bool (optional, passed by the Edit page only) — when true,
-                      the proof-of-payment section in confirm mode renders read-only.
+                      the proof section in confirm mode renders read-only.
     The 'view' mode is used for viewing order details from the orders list, and also for the "receipt" view after confirming a new order or walk-in payment.
 --}}
 
@@ -69,7 +69,7 @@
         ? $currentOrderType === 'walk_in'
         : false;
 
-    // ── Proof-of-payment visibility (confirm mode: Add / Create / Edit) ──
+    // ── Proof visibility (confirm mode: Add / Create / Edit) ──
     // Raw payment type regardless of host naming convention: Create/Add
     // expose $paymentType (camelCase), Edit exposes $payment_type (snake).
     // Falls back to the review label only if neither raw property is in scope.
@@ -199,55 +199,10 @@
                                         {{-- Cash: amount received + change --}}
                                         @if($walkinPaymentType === 'cash')
                                             @if($reviewTotal > 0)
-                                                <div class="space-y-3">
-                                                    <div x-data="{
-                                                        received: '',
-                                                        total: {{ $reviewTotal }},
-                                                        get change() {
-                                                            const r = parseFloat(this.received) || 0;
-                                                            const c = r - this.total;
-                                                            return c;
-                                                        },
-                                                        get changeFormatted() {
-                                                            return {{ config('storeconfig.currency_symbol') }} + Math.abs(this.change).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-                                                        },
-                                                        commit() {
-                                                            $wire.set('amountReceived', this.received);
-                                                        }
-                                                    }" class="space-y-3">
-                                                        <div>
-                                                            <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                                                {{ __('Amount Received') }}
-                                                            </label>
-                                                            <div class="relative">
-                                                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-semibold text-sm">{{ config('storeconfig.currency_symbol') }}</span>
-                                                                <input type="number"
-                                                                    x-model="received"
-                                                                    @blur="commit()"
-                                                                    @keydown.enter.prevent="commit()"
-                                                                    step="0.01" min="0"
-                                                                    class="w-full pl-8 pr-3 py-2.5 text-sm rounded-xl
-                                                                        border border-zinc-300 dark:border-zinc-600
-                                                                        bg-zinc-50 dark:bg-zinc-700/60
-                                                                        text-zinc-900 dark:text-zinc-100
-                                                                        focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition"
-                                                                    placeholder="0.00">
-                                                            </div>
-                                                        </div>
-
-                                                        <div class="flex items-center justify-between px-4 py-3 rounded-xl"
-                                                            :class="change >= 0 ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'">
-                                                            <span class="text-sm font-medium"
-                                                                :class="change >= 0 ? 'text-green-800 dark:text-green-300' : 'text-red-800 dark:text-red-300'">
-                                                                {{ __('Change') }}
-                                                            </span>
-                                                            <span class="text-xl font-black font-mono"
-                                                                :class="change >= 0 ? 'text-green-900 dark:text-green-200' : 'text-red-900 dark:text-red-200'"
-                                                                x-text="changeFormatted">
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                @include('livewire.partials.orders.payment.cash', [
+                                                    'total'          => $reviewTotal,
+                                                    'amountReceived' => $amountReceived ?? $reviewTotal,
+                                                ])
                                             @else
                                                 <p class="text-sm text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-900 rounded-xl px-4 py-3">
                                                     {{ __('Total is zero — no cash input required.') }}
@@ -274,7 +229,7 @@
                                             @endif
 
                                             {{-- Proof of payment upload --}}
-                                            @include('livewire.partials.orders.proof-of-payment', [
+                                            @include('livewire.partials.orders.payment.proof', [
                                                 'compact'          => true,
                                                 'existingProofUrl' => null,
                                                 'paymentType'      => $walkinPaymentType,
@@ -285,13 +240,9 @@
                                 </div>
                             @endif
 
-                            {{-- Proof of payment — confirm mode (Add / Create / Edit pages).
-                                 Shown for ANY non-cash payment (not just gcash), and shown
-                                 even before a proof has ever been uploaded — otherwise the
-                                 field is unreachable on first upload. Edit's copy is
-                                 reference-only and never allows uploading from here. --}}
+                            {{-- Proof of payment — confirm mode (Add / Create / Edit pages). --}}
                             @if($modalMode === 'confirm' && ! $isCashPayment)
-                                @include('livewire.partials.orders.proof-of-payment', [
+                                @include('livewire.partials.orders.payment.proof', [
                                     'compact'          => true,
                                     'existingProofUrl' => $confirmProofUrl,
                                     'paymentType'      => $paymentType ?? $payment_type ?? $reviewPaymentLabel,
@@ -305,47 +256,47 @@
 
                     {{-- ── Footer ───────────────────────────────────────────── --}}
                     <div class="sticky bottom-0 z-10 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 justify-end
-                                px-5 sm:px-6 py-4 border-t border-zinc-200 dark:border-zinc-700
-                                bg-white dark:bg-zinc-900">
+                        px-5 sm:px-6 py-4 border-t border-zinc-200 dark:border-zinc-700
+                        bg-white dark:bg-zinc-900">
 
-                            {{-- Delete action (history page only) --}}
-                            @if(!empty($showDelete) && $showDelete && isset($order))
-                            <div class="flex w-full items-center justify-between gap-2">
-                                <button
-                                    wire:click="confirmDelete({{ $order->id }})"
-                                    class="cursor-pointer inline-flex items-center px-4 py-2.5 text-sm font-medium rounded-lg
-                                        text-red-600 dark:text-red-400
-                                        bg-red-50 dark:bg-red-900/20
-                                        hover:bg-red-100 dark:hover:bg-red-900/40
-                                        border border-red-200 dark:border-red-800 transition-colors">
-                                    <i class="fas fa-trash mr-1"></i>
-                                    {{ __('Delete Order') }}
-                                </button>
-                            @else
-                                <div class="flex w-full items-center justify-end gap-2">
-                            @endif
+                        {{-- Delete action (history page only) --}}
+                        @if(!empty($showDelete) && $showDelete && isset($order))
+                        <div class="flex w-full items-center justify-between gap-2">
+                            <button
+                                wire:click="confirmDelete({{ $order->id }})"
+                                class="cursor-pointer inline-flex items-center px-4 py-2.5 text-sm font-medium rounded-lg
+                                    text-red-600 dark:text-red-400
+                                    bg-red-50 dark:bg-red-900/20
+                                    hover:bg-red-100 dark:hover:bg-red-900/40
+                                    border border-red-200 dark:border-red-800 transition-colors">
+                                <i class="fas fa-trash mr-1"></i>
+                                {{ __('Delete Order') }}
+                            </button>
+                        @else
+                            <div class="flex w-full items-center justify-end gap-2">
+                        @endif
 
-                            {{-- Confirm + cancel --}}
-                            <div class="flex items-center gap-2">
-                                <button type="button" wire:click="{{ $wireClose }}"
-                                    class="cursor-pointer px-4 py-2.5 text-sm font-medium rounded-lg
-                                        border border-zinc-300 dark:border-zinc-600
-                                        text-zinc-700 dark:text-zinc-300
-                                        bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
-                                    @if($modalMode === 'view') <i class="fas fa-times mr-1"></i> @endif
-                                    {{ $modalMode === 'view' ? __('Close') : __('Cancel') }}
-                                </button>
+                        {{-- Confirm + cancel --}}
+                        <div class="flex items-center gap-2">
+                            <button type="button" wire:click="{{ $wireClose }}"
+                                class="cursor-pointer px-4 py-2.5 text-sm font-medium rounded-lg
+                                    border border-zinc-300 dark:border-zinc-600
+                                    text-zinc-700 dark:text-zinc-300
+                                    bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                                @if($modalMode === 'view') <i class="fas fa-times mr-1"></i> @endif
+                                {{ $modalMode === 'view' ? __('Close') : __('Cancel') }}
+                            </button>
 
-                                @if($wireSave)
-                                    <button type="button"
-                                        wire:click="{{ $wireSave }}"
-                                        wire:loading.attr="disabled"
-                                        wire:target="{{ $wireSave }}"
-                                        class="cursor-pointer px-5 py-2.5 text-sm font-semibold rounded-lg
-                                            bg-blue-600 text-white hover:bg-blue-700 active:scale-95
-                                            disabled:opacity-50 disabled:cursor-not-allowed
-                                            transition-all shadow-md shadow-blue-500/20">
-                                        <span wire:loading.remove wire:target="{{ $wireSave }}">
+                            @if($wireSave)
+                                <button type="button"
+                                    wire:click="{{ $wireSave }}"
+                                    wire:loading.attr="disabled"
+                                    wire:target="{{ $wireSave }}"
+                                    class="cursor-pointer px-5 py-2.5 text-sm font-semibold rounded-lg
+                                        bg-blue-600 text-white hover:bg-blue-700 active:scale-95
+                                        disabled:opacity-50 disabled:cursor-not-allowed
+                                        transition-all shadow-md shadow-blue-500/20">
+                                    <span wire:loading.remove wire:target="{{ $wireSave }}">
                                             <i class="fas fa-{{ $modalMode === 'walkin' ? 'check' : 'save' }} mr-1"></i>
                                             {{ $saveLabel }}
                                         </span>

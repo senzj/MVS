@@ -61,7 +61,7 @@
     @endif
 
     {{-- ── Product card grid ── --}}
-    <div class="p-2 overflow-y-auto max-h-[80vh] scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700/80 scrollbar-track-transparent">
+    <div class="p-2 overflow-y-auto max-h-[84vh] scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700/80 scrollbar-track-transparent">
 
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
 
@@ -165,7 +165,7 @@
                             flex flex-col items-center text-zinc-400 dark:text-zinc-500">
                     <i class="fas fa-box-open text-4xl mb-2 opacity-30"></i>
                     <p class="text-sm font-medium">{{ __('No products found') }}</p>
-                    <p class="text-xs mt-0.5 opacity-70">{{ __('Try a different search or category') }}</p>
+                    <p class="text-xs mt-0.5 opacity-70">{{ __('Try a different search or category.') }}</p>
                 </div>
             @endforelse
 

@@ -12,31 +12,39 @@
     $btn   = $style === 'table' ? 'tbl-action-btn' : 'card-action-btn';
     $isWalkIn = $order->order_type === 'walk_in';
 
-    $editLocked = in_array($order->status, (array) config('storeconfig.order_edit_lock_status')) && $order->payment_status !== 'unpaid';
+    $editLocked = in_array($order->status, (array) config('storeconfig.order_edit_lock_status'));
 
     // Determine which primary action to show
     $primarySlot = null;
 
     if ($isWalkIn && $order->payment_status === 'unpaid') {
         $primarySlot = 'walkin:unpaid';
+
     } elseif ($isWalkIn && $order->status === 'completed' && $order->payment_status === 'paid') {
         $primarySlot = 'completed:paid';
+
     } elseif ($isWalkIn && $order->payment_status === 'paid') {
         $primarySlot = 'walkin:paid';
+
     } elseif (!$isWalkIn && $order->status === 'pending') {
         $deliveryStatus = $this->getDeliveryPersonStatus($order->id);
         $primarySlot = 'pending:' . $deliveryStatus;
+
     } elseif (!$isWalkIn && $order->status === 'preparing') {
         $employeeId    = $order->delivered_by;
         $batchInfo     = $this->getBatchInfo($employeeId);
         $remainingTime = $batchInfo['remaining_time'] ?? 0;
         $primarySlot   = 'preparing';
+
     } elseif (!$isWalkIn && $order->status === 'in_transit') {
         $primarySlot = 'in_transit';
+
     } elseif ($order->status === 'delivered' && $order->payment_status === 'unpaid' || $order->payment_status === 'unpaid') {
         $primarySlot = 'delivered:unpaid';
+
     } elseif ($order->status === 'delivered' && $order->payment_status === 'paid') {
         $primarySlot = 'delivered:paid';
+
     } elseif ($order->status === 'completed' && $order->payment_status === 'paid') {
         $primarySlot = 'completed:paid';
     }
