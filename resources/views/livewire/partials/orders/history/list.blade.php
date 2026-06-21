@@ -93,7 +93,7 @@
                     <div class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Total Amount') }}</div>
 
                     <div class="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                        ₱{{ number_format($order->order_total, 2) }}
+                        {{config('storeconfig.currency_symbol') . number_format($order->order_total, 2) }}
                     </div>
                 </div>
             </div>

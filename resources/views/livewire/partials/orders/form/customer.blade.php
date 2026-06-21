@@ -131,121 +131,106 @@
     </div>
 
     {{-- Customer fields panel --}}
-    <div class="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/70 dark:bg-zinc-700/30 p-4">
+    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50/70 dark:bg-zinc-700/30 p-3">
 
         @if($selectedCustomerId || $isCreatingNewCustomer)
 
             @if($isCreatingNewCustomer)
-                <div class="flex items-center justify-between gap-3 mb-3">
-                    <h4 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                        <i class="fas fa-user-plus mr-1 text-green-500"></i>{{ __('New Customer') }}
+                <div class="flex items-center justify-between gap-3 mb-2">
+                    <h4 class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                        <i class="fas fa-user-plus text-green-500 text-[10px]"></i>{{ __('New Customer') }}
                     </h4>
                     <button type="button" wire:click="cancelNewCustomer"
-                        class="text-xs font-semibold text-red-500 hover:text-red-600 transition">
+                        class="text-[10px] font-semibold text-red-500 hover:text-red-600 transition">
                         {{ __('Cancel') }}
                     </button>
                 </div>
             @endif
 
             @php
-                $fieldClass = "w-full px-3 py-2.5 text-sm rounded-xl border bg-white dark:bg-zinc-800
-                               text-zinc-900 dark:text-zinc-100
-                               focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition";
+                $fieldClass = "w-full px-2.5 py-1.5 text-xs rounded-lg border bg-white dark:bg-zinc-800
+                            text-zinc-900 dark:text-zinc-100
+                            focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition";
                 $errorFieldClass = "border-red-400 dark:border-red-500";
                 $normalFieldClass = "border-zinc-200 dark:border-zinc-600";
             @endphp
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {{-- 2-col tight grid --}}
+            <div class="grid grid-cols-2 gap-2">
 
                 {{-- Name --}}
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                    <label class="block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">
                         {{ __('Name') }}
                         @if(($order_type ?? 'walk_in') === 'deliver')
-                            <span class="text-red-500 normal-case font-normal">*</span>
+                            <span class="text-red-500">*</span>
                         @endif
                     </label>
-                    <input type="text"
-                        wire:model.live="customerName"
-                        data-field="customerName"
+                    <input type="text" wire:model.live="customerName" data-field="customerName"
                         class="{{ $fieldClass }}"
                         :class="hasError && !$wire.customerName?.trim() && '{{ ($order_type ?? 'walk_in') === 'deliver' ? 'true' : 'false' }}' === 'true' ? '{{ $errorFieldClass }}' : '{{ $normalFieldClass }}'">
-                    @error('customerName')
-                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
-                    @enderror
+                    @error('customerName') <p class="mt-0.5 text-[10px] text-red-500">{{ $message }}</p> @enderror
                 </div>
 
                 {{-- Contact --}}
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        {{ __('Contact Number') }} <span class="text-zinc-400 normal-case font-normal">({{ __('optional') }})</span>
+                    <label class="block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">
+                        {{ __('Contact') }} <span class="text-zinc-400 normal-case font-normal">({{ __('opt.') }})</span>
                     </label>
-                    <input type="tel"
-                        wire:model.live="customerContact"
-                        data-field="customerContact"
-                        maxlength="11"
-                        class="{{ $fieldClass }} {{ $normalFieldClass }}">
-                    @error('customerContact')
-                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
-                    @enderror
+                    <input type="tel" wire:model.live="customerContact" data-field="customerContact"
+                        maxlength="11" class="{{ $fieldClass }} {{ $normalFieldClass }}">
+                    @error('customerContact') <p class="mt-0.5 text-[10px] text-red-500">{{ $message }}</p> @enderror
                 </div>
 
                 {{-- Unit --}}
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                    <label class="block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">
                         {{ __('Unit') }}
                         @if(($order_type ?? 'walk_in') === 'deliver')
-                            <span class="text-red-500 normal-case font-normal">*</span>
+                            <span class="text-red-500">*</span>
                         @endif
                     </label>
-                    <input type="text"
-                        wire:model.live="customerUnit"
-                        data-field="customerUnit"
+                    <input type="text" wire:model.live="customerUnit" data-field="customerUnit"
                         class="{{ $fieldClass }}"
                         :class="hasError && !$wire.customerUnit?.trim() && '{{ ($order_type ?? 'walk_in') === 'deliver' ? 'true' : 'false' }}' === 'true' ? '{{ $errorFieldClass }}' : '{{ $normalFieldClass }}'">
-                    @error('customerUnit')
-                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
-                    @enderror
+                    @error('customerUnit') <p class="mt-0.5 text-[10px] text-red-500">{{ $message }}</p> @enderror
                 </div>
 
                 {{-- Address --}}
                 <div>
-                    <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
+                    <label class="block text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-1">
                         {{ __('Address') }}
                         @if(($order_type ?? 'walk_in') === 'deliver')
-                            <span class="text-red-500 normal-case font-normal">*</span>
+                            <span class="text-red-500">*</span>
                         @endif
                     </label>
-                    <input type="text"
-                        wire:model.live="customerAddress"
-                        data-field="customerAddress"
+                    <input type="text" wire:model.live="customerAddress" data-field="customerAddress"
                         class="{{ $fieldClass }}"
                         :class="hasError && !$wire.customerAddress?.trim() && '{{ ($order_type ?? 'walk_in') === 'deliver' ? 'true' : 'false' }}' === 'true' ? '{{ $errorFieldClass }}' : '{{ $normalFieldClass }}'">
-                    @error('customerAddress')
-                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
-                    @enderror
+                    @error('customerAddress') <p class="mt-0.5 text-[10px] text-red-500">{{ $message }}</p> @enderror
                 </div>
             </div>
 
             {{-- Validation banner --}}
             <div x-show="hasError"
-                 x-transition:enter="transition ease-out duration-150"
-                 x-transition:enter-start="opacity-0 -translate-y-1"
-                 x-transition:enter-end="opacity-100 translate-y-0"
-                 class="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-300">
+                x-transition:enter="transition ease-out duration-150"
+                x-transition:enter-start="opacity-0 -translate-y-1"
+                x-transition:enter-end="opacity-100 translate-y-0"
+                class="mt-2 flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20
+                        border border-red-200 dark:border-red-800 text-[10px] text-red-700 dark:text-red-300">
                 <i class="fas fa-exclamation-circle shrink-0"></i>
                 @if(($order_type ?? 'walk_in') === 'deliver')
-                    {{ __('Please select or create a customer and fill in all delivery details before saving.') }}
+                    {{ __('Please select or create a customer and fill in all delivery details.') }}
                 @else
-                    {{ __('Please fill in all required customer fields before saving.') }}
+                    {{ __('Please fill in all required customer fields.') }}
                 @endif
             </div>
 
         @else
-            <div class="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-                <i class="fas fa-info-circle text-blue-400"></i>
+            <div class="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 py-1">
+                <i class="fas fa-info-circle text-blue-400 shrink-0"></i>
                 @if(($order_type ?? 'walk_in') === 'deliver')
-                    {{ __('Please select or create a customer for delivery.') }}
+                    {{ __('Select or create a customer for delivery.') }}
                 @else
                     {{ __('No customer selected. Choose one above or create a new one.') }}
                 @endif

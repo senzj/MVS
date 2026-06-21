@@ -209,6 +209,7 @@ trait HasOrderForm
 
         $this->orderItems[$itemIndex]['product_id']     = $product->id;
         $this->orderItems[$itemIndex]['product_name']   = $product->name;
+        $this->orderItems[$itemIndex]['product_image']  = $product->image_url;
         $this->orderItems[$itemIndex]['stocks']         = (int)   $product->stocks;
         $this->orderItems[$itemIndex]['price']          = (float) $product->price;
         $this->orderItems[$itemIndex]['original_price'] = (float) $product->price;
@@ -224,12 +225,6 @@ trait HasOrderForm
     }
 
     /**
-     * POS-style add: called when the user clicks a product card in the grid.
-     *
-     * • Already in cart  → increments qty by 1 (capped at stock level)
-     * • Blank slot exists → fills it via selectProduct()
-     * • No blank slot     → appends a new blank row then fills it
-     *
      * Reuses addOrderItem() and selectProduct() so all business logic
      * (stock clamping, total calculation, etc.) stays in one place.
      */
@@ -270,6 +265,14 @@ trait HasOrderForm
         $this->selectProduct($productId, $targetIndex);
     }
 
+    // Batched version of addProductToCart()
+    public function addProductsToCart(array $productIds): void
+    {
+        foreach ($productIds as $productId) {
+            $this->addProductToCart((int) $productId);
+        }
+    }
+
     // ──────────────────────────────────────────────────────────────
     // Order-item management
     // ──────────────────────────────────────────────────────────────
@@ -280,6 +283,7 @@ trait HasOrderForm
             'id'             => null,
             'product_id'     => null,
             'product_name'   => '',
+            'product_image'  => null,
             'stocks'         => 0,
             'quantity'       => 1,
             'price'          => 0,
@@ -370,6 +374,7 @@ trait HasOrderForm
 
         if ($product && $product->is_in_stock && $product->stocks > 0) {
             $this->orderItems[$index]['product_name']   = $product->name;
+            $this->orderItems[$index]['product_image']  = $product->image_url;
             $this->orderItems[$index]['stocks']         = (int)   $product->stocks;
             $this->orderItems[$index]['price']          = (float) $product->price;
             $this->orderItems[$index]['original_price'] = (float) $product->price;
@@ -377,11 +382,12 @@ trait HasOrderForm
             $qty = (int) ($this->orderItems[$index]['quantity'] ?? 1);
             $this->orderItems[$index]['quantity'] = min(max($qty, 1), (int) $product->stocks);
         } else {
-            $this->orderItems[$index]['product_id']   = null;
-            $this->orderItems[$index]['product_name'] = '';
-            $this->orderItems[$index]['stocks']       = 0;
-            $this->orderItems[$index]['price']        = 0;
-            $this->orderItems[$index]['total']        = 0;
+            $this->orderItems[$index]['product_id']    = null;
+            $this->orderItems[$index]['product_name']  = '';
+            $this->orderItems[$index]['product_image'] = null;
+            $this->orderItems[$index]['stocks']        = 0;
+            $this->orderItems[$index]['price']         = 0;
+            $this->orderItems[$index]['total']         = 0;
 
             if ($productId) {
                 $this->addError("orderItems.{$index}.product_id", __('Product is out of stock.'));

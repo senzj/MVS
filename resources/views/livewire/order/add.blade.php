@@ -3,7 +3,7 @@
 <div class="w-full max-w-full overflow-hidden px-2 sm:px-4">
 
     {{-- Header --}}
-    <div class="flex items-center justify-between py-2 mb-4 gap-3">
+    <div class="flex items-center justify-between py-2 mb-2 gap-3">
         <div>
             <h2 class="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                 <i class="fas fa-file-invoice text-green-500"></i>{{ __('Record Sales') }}
@@ -29,7 +29,8 @@
     ])
 
     @include('livewire.partials.loading-overlay', [
-        'wireTarget' => 'saveSalesRecord,addProductToCart,createProduct,selectProduct,selectCustomer,selectEmployee,removeOrderItem,openProductForm,closeProductForm',
+        'wireTarget' => 'saveSalesRecord,createProduct,selectCustomer,selectEmployee,openProductForm,closeProductForm',
     ])
+
     @include('livewire.partials.form-error-handler')
 </div>

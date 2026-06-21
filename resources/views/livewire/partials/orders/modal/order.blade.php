@@ -209,7 +209,7 @@
                                                             return c;
                                                         },
                                                         get changeFormatted() {
-                                                            return '₱' + Math.abs(this.change).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                                                            return {{ config('storeconfig.currency_symbol') }} + Math.abs(this.change).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
                                                         },
                                                         commit() {
                                                             $wire.set('amountReceived', this.received);
@@ -220,7 +220,7 @@
                                                                 {{ __('Amount Received') }}
                                                             </label>
                                                             <div class="relative">
-                                                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-semibold text-sm">₱</span>
+                                                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-semibold text-sm">{{ config('storeconfig.currency_symbol') }}</span>
                                                                 <input type="number"
                                                                     x-model="received"
                                                                     @blur="commit()"
@@ -266,7 +266,9 @@
                                                     {{-- Payment Amount --}}
                                                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
                                                         {{ __('Scan to pay') }}:
-                                                        <span class="font-semibold text-zinc-900 dark:text-zinc-100">₱{{ number_format($reviewTotal, 2) }}</span>
+                                                        <span class="font-semibold text-zinc-900 dark:text-zinc-100">
+                                                            {{ config('storeconfig.currency_symbol') }}{{ number_format($reviewTotal, 2) }}
+                                                        </span>
                                                     </p>
                                                 </div>
                                             @endif

@@ -633,7 +633,7 @@
         </div>
     </div>
 
-    {{-- Order Details Modal (same as before) --}}
+    {{-- Order Details Modal --}}
     @include('livewire.partials.orders.history.info')
 
 

@@ -67,7 +67,7 @@
                 {{-- Price --}}
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
-                        <i class="fas fa-peso-sign mr-1"></i>{{ __('Price') }}
+                        <i class="fas fa-coins mr-1"></i>{{ __('Price') }}
                         <span class="normal-case font-normal ml-1">({{ __('per unit or kilo') }})</span>
                     </label>
                     <input type="number" step="0.01" wire:model="price"

@@ -106,13 +106,13 @@
                                         $discountSum = (float) $order->discount_value;
                                     }
 
-                                    // Build the label: "PWD - 15%" or "PWD - ₱50.00"
+                                    // Build the label: "PWD - 15%" or "PWD - 50.00"
                                     $preset      = $order->discountPreset;
                                     $presetLabel = null;
                                     if ($preset) {
                                         $valueStr    = $order->discount_type === 'percentage'
                                             ? number_format($order->discount_value, 0) . '%'
-                                            : '₱' . number_format($order->discount_value, 2);
+                                            : config('storeconfig.currency_symbol') . number_format($order->discount_value, 2);
                                         $presetLabel = $preset->name . ' · ' . $valueStr;
                                     }
                                 @endphp
@@ -125,21 +125,21 @@
                                         @endif
                                     </p>
                                     <p class="text-sm font-medium text-red-600 dark:text-red-400">
-                                        -₱{{ number_format($discountSum, 2) }}
+                                        -{{ config('storeconfig.currency_symbol') . number_format($discountSum, 2) }}
                                     </p>
                                 @endif
 
                                 {{-- Total due --}}
                                 <p class="text-xs text-zinc-500 mt-1">{{ __('Total due') }}</p>
                                 <p class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                                    ₱{{ number_format($order->order_total, 2) }}
+                                    {{ config('storeconfig.currency_symbol') . number_format($order->order_total, 2) }}
                                 </p>
                             </div>
                         </div>
 
                         {{-- Amount received & Change —  Alpine local buffer prevents interrupting typing --}}
                         <div class="space-y-3"
-                             x-data="{
+                            x-data="{
                                 amount: Number(@js($amountReceived ?? $order->order_total)),
                                 total: Number(@js($order->order_total ?? 0)),
                                 commit() {
@@ -147,22 +147,26 @@
                                     $wire.amountReceived = this.amount;
                                 },
                                 get change() {
-                                    return Math.max(0, this.amount - this.total);
+                                    // Round to cents so floating-point math never shows a stray -0.00
+                                    // when amount and total are equal but not bit-for-bit identical.
+                                    return Math.round((this.amount - this.total) * 100) / 100;
                                 }
-                             }"
-                             x-init="
+                            }"
+
+                            x-init="
                                 $watch(() => $wire.amountReceived, v => {
                                     if (v !== null && v !== undefined && !document.activeElement?.matches('input[data-field=\"amountReceived\"]')) {
                                         amount = parseFloat(v) || 0;
                                     }
                                 });
-                             ">
+                            ">
+
                             <div>
                                 <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
                                     {{ __('Amount Received') }}
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-medium">₱</span>
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-medium">{{ config('storeconfig.currency_symbol') }}</span>
                                     <input type="number"
                                            step="0.01"
                                            min="0"
@@ -265,19 +269,23 @@
 
                             </div>
 
-                            {{-- Change — computed client-side for instant feedback --}}
+                            {{-- Change — negative means still owed, positive/zero means paid in full or overpaid --}}
                             <div
                                 :class="change >= 0
                                     ? 'bg-emerald-50 dark:bg-emerald-900/20'
                                     : 'bg-red-50 dark:bg-red-900/20'"
                                 class="flex items-center justify-between rounded-lg px-3 py-2"
                             >
-                                <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Change') }}</p>
+                                <p class="text-sm text-zinc-500 dark:text-zinc-400"
+                                x-text="change < 0 ? '{{ __('Amount Short') }}' : '{{ __('Change') }}'">
+                                </p>
                                 <p :class="change >= 0
                                     ? 'text-emerald-700 dark:text-emerald-400'
                                     : 'text-red-600 dark:text-red-400'"
                                     class="font-mono text-base font-semibold">
-                                    ₱<span x-text="change.toFixed(2)">0.00</span>
+                                    <span x-text="(change < 0 ? '-' : '') + '{{ config('storeconfig.currency_symbol') }}' + Math.abs(change).toFixed(2)">
+                                        {{ config('storeconfig.currency_symbol') . '0.00' }}
+                                    </span>
                                 </p>
                             </div>
                         </div>

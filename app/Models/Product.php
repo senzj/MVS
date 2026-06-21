@@ -62,12 +62,17 @@ class Product extends Model
 
     public function getStockStatusAttribute()
     {
-        if ($this->stocks <= 0) {
+        if ($this->stocks == 0) {
             return 'out_of_stock';
-        } elseif ($this->stocks < 10) {
+
+        } elseif ($this->stocks <= config('storeconfig.stock_low_threshold')) {
             return 'low_stock';
-        } else {
+
+        } elseif ($this->stocks > config('storeconfig.stock_low_threshold')) {
             return 'in_stock';
+
+        } else {
+            return 'unknown';
         }
     }
 
@@ -77,6 +82,7 @@ class Product extends Model
             'out_of_stock' => 'red',
             'low_stock' => 'yellow',
             'in_stock' => 'green',
+            'unknown' => 'gray',
         };
     }
 

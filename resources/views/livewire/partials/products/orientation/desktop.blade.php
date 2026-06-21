@@ -131,7 +131,9 @@
 
                         {{-- Price --}}
                         <td class="px-4 py-3 text-center">
-                            <span class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">₱{{ number_format($product->price, 2) }}</span>
+                            <span class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                {{ config('storeconfig.currency_symbol') }}{{ number_format($product->price, 2) }}
+                            </span>
                         </td>
 
                         {{-- Sold --}}

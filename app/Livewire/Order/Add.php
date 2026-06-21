@@ -213,10 +213,10 @@ class Add extends Component
     {
         $amount = (float) $this->orderDiscountAmount;
         if ($amount <= 0) {
-            return '-P0';
+            return '-' . config('storeconfig.currency_symbol') . '0';
         }
 
-        $formattedAmount = 'P' . $this->formatMoneyCompact($amount);
+        $formattedAmount = config('storeconfig.currency_symbol') . $this->formatMoneyCompact($amount);
 
         if ($this->discountType === 'percentage') {
             $percent = rtrim(rtrim(number_format((float) $this->discountValue, 2, '.', ''), '0'), '.');
@@ -238,7 +238,7 @@ class Add extends Component
         if (! $key) {
             return;
         }
-        
+
         $this->handleUpdatedOrderItem($value, $key);
     }
 

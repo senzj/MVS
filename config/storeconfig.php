@@ -9,4 +9,7 @@ return [
     'store_open_days' => explode(',', env('STORE_OPEN_DAYS', '1,2,3,4,5,6')),
     'other_payment_types' => explode(',', env('OTHER_PAYMENT_TYPES', 'gcash')),
     'session_expire_days' => env('SESSION_EXPIRE_DAYS', 30),
+    'stock_low_threshold' => env('STOCK_LOW_THRESHOLD', 10),
+    'currency_symbol' => env('CURRENCY_SYMBOL', '₱'),
+    'currency_code' => env('CURRENCY_CODE', 'PHP'),
 ];

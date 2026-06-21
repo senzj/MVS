@@ -20,7 +20,9 @@
                 <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
                     <div class="flex items-start justify-between">
                         <div>
-                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($todayStats['income'] ?? 0, 2) }}</p>
+                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
+                                {{ config('storeconfig.currency_symbol') }}{{ number_format($todayStats['income'] ?? 0, 2) }}
+                            </p>
                             <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Revenue Today') }}</p>
                             @php $revTodayTrend = (float) ($todayStats['sales_growth'] ?? 0); @endphp
                             <p class="mt-2 text-xs {{ $revTodayTrend >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
@@ -34,7 +36,9 @@
                 <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
                     <div class="flex items-start justify-between">
                         <div>
-                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['month_sales'] ?? 0, 2) }}</p>
+                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
+                                {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['month_sales'] ?? 0, 2) }}
+                            </p>
                             <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Revenue This Month') }}</p>
                             @php $revMonthTrend = (float) ($businessInsights['month_sales_growth'] ?? 0); @endphp
                             <p class="mt-2 text-xs {{ $revMonthTrend >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
@@ -62,7 +66,9 @@
                 <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
                     <div class="flex items-start justify-between">
                         <div>
-                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($todayStats['avg_order'] ?? 0, 2) }}</p>
+                            <p class="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
+                                {{ config('storeconfig.currency_symbol') }}{{ number_format($todayStats['avg_order'] ?? 0, 2) }}
+                            </p>
                             <p class="mt-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">{{ __('Average Order Value') }}</p>
                             @php $aovTrend = (float) ($todayStats['avg_order_growth'] ?? 0); @endphp
                             <p class="mt-2 text-xs {{ $aovTrend >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
@@ -140,22 +146,30 @@
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div class="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/10">
                     <p class="text-xs uppercase text-emerald-700 dark:text-emerald-300">{{ __('Monthly Revenue') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['month_sales'] ?? 0, 2) }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                        {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['month_sales'] ?? 0, 2) }}
+                    </p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Last 30 days') }}</p>
                 </div>
                 <div class="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/10">
                     <p class="text-xs uppercase text-amber-700 dark:text-amber-300">{{ __('Estimated Profit') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['month_profit'] ?? 0, 2) }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                        {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['month_profit'] ?? 0, 2) }}
+                    </p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Based on a 25% margin') }}</p>
                 </div>
                 <div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10">
                     <p class="text-xs uppercase text-blue-700 dark:text-blue-300">{{ __('Average Order Value') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['average_order_value'] ?? 0, 2) }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                        {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['average_order_value'] ?? 0, 2) }}
+                    </p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Per completed order') }}</p>
                 </div>
                 <div class="p-4 rounded-lg bg-violet-50 dark:bg-violet-900/10">
                     <p class="text-xs uppercase text-violet-700 dark:text-violet-300">{{ __('Average Daily Sales') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($businessInsights['average_daily_sales'] ?? 0, 2) }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                        {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['average_daily_sales'] ?? 0, 2) }}
+                    </p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('30-day run rate') }}</p>
                 </div>
             </div>
@@ -211,7 +225,9 @@
                             </div>
                             <div class="text-right">
                                 <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($product['total_sold'] ?? 0) }} {{ __('sold') }}</p>
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400">₱{{ number_format($product['total_revenue'] ?? 0, 2) }}</p>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                    {{ config('storeconfig.currency_symbol') }}{{ number_format($product['total_revenue'] ?? 0, 2) }}
+                                </p>
                             </div>
                         </div>
                     @endforeach
@@ -243,7 +259,9 @@
                             </div>
                             <div class="text-right">
                                 <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($product['total_sold'] ?? 0) }} {{ __('units sold') }}</p>
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400">₱{{ number_format($product['total_revenue'] ?? 0, 2) }}</p>
+                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                    {{ config('storeconfig.currency_symbol') }}{{ number_format($product['total_revenue'] ?? 0, 2) }}
+                                </p>
                             </div>
                         </div>
                     @endforeach
@@ -273,7 +291,7 @@
                             </div>
                             <div class="text-right">
                                 <span class="block text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($product['avg_weekly'] ?? 0, 1) }}/{{ __('week') }}</span>
-                                <span class="text-xs text-zinc-400 dark:text-zinc-500">{{ number_format($product['total_sold'] ?? 0) }} {{ __('total') }} • ₱{{ number_format($product['total_revenue'] ?? 0, 2) }}</span>
+                                <span class="text-xs text-zinc-400 dark:text-zinc-500">{{ number_format($product['total_sold'] ?? 0) }} {{ __('total') }} • {{ config('storeconfig.currency_symbol') }}{{ number_format($product['total_revenue'] ?? 0, 2) }}</span>
                             </div>
                         </div>
                     @endforeach
@@ -400,7 +418,9 @@
                     </div>
                     <div class="text-right">
                         <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __($businessInsights['top_category'] ?? __('No data')) }}</p>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">₱{{ number_format($businessInsights['top_category_sales'] ?? 0, 2) }}</p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                            {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['top_category_sales'] ?? 0, 2) }}
+                        </p>
                     </div>
                 </div>
                 <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
@@ -460,18 +480,18 @@
 {{-- Add chart labels for JS --}}
 <script>
   window.__dashboardI18n = {
-      sales:                 "{{ __('Sales (₱)') }}",
-      estimated_profit:      "{{ __('Estimated Profit (₱)') }}",
+      sales:                 "{{ __('Sales') }}",
+      estimated_profit:      "{{ __('Estimated Profit') }}",
       orders:                "{{ __('Orders') }}",
       current_week:          "{{ __('Current Week') }}",
       previous_week:         "{{ __('Previous Week') }}",
-      monthly_sales:         "{{ __('Monthly Sales (₱)') }}",
+      monthly_sales:         "{{ __('Monthly Sales') }}",
       monthly_orders:        "{{ __('Monthly Orders') }}",
-      amount_currency:       "{{ __('Amount (₱)') }}",
+      amount_currency:       "{{ __('Amount') }}",
       num_orders:            "{{ __('Number of Orders') }}",
       new_customers:         "{{ __('New Customers') }}",
       count_axis:            "{{ __('Orders / Customers') }}",
-      sales_amount_currency: "{{ __('Sales Amount (₱)') }}",
+      sales_amount_currency: "{{ __('Sales Amount') }}",
       most_busy: "{{ __('Peak Activity') }}",
       most_profitable: "{{ __('Peak Profit') }}",
   };

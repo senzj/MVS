@@ -173,7 +173,7 @@ class Edit extends Component
         if (! $key) {
             return;
         }
-        
+
         $this->handleUpdatedOrderItem($value, $key);
     }
 
@@ -339,6 +339,7 @@ class Edit extends Component
                 'id'                => $item->id,
                 'product_id'        => $item->product_id,
                 'product_name'      => $item->product?->name ?? 'Product #' . $item->product_id,
+                'product_image'     => $item->product?->image_url ?? null,
                 'quantity'          => (int) $item->quantity,
                 'refunded_quantity' => (int) ($item->refunded_quantity ?? 0),
                 'price'             => (float) $item->unit_price,

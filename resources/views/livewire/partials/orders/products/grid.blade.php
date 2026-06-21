@@ -1,9 +1,3 @@
-{{--
-    Clicking a card calls $wire.addProductToCart(id):
-      • product not in cart → adds it with qty 1
-      • product already in cart → increments qty
-    Cart qty badges come from the parent layout's Alpine `cartQty` map.
---}}
 
 @php $categories = \App\Models\Product::getCategories(); @endphp
 
@@ -30,7 +24,7 @@
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-xs pointer-events-none"></i>
             <input type="text"
                 wire:model.live.debounce.200ms="productSearch"
-                placeholder="{{ __('Search products…') }}"
+                placeholder="{{ __('Search products') }}"
                 class="w-full pl-8 pr-8 py-2 text-sm rounded-xl border border-zinc-200 dark:border-zinc-600
                        bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100
                        focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition">
@@ -67,7 +61,7 @@
     @endif
 
     {{-- ── Product card grid ── --}}
-    <div class="p-1 overflow-y-auto max-h-[78vh] scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700/80 scrollbar-track-transparent">
+    <div class="p-2 overflow-y-auto max-h-[80vh] scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-700/80 scrollbar-track-transparent">
 
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
 
@@ -75,17 +69,25 @@
                 @php
                     $pOOS = ($product->stocks ?? 0) <= 0 || !($product->is_in_stock ?? true);
                     $pLow = !$pOOS && ($product->stocks ?? 0) < 10;
-
-                    $productColor = $product->color ? '' : 'bg-zinc-50/50 dark:bg-zinc-800/50';
                 @endphp
 
                 <button type="button"
                     wire:key="pgrid-{{ $product->id }}"
                     x-show="cat === 'all' || cat === '{{ (string)$product->category_id }}'"
                     @if(!$pOOS)
-                        wire:click="addProductToCart({{ $product->id }})"
-                        x-on:click="
-                            /* brief pop animation */
+                        {{--
+                            Dispatch the full product payload upward to the parent layout's
+                            Alpine component. No direct wire call here — the parent batches
+                            and debounces the server sync, giving instant cart feedback.
+                        --}}
+                        @click="
+                            $dispatch('add-to-cart', {
+                                id:     {{ $product->id }},
+                                name:   {{ Js::from($product->name) }},
+                                image:  {{ Js::from($product->image_url) }},
+                                price:  {{ (float) $product->price }},
+                                stocks: {{ (int) ($product->stocks ?? 0) }},
+                            });
                             $el.classList.add('scale-95');
                             setTimeout(() => $el.classList.remove('scale-95'), 120);
                         "
@@ -94,27 +96,24 @@
                     @endif
 
                     class="relative flex flex-col text-left rounded-xl border overflow-hidden
-                           transition-all duration-150 select-none
-                           {{ $pOOS
-                               ? 'border-zinc-100 dark:border-zinc-700/40 opacity-45 cursor-not-allowed'
-                               : 'border-zinc-200 dark:border-zinc-700
-                                  hover:border-blue-400 dark:hover:border-blue-500
-                                  hover:brightness-95 hover:shadow-md cursor-pointer' }}"
-                            style="
-                                {{ $product->color ? "background-color: {$product->color}80;" : '' }}
-                            ">
+                        transition-all duration-150 select-none
+                        {{ $pOOS
+                            ? 'border-zinc-100 dark:border-zinc-700/40 opacity-45 cursor-not-allowed'
+                            : 'border-zinc-200 dark:border-zinc-700
+                                hover:brightness-95 hover:shadow-md cursor-pointer' }}"
+                    style="{{ $product->color ? "background-color: {$product->color}95;" : '' }}">
 
                     {{-- Stock colour strip --}}
                     <div class="h-1 w-full shrink-0
                         {{ $pOOS ? 'bg-red-300 dark:bg-red-800' : ($pLow ? 'bg-yellow-400' : 'bg-green-400') }}">
                     </div>
 
-                    {{-- Cart qty badge (shows when item is in cart) --}}
+                    {{-- Cart qty badge (shows when item is in cart — driven by parent Alpine cartQty) --}}
                     <div x-show="(cartQty['{{ $product->id }}'] || 0) > 0"
-                         x-cloak
-                         class="absolute top-2 right-2 z-10">
-                        <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full
-                                     text-[10px] font-black bg-blue-600 text-white shadow-sm shadow-blue-500/30">
+                        x-cloak
+                        class="absolute top-2 right-2 z-10">
+                        <span class="inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full
+                                    text-[10px] font-black bg-blue-600 text-white shadow-sm shadow-blue-500/30">
                             <span x-text="cartQty['{{ $product->id }}'] || 0"></span>
                         </span>
                     </div>
@@ -122,21 +121,24 @@
                     <div class="flex flex-col flex-1 p-2.5 gap-1.5">
 
                         {{-- Image --}}
-                        <div class="flex items-center justify-center w-38 h-38 bg-zinc-100 dark:bg-zinc-700 rounded-lg overflow-hidden mx-auto">
+                        <div class="w-full aspect-square bg-zinc-100 dark:bg-zinc-700 rounded-md overflow-hidden">
                             @if ($product->image_url)
-                                <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="max-h-full max-w-full object-contain">
+                                <img
+                                    src="{{ $product->image_url }}"
+                                    alt="{{ $product->name }}"
+                                    class="w-full h-full object-contain"
+                                >
                             @else
-                                <i class="fas fa-box text-zinc-300 dark:text-zinc-500"></i>
+                                <div class="w-full h-full flex items-center justify-center">
+                                    <i class="fas fa-box text-zinc-300 dark:text-zinc-500"></i>
+                                </div>
                             @endif
                         </div>
 
                         <div class="flex items-center gap-1 space-between">
-                            {{-- Product name --}}
                             <p class="text-xs font-bold text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2 flex-1">
                                 {{ $product->name }}
                             </p>
-
-                            {{-- Category badge --}}
                             <span class="inline-block self-start px-1.5 py-0.5 rounded text-[10px] font-bold leading-tight
                                         bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100
                                         truncate max-w-full">
@@ -144,14 +146,11 @@
                             </span>
                         </div>
 
-                        {{-- Price + stock --}}
                         <div class="flex items-end justify-between gap-1 pt-0.5">
-                            <span class="text-sm font-black font-mono text-zinc-900 dark:text-zinc-100
-                                         group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
-                                ₱{{ number_format($product->price, 2) }}
+                            <span class="text-sm font-black font-mono text-zinc-900 dark:text-zinc-100 transition-colors">
+                                {{ config('storeconfig.currency_symbol') }}{{ number_format($product->price, 2) }}
                             </span>
-
-                            <span class="text-[10px] font-semibold shrink-0
+                            <span class="text-xs font-semibold shrink-0
                                 {{ $pOOS
                                     ? 'text-red-500 dark:text-red-400'
                                     : ($pLow ? 'text-yellow-600 dark:text-yellow-400' : 'text-zinc-800 dark:text-gray-100') }}">

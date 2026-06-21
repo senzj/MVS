@@ -3,7 +3,7 @@
 <div class="w-full max-w-full overflow-hidden px-2 sm:px-4">
 
     {{-- Header --}}
-    <div class="flex items-center justify-between py-2 mb-4 gap-3">
+    <div class="flex items-center justify-between py-2 mb-2 gap-3">
         <div>
             <h2 class="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                 <i class="fas fa-plus-circle text-blue-500"></i>{{ __('Create New Order') }}
@@ -26,7 +26,8 @@
     @include('livewire.partials.orders.modal.order', ['confirmData' => $confirmData])
 
     @include('livewire.partials.loading-overlay', [
-        'wireTarget' => 'createOrder,addProductToCart,createProduct,selectProduct,selectCustomer,selectEmployee,removeOrderItem,processPayment,openProductForm,closeProductForm,forceSelectEmployee',
+        'wireTarget' => 'createOrder,createProduct,selectCustomer,selectEmployee,processPayment,openProductForm,closeProductForm,forceSelectEmployee',
     ])
+
     @include('livewire.partials.form-error-handler')
 </div>

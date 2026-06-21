@@ -59,7 +59,9 @@
             <div class="grid grid-cols-3 gap-2">
                 <div class="bg-zinc-50 dark:bg-zinc-700/80 rounded-xl px-3 py-2 text-center">
                     <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ __('Price') }}</p>
-                    <p class="text-sm font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($product->price, 2) }}</p>
+                    <p class="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                        {{ config('storeconfig.currency_symbol') }}{{ number_format($product->price, 2) }}
+                    </p>
                 </div>
                 <div class="bg-zinc-50 dark:bg-zinc-700/80 rounded-xl px-3 py-2 text-center">
                     <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ __('Stock') }}</p>

@@ -82,9 +82,8 @@
                 </div>
             </div>
 
-            <div class="text-sm text-zinc-900 dark:text-zinc-100">
-                <i class="fas fa-money-bill mr-1 text-zinc-400"></i>
-                ₱{{ number_format($order->order_total, 2) }}
+            <div class="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                {{ config('storeconfig.currency_symbol') }}{{ number_format($order->order_total, 2) }}
             </div>
         </div>
 

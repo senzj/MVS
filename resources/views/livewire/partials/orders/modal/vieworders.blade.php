@@ -217,14 +217,14 @@
                             </div>
                             <div class="text-center font-mono tabular-nums pt-0.5
                                         {{ $isFullyRefunded ? 'line-through text-zinc-400' : 'text-zinc-900 dark:text-zinc-100' }}">
-                                ₱{{ number_format((float) ($item->unit_price ?? 0), 2) }}
+                                {{ config('storeconfig.currency_symbol') . number_format((float) ($item->unit_price ?? 0), 2) }}
                             </div>
                             <div class="text-center font-mono tabular-nums pt-0.5 text-zinc-700 dark:text-zinc-300">
-                                ₱{{ number_format((float) ($item->discount_amount ?? $item->discount ?? 0), 2) }}
+                                -{{ config('storeconfig.currency_symbol') . number_format((float) ($item->discount_amount ?? $item->discount ?? 0), 2) }}
                             </div>
                             <div class="text-center font-semibold font-mono tabular-nums pt-0.5
                                         {{ $isFullyRefunded ? 'line-through text-zinc-400' : 'text-zinc-900 dark:text-zinc-100' }}">
-                                ₱{{ number_format((float) ($item->total_price ?? $item->total ?? 0), 2) }}
+                                {{ config('storeconfig.currency_symbol') . number_format((float) ($item->total_price ?? $item->total ?? 0), 2) }}
                             </div>
                         </div>
                     @endforeach
@@ -261,14 +261,14 @@
             <span class="uppercase">
                 {{ __('Subtotal') }}
             </span>
-            <span class="font-mono">₱{{ number_format((float) $subtotal, 2) }}</span>
+            <span class="font-mono">{{ config('storeconfig.currency_symbol') . number_format((float) $subtotal, 2) }}</span>
         </div>
 
         <div class="pt-2 space-y-2">
             @if($discountSum > 0)
                 <div class="flex items-center justify-between text-xs text-zinc-700 dark:text-zinc-300">
                     <span>{{ __('Discount') }}</span>
-                    <span class="font-mono">-₱{{ number_format((float) $discountSum, 2) }}</span>
+                    <span class="font-mono">-{{ config('storeconfig.currency_symbol') . number_format((float) $discountSum, 2) }}</span>
                 </div>
             @endif
 
@@ -277,13 +277,13 @@
                     @if($amountReceived !== null)
                         <div class="flex items-center justify-between gap-3 text-xs">
                             <span class="text-zinc-700 dark:text-zinc-300">{{ __('Amount Received') }}</span>
-                            <span class="font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">₱{{ number_format((float) $amountReceived, 2) }}</span>
+                            <span class="font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">{{ config('storeconfig.currency_symbol') . number_format((float) $amountReceived, 2) }}</span>
                         </div>
                     @endif
                     @if($changeAmount !== null)
                         <div class="flex items-center justify-between gap-3 text-xs">
                             <span class="text-zinc-700 dark:text-zinc-300">{{ __('Amount Changed') }}</span>
-                            <span class="font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">₱{{ number_format((float) $changeAmount, 2) }}</span>
+                            <span class="font-mono text-zinc-900 dark:text-zinc-100 tabular-nums">{{ config('storeconfig.currency_symbol') . number_format((float) $changeAmount, 2) }}</span>
                         </div>
                     @endif
                 </div>
@@ -307,7 +307,7 @@
                             )
                         @endif
                     </span>
-                    <span class="font-mono">-₱{{ number_format((float) $orderDiscountAmount, 2) }}</span>
+                    <span class="font-mono">-{{ config('storeconfig.currency_symbol') . number_format((float) $orderDiscountAmount, 2) }}</span>
                 </div>
             @endif
 
@@ -318,7 +318,7 @@
                         {{ __('Total Amount') }}
                     </span>
                     <span class="text-2xl font-black text-zinc-900 dark:text-zinc-100 font-mono tabular-nums leading-none">
-                        ₱{{ number_format((float) $orderTotal, 2) }}
+                        {{ config('storeconfig.currency_symbol') . number_format((float) $orderTotal, 2) }}
                     </span>
                 </div>
             </div>
