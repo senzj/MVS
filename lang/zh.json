@@ -905,8 +905,14 @@
     "Verify your account identity parameters to establish a new secure system access password.": "验证您的账户身份参数以建立新的安全系统访问密码。",
     "Too many verification attempts. Please try again at :time.": "验证尝试过多。请在 :time 再试。",
     "The security PIN code provided is incorrect.": "提供的安全密码不正确。",
-    "Your password has been successfully updated. Please log in using your new credentials.": "您的密码已成功更新。请使用您的新凭据登录。"
+    "Your password has been successfully updated. Please log in using your new credentials.": "您的密码已成功更新。请使用您的新凭据登录。",
 
-
+    "Personal Information": "个人信息",
+    "Full Name": "全名",
+    "Date of Birth": "出生日期",
+    "Account Credentials": "账户凭据",
+    "6-Digit PIN": "6位数密码",
+    "Confirm PIN": "确认密码",
+    "Used for log in": "用于登录"
 }
 

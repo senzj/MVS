@@ -99,7 +99,7 @@ new #[Layout('components.layouts.auth', ['title' => 'Register'])] class extends 
                 type="text"
                 required
                 autocomplete="username"
-                :placeholder="__('Used to log in')"
+                :placeholder="__('Used for log in')"
             />
 
             <flux:input
@@ -130,7 +130,7 @@ new #[Layout('components.layouts.auth', ['title' => 'Register'])] class extends 
                     {{ __('Recovery PIN') }}
                 </p>
                 <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
-                    {{ __('A 6-digit PIN used to reset your password if you forget it.') }}
+                    {{ __('Your 6-digit PIN is used to reset your password if you ever get locked out.') }}
                 </p>
             </div>
 
