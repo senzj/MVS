@@ -58,11 +58,11 @@
                     </th>
 
                     {{-- Products Stocks --}}
-                    <th wire:click="sortByField('stocks')"
+                    <th wire:click="sortByField('stock')"
                         class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
                         <div class="flex items-center justify-center gap-1">
                             {{ __('Stock') }}
-                            @if($sortBy === 'stocks')
+                            @if($sortBy === 'stock')
                                 <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500"></i>
                             @else
                                 <i class="fas fa-sort text-zinc-300 dark:text-zinc-600"></i>
@@ -70,9 +70,30 @@
                         </div>
                     </th>
 
-                    {{-- Status --}}
-                    <th class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                        {{ __('Status') }}
+                    {{-- Product Cost --}}
+                    <th wire:click="sortByField('cost')"
+                        class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
+                        <div class="flex items-center justify-center gap-1">
+                            {{ __('Cost') }}
+                            @if($sortBy === 'cost')
+                                <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500"></i>
+                            @else
+                                <i class="fas fa-sort text-zinc-300 dark:text-zinc-600"></i>
+                            @endif
+                        </div>
+                    </th>
+
+                    {{-- Product Profit --}}
+                    <th wire:click="sortByField('profit')"
+                        class="px-4 py-3 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 select-none">
+                        <div class="flex items-center justify-center gap-1">
+                            {{ __('Profit') }}
+                            @if($sortBy === 'profit')
+                                <i class="fas fa-sort-{{ $sortDirection === 'asc' ? 'up' : 'down' }} text-blue-500"></i>
+                            @else
+                                <i class="fas fa-sort text-zinc-300 dark:text-zinc-600"></i>
+                            @endif
+                        </div>
                     </th>
 
                     {{-- Actions --}}
@@ -122,11 +143,31 @@
                         </td>
 
                         {{-- Category --}}
-                        <td class="px-4 py-3 text-center">
+                        <td class="px-4 py-3 text-center gap-1">
                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
                                             bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                                <i class="fas fa-tag text-[10px]"></i>{{ __($catLabel) }}
+                                <i class="fas fa-tag text-xs"></i>{{ __($catLabel) }}
                             </span>
+
+                            <div class="">
+                                @if($isOutOfStock)
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                        <i class="fas fa-times-circle"></i>{{ __('Out of Stock') }}
+                                    </span>
+                                @elseif(!$product->is_in_stock)
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                        <i class="fas fa-ban"></i>{{ __('Hidden') }}
+                                    </span>
+                                @elseif($product->stock_status === 'low_stock')
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                                        <i class="fas fa-exclamation-triangle"></i>{{ __('Low Stock') }}
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                        <i class="fas fa-check-circle"></i>{{ __('In Stock') }}
+                                    </span>
+                                @endif
+                            </div>
                         </td>
 
                         {{-- Price --}}
@@ -153,53 +194,45 @@
                             </span>
                         </td>
 
-                        {{-- Status --}}
+                        {{-- Cost (avg buying price) --}}
                         <td class="px-4 py-3 text-center">
-                            @if($isOutOfStock)
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                    <i class="fas fa-times-circle"></i>{{ __('Out of Stock') }}
+                            <span class="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                                {{ config('storeconfig.currency_symbol') }}{{ number_format($product->cost ?? 0, 2) }}
+                            </span>
+                        </td>
+
+                        {{-- Profit margin --}}
+                        <td class="px-4 py-3 text-center">
+                            @php
+                                $profit = (float)$product->price - (float)($product->cost ?? 0);
+                                $margin = ($product->price > 0 && ($product->cost ?? 0) > 0)
+                                    ? ($profit / $product->price) * 100
+                                    : null;
+                            @endphp
+                            <div class="flex flex-col items-center gap-0.5">
+                                <span class="text-sm font-semibold {{ $profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                                    {{ config('storeconfig.currency_symbol') }}{{ number_format($profit, 2) }}
                                 </span>
-                            @elseif(!$product->is_in_stock)
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                                    <i class="fas fa-ban"></i>{{ __('Hidden') }}
-                                </span>
-                            @elseif($product->stock_status === 'low_stock')
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
-                                    <i class="fas fa-exclamation-triangle"></i>{{ __('Low Stock') }}
-                                </span>
-                            @else
-                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                                    <i class="fas fa-check-circle"></i>{{ __('In Stock') }}
-                                </span>
-                            @endif
+                                @if($margin !== null)
+                                    <span class="text-xs text-zinc-400 dark:text-zinc-500">
+                                        {{ number_format($margin, 1) }}%
+                                    </span>
+                                @endif
+                            </div>
                         </td>
 
                         {{-- Actions --}}
                         <td class="px-4 py-3">
                             <div class="flex items-center justify-center gap-1">
 
-                                {{-- Availability toggle --}}
-                                @if($product->is_in_stock)
-                                    <button @click="openArchiveModal({{ $product->id }})"
-                                        class="tbl-action-btn text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20"
-                                        title="{{ __('This Item is Currently for Sale - Mark as Unavailable') }}">
-                                        <i class="fas fa-eye-slash text-sm"></i>
-                                        <span class="text-xs">{{ __('Hide') }}</span>
-                                    </button>
-                                @elseif($isOutOfStock)
-                                    <span class="tbl-action-btn text-zinc-400 opacity-50 cursor-not-allowed"
-                                            title="{{ __('This product is out of stock. Edit to add more stocks.') }}">
-                                        <i class="fas fa-ban text-sm"></i>
-                                        <span class="text-xs leading-tight">{{ __('Out of Stock') }}</span>
-                                    </span>
-                                @else
-                                    <button wire:click="makeAvailable({{ $product->id }})"
-                                        class="tbl-action-btn text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20"
-                                        title="{{ __('This Item is Currently Hidden - Make Available for Sale') }}">
-                                        <i class="fas fa-eye text-sm"></i>
-                                        <span class="text-xs">{{ __('Show') }}</span>
-                                    </button>
-                                @endif
+                                {{-- View --}}
+                                <a href="{{ route('products.overview', $product->id) }}"
+                                    class="tbl-action-btn inline-flex items-center text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-700/50"
+                                    title="{{ __('View Product Details') }}">
+                                    
+                                    <i class="fas fa-eye text-sm"></i>
+                                    <span class="text-xs ml-1">{{ __('View') }}</span>
+                                </a>
 
                                 {{-- Edit --}}
                                 <button @click="openEditModal({{ $product->id }})"
@@ -209,27 +242,19 @@
                                     <span class="text-xs">{{ __('Edit') }}</span>
                                 </button>
 
-                                {{-- Delete --}}
-                                @if(($product->order_items_count ?? 0) === 0)
-                                    <button @click="openDeleteModal({{ $product->id }})"
-                                        class="tbl-action-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                                        title="{{ __('Delete Permanently. This action cannot be undone.') }}">
-                                        <i class="fas fa-trash text-sm"></i>
-                                        <span class="text-xs">{{ __('Delete') }}</span>
-                                    </button>
-                                @else
-                                    <span class="tbl-action-btn text-zinc-400 opacity-50 cursor-not-allowed"
-                                            title="{{ __('Cannot delete - has ongoing order') }}">
-                                        <i class="fas fa-ban text-sm"></i>
-                                        <span class="text-xs">{{ __('Pending') }}</span>
-                                    </span>
-                                @endif
+                                {{-- Restock --}}
+                                <button @click="openRestockModal({{ $product->id }})"
+                                    class="tbl-action-btn text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20"
+                                    title="{{ __('Add stocks to this product') }}">
+                                    <i class="fas fa-truck-ramp-box text-sm"></i>
+                                    <span class="text-xs">{{ __('Restock') }}</span>
+                                </button>
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr wire:key="no-products-{{ $categoryFilter }}-{{ $stockFilter }}-{{ $search }}">
-                        <td colspan="8" class="px-6 py-20 text-center">
+                        <td colspan="9" class="px-6 py-20 text-center">
                             <div class="flex flex-col items-center text-zinc-400 dark:text-zinc-500">
                                 <i class="fas fa-box-open text-5xl mb-4 opacity-40"></i>
                                 <p class="text-sm">{{ __('No products found.') }}</p>

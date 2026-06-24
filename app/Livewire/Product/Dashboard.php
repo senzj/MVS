@@ -205,23 +205,6 @@ class Dashboard extends Component
         $this->resetErrorBag('image');
     }
 
-    public function openArchiveModal($productId)
-    {
-        $this->selectedProductId = $productId;
-    }
-
-    public function openDeleteModal($productId)
-    {
-        $this->selectedProductId = $productId;
-
-        if (Product::find($productId)) {
-            $this->dispatch('delete-product-loaded');
-        } else {
-            $this->dispatch('show-error', ['message' => __('Product not found!')]);
-            $this->dispatch('delete-product-load-failed');
-        }
-    }
-
     public function setSelectedProduct($productId)
     {
         $this->selectedProductId = $productId;
@@ -274,7 +257,7 @@ class Dashboard extends Component
         $product = Product::find($this->selectedProductId);
 
         if (! $product) {
-            $this->dispatch('show-error', ['message' => __('Product not found!')]);
+            $this->dispatch('show-error', ['message' => __('Product not found.')]);
             return;
         }
 
@@ -377,57 +360,8 @@ class Dashboard extends Component
             $audit->recordProductRestored(Auth::user(), $product, request());
             $this->dispatch('show-success', ['message' => __(':name is now available for sale!', ['name' => $product->name])]);
         } else {
-            $this->dispatch('show-error', ['message' => __('Product not found!')]);
+            $this->dispatch('show-error', ['message' => __('Product not found.')]);
         }
-    }
-
-    public function archiveProduct(AuditLogsService $audit): void
-    {
-        $product = Product::find($this->selectedProductId);
-
-        if ($product) {
-            $product->update(['is_in_stock' => false]);
-            $audit->recordProductArchived(Auth::user(), $product, request());
-            $this->dispatch('show-success', ['message' => __(':name has been marked as unavailable!', ['name' => $product->name])]);
-            $this->dispatch('close-archive-modal');
-            $this->selectedProductId = null;
-        } else {
-            $this->dispatch('show-error', ['message' => __('Product not found!')]);
-        }
-    }
-
-    public function deleteProduct(AuditLogsService $audit): void
-    {
-        $product = Product::find($this->selectedProductId);
-
-        if (! $product) {
-            $this->dispatch('show-error', ['message' => __('Product not found!')]);
-            return;
-        }
-
-        if ($product->orderItems()->count() > 0) {
-            $this->dispatch('show-error', ['message' => __('Cannot permanently delete product with order history!')]);
-            return;
-        }
-
-        $snapshot = [
-            'name'     => $product->name,
-            'category' => $product->category,
-            'price'    => $product->price,
-            'stocks'   => $product->stocks,
-        ];
-
-        if ($product->image_url) {
-            Storage::disk('public')->delete(str_replace('/storage/', '', $product->image_url));
-        }
-
-        $product->delete();
-
-        $audit->recordProductDeleted(Auth::user(), $snapshot, request());
-
-        $this->dispatch('show-success', ['message' => __('Product :name permanently deleted!', ['name' => $snapshot['name']])]);
-        $this->dispatch('close-delete-modal');
-        $this->selectedProductId = null;
     }
 
     public function resetForm()
@@ -582,22 +516,21 @@ class Dashboard extends Component
             default        => imagecreatefromstring(file_get_contents($sourcePath)),
         };
 
-        // Correct phone-camera rotation BEFORE cropping — only JPEGs carry this tag
-        if ($type === IMAGETYPE_JPEG) {
+        $alreadySquare = $width === $height;
+
+        if (! $alreadySquare && $type === IMAGETYPE_JPEG) {
             $source = $this->applyExifOrientation($source, $sourcePath);
             $width = imagesx($source);
             $height = imagesy($source);
         }
 
-        // Centered square crop
-        $side = min($width, $height);
-        $srcX = (int) (($width - $side) / 2);
-        $srcY = (int) (($height - $side) / 2);
+        $side = $alreadySquare ? $width : min($width, $height);
+        $srcX = $alreadySquare ? 0 : (int) (($width - $side) / 2);
+        $srcY = $alreadySquare ? 0 : (int) (($height - $side) / 2);
 
         $targetSize = min($side, self::IMAGE_TARGET_SIZE);
         $canvas = imagecreatetruecolor($targetSize, $targetSize);
 
-        // Preserve transparency for png/gif
         if (in_array($type, [IMAGETYPE_PNG, IMAGETYPE_GIF], true)) {
             imagealphablending($canvas, false);
             imagesavealpha($canvas, true);
@@ -672,7 +605,18 @@ class Dashboard extends Component
             }
         }
 
-        $query->orderBy($this->sortBy, $this->sortDirection);
+        // Map virtual/aliased sort fields to real columns
+        $sortColumn = match ($this->sortBy) {
+            'stock'  => 'stocks',
+            'profit' => null,       // handled with orderByRaw below
+            default  => $this->sortBy,
+        };
+
+        if ($this->sortBy === 'profit') {
+            $query->orderByRaw('(price - cost) ' . $this->sortDirection);
+        } else {
+            $query->orderBy($sortColumn, $this->sortDirection);
+        }
 
         $products = $query->paginate(10);
         $allProducts = Product::query()->select(['id', 'stocks', 'category_id', 'is_in_stock'])->get();

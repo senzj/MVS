@@ -22,6 +22,7 @@ return new class extends Migration
             $table->integer('sold')->default(0); // Track how many items have been sold
             $table->boolean('is_in_stock')->default(true);
             $table->decimal('price', 10, 2);
+            $table->decimal('cost', 10, 2)->default(0.00); // weighted average cost
             $table->timestamps();
         });
     }

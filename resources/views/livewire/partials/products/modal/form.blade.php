@@ -115,17 +115,30 @@
                             @endif
                         </div>
 
-                        {{-- wire:key forces a fresh, empty <input type="file"> after removal --}}
-                        <div class="flex-1 min-w-0" wire:key="image-upload-{{ $imageVersion }}">
-                            <input type="file" accept="image/*" wire:model="image"
-                                class="w-full text-sm text-zinc-500 dark:text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition cursor-pointer">
+                        <div class="flex-1 min-w-0">
+                            <input type="file" accept="image/*" id="productImagePicker" class="hidden"
+                                @change="
+                                    const file = $event.target.files[0];
+                                    if (!file) return;
+                                    const reader = new FileReader();
+                                    reader.onload = (e) => window.dispatchEvent(new CustomEvent('open-cropper', {
+                                        detail: { src: e.target.result, wireModel: 'image' }
+                                    }));
+                                    reader.readAsDataURL(file);
+                                    $event.target.value = '';
+                                ">
+
+                            <button type="button" @click="document.getElementById('productImagePicker').click()"
+                                class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition">
+                                <i class="fas fa-crop"></i>{{ __('Choose & Crop Image') }}
+                            </button>
 
                             <p class="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1.5">
-                                <i class="fas fa-crop mr-1"></i>{{ __('Automatically cropped to a square.') }}
+                                <i class="fas fa-arrows-up-down-left-right mr-1"></i>{{ __("Drag to reposition, scroll to zoom — you'll choose exactly what's shown.") }}
                             </p>
 
                             <div wire:loading wire:target="image" class="text-xs text-zinc-400 mt-1">
-                                <i class="fas fa-circle-notch fa-spin mr-1"></i>{{ __('Uploading...') }}
+                                <i class="fas fa-circle-notch fa-spin mr-1"></i>{{ __('Uploading') }}
                             </div>
                             @error('image') <p class="text-red-500 text-xs mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p> @enderror
                         </div>
@@ -136,7 +149,7 @@
                 <div>
                     <label class="block text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5">
                         <i class="fas fa-palette mr-1"></i>{{ __('Label Color') }}
-                        <span class="normal-case font-normal ml-1">({{ __('optional, unique') }})</span>
+                        <span class="normal-case font-normal ml-1">({{ __('optional, unique color for this product') }})</span>
                     </label>
 
                     @if($color)
@@ -150,7 +163,7 @@
 
                             <button type="button" wire:click="regenerateColor"
                                 class="cursor-pointer ml-auto text-xs text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1">
-                                <i class="fas fa-dice"></i>{{ __('New') }}
+                                <i class="fas fa-dice"></i>{{ __('Random Color') }}
                             </button>
                             <button type="button" wire:click="removeColor"
                                 class="cursor-pointer text-xs text-red-600 dark:text-red-400 hover:underline inline-flex items-center gap-1">
@@ -202,4 +215,7 @@
             </div>
         </form>
     </div>
+
+    {{-- Image Cropper Modal --}}
+    <x-partials.image-cropper />
 </div>

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
@@ -17,10 +19,12 @@ class Product extends Model
         'is_in_stock',
         'category',
         'price',
+        'cost',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
+        'cost' => 'decimal:2',
         'category_id' => 'integer',
         'is_in_stock' => 'boolean',
     ];
@@ -86,14 +90,20 @@ class Product extends Model
         };
     }
 
-    public function categoryRecord()
+    public function categoryRecord(): BelongsTo
     {
         return $this->belongsTo(ProductCategories::class, 'category_id');
     }
 
     // Relationship with order items
-    public function orderItems()
+    public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    // Relationship with restock items
+    public function restocks(): HasMany
+    {
+        return $this->hasMany(ItemRestocks::class);
     }
 }

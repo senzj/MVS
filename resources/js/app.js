@@ -8,6 +8,7 @@ import './toastr';
 // Chartjs import
 import Chart from 'chart.js/auto';
 
+
 // global variables
 window.$ = window.jQuery = $;
 window.toastr = toastr;

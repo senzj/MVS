@@ -3,13 +3,95 @@
 namespace App\Services\Products;
 
 use App\Models\InventoryMovement;
+use App\Models\ItemRestocks;
 use App\Models\Product;
+use App\Models\ProductRestock;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class InventoryService
 {
+    /**
+     * Perform a supplier restock: add stock, record cost, log the movement.
+     *
+     * @throws ValidationException
+     */
+    public function restockProduct(
+        int     $productId,
+        int     $qty,
+        float   $unitCost,
+        string  $unitType  = 'pcs',
+        ?string $notes     = null,
+        ?int    $userId    = null
+    ): ProductRestock {
+        if ($qty <= 0) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Restock quantity must be at least 1.',
+            ]);
+        }
+
+        if ($unitCost < 0) {
+            throw ValidationException::withMessages([
+                'unit_cost' => 'Unit cost cannot be negative.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($productId, $qty, $unitCost, $unitType, $notes, $userId) {
+
+            // Lock the product row for this transaction
+            $product = Product::query()->lockForUpdate()->findOrFail($productId);
+
+            $totalCost = round($qty * $unitCost, 2);
+
+            // Weighted-average cost
+            $currentStocks = (int) $product->stocks;
+            $currentCost   = (float) ($product->cost ?? 0);
+
+            $newAvgCost = ($currentStocks + $qty) > 0
+                ? (($currentStocks * $currentCost) + ($qty * $unitCost)) / ($currentStocks + $qty)
+                : $unitCost;
+
+            // Create the restock batch record
+            $restock = ProductRestock::create([
+                'user_id'    => $userId ?? Auth::id(),
+                'total_cost' => $totalCost,
+                'notes'      => $notes,
+            ]);
+
+            // Create the line item
+            ItemRestocks::create([
+                'restock_id' => $restock->id,
+                'product_id' => $product->id,
+                'quantity'   => $qty,
+                'unit_cost'  => $unitCost,
+                'total_cost' => $totalCost,
+                'unit_type'  => $unitType,
+            ]);
+
+            // Update the product's average cost
+            $product->cost = round($newAvgCost, 4);
+            $product->save();
+
+            // Delegate stock increment + inventory movement log to existing restore()
+            $this->restore(
+                productId: $product->id,
+                qty:       $qty,
+                type:      'restock',
+                reference: $restock,
+                remarks:   $notes ?? __('Restocked :qty :unit @ :cost each.'), [
+                    'qty'  => $qty,
+                    'unit' => $unitType,
+                    'cost' => number_format($unitCost, 2),
+                ]),
+                userId:    $userId,
+            );
+
+            return $restock;
+        });
+    }
+
     public function deduct(
         int $productId,
         int $qty,

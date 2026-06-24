@@ -54,14 +54,14 @@
 <div class="flex items-center {{ $style === 'table' ? 'justify-center' : '' }} gap-1 {{ $style === 'card' ? 'pt-1 border-t border-zinc-100 dark:border-zinc-700 flex-wrap' : '' }}">
 
     {{-- SLOT 1: View --}}
-    <button wire:click="viewOrderDetails({{ $order->id }})" class="{{ $btn }} text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
+    <button wire:click="viewOrderDetails({{ $order->id }})" class="{{ $btn }} text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-700/50">
         <i class="fas fa-eye {{ $style === 'table' ? 'text-base' : '' }}"></i>
         <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('View') }}</span>
     </button>
 
     {{-- SLOT 2: Edit --}}
     @if (!$editLocked)
-        <a href="{{ route('orders.edit', $order) }}" wire:navigate class="{{ $btn }} text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-700">
+        <a href="{{ route('orders.edit', $order) }}" wire:navigate class="{{ $btn }} text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/20">
             <i class="fas fa-edit {{ $style === 'table' ? 'text-base' : '' }}"></i>
             <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Edit') }}</span>
         </a>

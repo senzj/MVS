@@ -56,22 +56,39 @@
             </div>
 
             {{-- Stats row --}}
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-4 gap-2">
+
+                {{-- Price --}}
                 <div class="bg-zinc-50 dark:bg-zinc-700/80 rounded-xl px-3 py-2 text-center">
                     <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ __('Price') }}</p>
                     <p class="text-sm font-bold text-zinc-900 dark:text-zinc-100">
                         {{ config('storeconfig.currency_symbol') }}{{ number_format($product->price, 2) }}
                     </p>
                 </div>
+
+                {{-- Stock --}}
                 <div class="bg-zinc-50 dark:bg-zinc-700/80 rounded-xl px-3 py-2 text-center">
                     <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ __('Stock') }}</p>
                     <p class="text-sm font-bold {{ $isOutOfStock ? 'text-red-600 dark:text-red-400' : ($product->stock_status === 'low_stock' ? 'text-yellow-600 dark:text-yellow-400' : 'text-zinc-900 dark:text-zinc-100') }}">
                         {{ $product->stocks }}
                     </p>
                 </div>
+
+                {{-- Cost --}}
                 <div class="bg-zinc-50 dark:bg-zinc-700/80 rounded-xl px-3 py-2 text-center">
-                    <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ __('Sold') }}</p>
-                    <p class="text-sm font-bold text-green-600 dark:text-green-400">{{ $product->sold }}</p>
+                    <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ __('Cost') }}</p>
+                    <p class="text-sm font-bold text-zinc-700 dark:text-zinc-300">
+                        {{ config('storeconfig.currency_symbol') }}{{ number_format($product->cost ?? 0, 2) }}
+                    </p>
+                </div>
+
+                {{-- Profit --}}
+                <div class="bg-zinc-50 dark:bg-zinc-700/80 rounded-xl px-3 py-2 text-center">
+                    @php $profit = (float)$product->price - (float)($product->cost ?? 0); @endphp
+                    <p class="text-xs text-zinc-400 dark:text-zinc-500">{{ __('Profit') }}</p>
+                    <p class="text-sm font-bold {{ $profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
+                        {{ config('storeconfig.currency_symbol') }}{{ number_format($profit, 2) }}
+                    </p>
                 </div>
             </div>
 
@@ -99,23 +116,12 @@
             {{-- Actions --}}
             <div class="flex items-center gap-1.5 pt-1 border-t border-zinc-100 dark:border-zinc-700 flex-wrap">
 
-                {{-- Availability toggle --}}
-                @if($product->is_in_stock)
-                    <button @click="openArchiveModal({{ $product->id }})"
-                        class="prod-card-btn text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
-                        <i class="fas fa-eye-slash"></i>{{ __('Hide') }}
-                    </button>
-                @elseif($isOutOfStock)
-                    <span class="prod-card-btn text-zinc-400 cursor-not-allowed opacity-60"
-                            title="{{ __('This product is out of stock. Edit to add more stocks.') }}">
-                        <i class="fas fa-ban"></i>{{ __('Out Of Stock') }}
-                    </span>
-                @else
-                    <button wire:click="makeAvailable({{ $product->id }})"
-                        class="prod-card-btn text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20">
-                        <i class="fas fa-eye"></i>{{ __('Show') }}
-                    </button>
-                @endif
+                {{-- View --}}
+                <a href="{{ route('products.overview', $product->id) }}"
+                    class="prod-card-btn inline-flex items-center text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-700/50">
+
+                    <i class="fas fa-eye mr-1"></i>{{ __('View') }}
+                </a>
 
                 {{-- Edit --}}
                 <button @click="openEditModal({{ $product->id }})"
@@ -123,18 +129,11 @@
                     <i class="fas fa-edit"></i>{{ __('Edit') }}
                 </button>
 
-                {{-- Delete --}}
-                @if(($product->order_items_count ?? 0) === 0)
-                    <button @click="openDeleteModal({{ $product->id }})"
-                        class="prod-card-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 ml-auto">
-                        <i class="fas fa-trash"></i>{{ __('Delete') }}
-                    </button>
-                @else
-                    <span class="prod-card-btn text-zinc-400 opacity-60 cursor-not-allowed ml-auto"
-                            title="{{ __('Cannot delete - has ongoing order') }}">
-                        <i class="fas fa-ban"></i>{{ __('Pending') }}
-                    </span>
-                @endif
+                {{-- Restock --}}
+                <button @click="openRestockModal({{ $product->id }})"
+                    class="prod-card-btn text-yellow-700 hover:bg-yellow-100 dark:text-yellow-400 dark:hover:bg-yellow-900/40">
+                    <i class="fas fa-truck-ramp-box"></i>{{ __('Restock') }}
+                </button>
             </div>
         </div>
     </div>

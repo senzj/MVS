@@ -48,6 +48,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Volt::route('products', 'product.dashboard')->name('products');
     Volt::route('products/inventory', 'product.inventoryaudit')->name('inventory.audit');
     Volt::route('products/categories', 'product.categories')->name('products.categories');
+    Volt::route('products/{product}', 'product.overview')->name('products.overview');
 
     // Customers route
     Volt::route('customers', 'customer.dashboard')->name('customers');
