@@ -340,7 +340,7 @@
             <p class="text-xs uppercase tracking-[0.22em] text-gray-400 dark:text-gray-500 mb-2">
                 {{ __('Payment Proof') }}
             </p>
-            @include('livewire.partials.orders.proof-of-payment', [
+            @include('livewire.partials.orders.payment.proof', [
                 'readOnly'          => true,
                 'allowUploadInView' => in_array($paymentStatus, ['unpaid']),
                 'existingProofUrl'  => $existingProofUrl,

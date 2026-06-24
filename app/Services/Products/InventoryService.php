@@ -80,7 +80,7 @@ class InventoryService
                 qty:       $qty,
                 type:      'restock',
                 reference: $restock,
-                remarks:   $notes ?? __('Restocked :qty :unit @ :cost each.'), [
+                remarks:   $notes ?? __('Restocked :qty :unit @ :cost each.', [
                     'qty'  => $qty,
                     'unit' => $unitType,
                     'cost' => number_format($unitCost, 2),

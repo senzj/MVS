@@ -51,29 +51,37 @@
     // completed+refunded / cancelled → no primary action
 @endphp
 
-<div class="flex items-center {{ $style === 'table' ? 'justify-center' : '' }} gap-1 {{ $style === 'card' ? 'pt-1 border-t border-zinc-100 dark:border-zinc-700 flex-wrap' : '' }}">
+<div class="grid grid-cols-4 items-center gap-6 px-3
+            {{ $style === 'card' ? 'pt-1 border-t border-zinc-100 dark:border-zinc-700' : '' }}">
 
-    {{-- SLOT 1: View --}}
-    <button wire:click="viewOrderDetails({{ $order->id }})" class="{{ $btn }} text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-700/50">
-        <i class="fas fa-eye {{ $style === 'table' ? 'text-base' : '' }}"></i>
-        <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('View') }}</span>
-    </button>
+    {{-- ── SLOT 1: View ─────────────────────────────────────────── --}}
+    <div class="flex justify-center px-2">
+        <button wire:click="viewOrderDetails({{ $order->id }})"
+                class="{{ $btn }} text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-700/50">
+            <i class="fas fa-eye {{ $style === 'table' ? 'text-base' : '' }}"></i>
+            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('View') }}</span>
+        </button>
+    </div>
 
-    {{-- SLOT 2: Edit --}}
-    @if (!$editLocked)
-        <a href="{{ route('orders.edit', $order) }}" wire:navigate class="{{ $btn }} text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/20">
-            <i class="fas fa-edit {{ $style === 'table' ? 'text-base' : '' }}"></i>
-            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Edit') }}</span>
-        </a>
-    @else
-        <span class="{{ $btn }} text-zinc-500 cursor-not-allowed opacity-50" title="{{ __('Cannot edit') }} — {{ $order->status }}">
-            <i class="fas fa-lock {{ $style === 'table' ? 'text-base' : '' }}"></i>
-            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Locked') }}</span>
-        </span>
-    @endif
+    {{-- ── SLOT 2: Edit / Locked ────────────────────────────────── --}}
+    <div class="flex justify-center px-2">
+        @if (!$editLocked)
+            <a href="{{ route('orders.edit', $order) }}" wire:navigate
+               class="{{ $btn }} text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/20">
+                <i class="fas fa-edit {{ $style === 'table' ? 'text-base' : '' }}"></i>
+                <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Edit') }}</span>
+            </a>
+        @else
+            <span class="{{ $btn }} text-zinc-500 cursor-not-allowed opacity-50"
+                  title="{{ __('Cannot edit') }} — {{ $order->status }}">
+                <i class="fas fa-lock {{ $style === 'table' ? 'text-base' : '' }}"></i>
+                <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Locked') }}</span>
+            </span>
+        @endif
+    </div>
 
-    {{-- SLOT 3: Primary --}}
-    <div class="inline-flex items-center justify-center min-w-20">
+    {{-- ── SLOT 3: Primary action ───────────────────────────────── --}}
+    <div class="flex justify-center px-2">
 
         @if ($primarySlot === 'pending:no_person')
             <span class="{{ $btn }} text-zinc-400 opacity-50 cursor-not-allowed">
@@ -83,14 +91,14 @@
 
         @elseif ($primarySlot === 'pending:available')
             <button wire:click="startDelivery({{ $order->id }})"
-                class="{{ $btn }} text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20">
+                    class="{{ $btn }} text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20">
                 <i class="fas fa-truck {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Deliver') }}</span>
             </button>
 
         @elseif ($primarySlot === 'pending:batch_preparing' || $primarySlot === 'pending:busy')
             <button wire:click="startDelivery({{ $order->id }})"
-                class="{{ $btn }} text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20">
+                    class="{{ $btn }} text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20">
                 <i class="fas fa-plus-circle {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Add Delivery') }}</span>
             </button>
@@ -107,8 +115,7 @@
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('In Queue') }}</span>
             </span>
 
-        @elseif (str_starts_with((string)$primarySlot, 'pending:'))
-            {{-- Catch-all "busy" fallback --}}
+        @elseif (str_starts_with((string) $primarySlot, 'pending:'))
             <span class="{{ $btn }} text-orange-600 dark:text-orange-400 opacity-75">
                 <i class="fas fa-clock {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Busy') }}</span>
@@ -127,83 +134,88 @@
                                 else { clearInterval(iv); $wire.processBatchDelivery({{ $order->delivered_by }}); }
                             }, 1000);
                         }
-                    }"
-                    x-init="tick()"
-                    class="{{ $btn }} text-yellow-600 dark:text-yellow-400">
+                     }"
+                     x-init="tick()"
+                     class="{{ $btn }} text-yellow-600 dark:text-yellow-400">
                     <i class="fas fa-hourglass-half {{ $style === 'table' ? 'text-base' : '' }}"></i>
                     <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Preparing') }}</span>
-                    <span class="font-mono text-[10px] bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded ml-1" x-text="Math.floor(r/60)+':'+String(r%60).padStart(2,'0')"></span>
+                    <span class="font-mono text-[10px] bg-yellow-100 dark:bg-yellow-900/30 px-1 rounded ml-1"
+                          x-text="Math.floor(r/60)+':'+String(r%60).padStart(2,'0')"></span>
                 </div>
             @endif
 
         @elseif ($primarySlot === 'in_transit')
             <button wire:click="markDelivered({{ $order->id }})"
-                class="{{ $btn }} text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20">
+                    class="{{ $btn }} text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20">
                 <i class="fas fa-box-open {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Delivered') }}</span>
             </button>
 
         @elseif ($primarySlot === 'walkin:unpaid' || $primarySlot === 'delivered:unpaid')
             <button wire:click="togglePaid({{ $order->id }})"
-                class="{{ $btn }} text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
+                    class="{{ $btn }} text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
                 <i class="fas fa-money-bill-transfer {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Paid') }}</span>
             </button>
 
         @elseif ($primarySlot === 'walkin:paid' || $primarySlot === 'delivered:paid')
             <button wire:click="markFinished({{ $order->id }})"
-                class="{{ $btn }} text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
+                    class="{{ $btn }} text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20">
                 <i class="fas fa-check-double {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Complete') }}</span>
             </button>
 
         @elseif ($primarySlot === 'completed:paid')
             <button type="button"
-                x-data
-                @click="$dispatch('open-refund', { orderId: {{ $order->id }} })"
-                class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20">
+                    x-data
+                    @click="$dispatch('open-refund', { orderId: {{ $order->id }} })"
+                    class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20">
                 <i class="fas fa-rotate-left {{ $style === 'table' ? 'text-base' : '' }}"></i>
                 <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Refund') }}</span>
             </button>
 
         @else
-            {{-- completed+refunded / cancelled: empty placeholder preserves column width --}}
+            {{-- No primary action: invisible placeholder keeps the column --}}
             <span class="{{ $btn }} invisible" aria-hidden="true">
-                <i class="fas fa-circle {{ $style === 'table' ? 'text-base' : '' }}"></i>
-                <span class="{{ $style === 'table' ? 'text-xs' : '' }}">‌</span>
+                <i class="fas fa-circle"></i>
+                <span>‌</span>
             </span>
         @endif
 
     </div>
 
-    {{-- SLOT 4: Cancel | Delete --}}
-    @if($order->status === 'preparing')
-        {{-- When preparing — show Stop (cancel preparation / remove from batch) --}}
-        <button wire:click="cancelPrepare({{ $order->id }})" class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 {{ $style === 'card' ? 'ml-auto' : '' }}">
-            <i class="fas fa-hand {{ $style === 'table' ? 'text-base' : '' }}"></i>
-            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Stop') }}</span>
-        </button>
+    {{-- ── SLOT 4: Cancel / Delete / placeholder ────────────────── --}}
+    <div class="flex justify-center px-2">
 
-    @elseif (!in_array($order->status, ['cancelled', 'completed', 'preparing', 'delivered'], true))
-        {{-- Delivered but unpaid — allow cancel only when not cancelled/completed/preparing --}}
-        <button wire:click="openCancel({{ $order->id }})" class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 {{ $style === 'card' ? 'ml-auto' : '' }}">
-            <i class="fas fa-ban {{ $style === 'table' ? 'text-base' : '' }}"></i>
-            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Cancel') }}</span>
-        </button>
+        @if ($order->status === 'preparing')
+            <button wire:click="cancelPrepare({{ $order->id }})"
+                    class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20">
+                <i class="fas fa-hand {{ $style === 'table' ? 'text-base' : '' }}"></i>
+                <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Stop') }}</span>
+            </button>
 
-    @elseif (in_array($order->status, ['cancelled', 'completed', 'delivered'], true))
-        {{-- Show delete when order is not cancelled or completed --}}
-        <button wire:click="confirmDelete({{ $order->id }})" class="{{ $btn }} text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 {{ $style === 'card' ? 'ml-auto' : '' }}">
-            <i class="fas fa-trash {{ $style === 'table' ? 'text-base' : '' }}"></i>
-            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Delete') }}</span>
-        </button>
+        @elseif (!in_array($order->status, ['cancelled', 'completed', 'preparing', 'delivered'], true))
+            <button wire:click="openCancel({{ $order->id }})"
+                    class="{{ $btn }} text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20">
+                <i class="fas fa-ban {{ $style === 'table' ? 'text-base' : '' }}"></i>
+                <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Cancel') }}</span>
+            </button>
 
-    @else
-        {{-- cancelled / completed: empty placeholder preserves column width --}}
-        <span class="{{ $btn }} invisible" aria-hidden="true">
-            <i class="fas fa-circle {{ $style === 'table' ? 'text-base' : '' }}"></i>
-            <span class="{{ $style === 'table' ? 'text-xs' : '' }}">‌</span>
-        </span>
-    @endif
+        @elseif (in_array($order->status, ['cancelled', 'completed', 'delivered'], true))
+            <button wire:click="confirmDelete({{ $order->id }})"
+                    class="{{ $btn }} text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
+                <i class="fas fa-trash {{ $style === 'table' ? 'text-base' : '' }}"></i>
+                <span class="{{ $style === 'table' ? 'text-xs' : '' }}">{{ __('Delete') }}</span>
+            </button>
+
+        @else
+            {{-- placeholder keeps the column --}}
+            <span class="{{ $btn }} invisible" aria-hidden="true">
+                <i class="fas fa-circle"></i>
+                <span>‌</span>
+            </span>
+        @endif
+
+    </div>
 
 </div>

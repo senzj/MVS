@@ -184,7 +184,7 @@
                                     <div class="inline-flex items-center gap-2">
                                         <button type="button" @click="selectedPresetId = {{ $preset->id }}; $nextTick(() => { $wire.editPreset(selectedPresetId); })"
                                             class="tbl-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
-                                            <i class="fas fa-pen"></i>{{ __('Edit') }}
+                                            <i class="fas fa-edit"></i>{{ __('Edit') }}
                                         </button>
 
                                         <button type="button" @click="selectedPresetId = {{ $preset->id }}; selectedPresetIsActive = {{ $preset->is_active ? 'true' : 'false' }}; showToggleConfirm = true"

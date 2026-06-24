@@ -87,7 +87,7 @@ class OrderSeeder extends Seeder
 
             $products = Product::query()
                 ->where('stocks', '>', 0)
-                ->inRandomOrder(1)
+                ->inRandomOrder()
                 ->take(fake()->numberBetween(1, 4))
                 ->get();
 

@@ -351,12 +351,12 @@
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-center gap-1">
                                     <button @click="openEditModal({{ $category['id'] }})" class="tbl-action-btn text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
-                                        <i class="fas fa-pen"></i>{{ __('Edit') }}
+                                        <i class="fas fa-edit"></i>{{ __('Edit') }}
                                     </button>
 
                                     @if($category['products_count'] > 0)
                                         <button type="button" disabled class="tbl-action-btn text-zinc-400 opacity-60 cursor-not-allowed" title="{{ __('Cannot delete - has products') }}">
-                                            <i class="fas fa-trash"></i>{{ __('Delete') }}
+                                            <i class="fas fa-lock"></i>{{ __('Delete') }}
                                         </button>
                                     @else
                                         <button @click="openDeleteModal({{ $category['id'] }})" class="tbl-action-btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
