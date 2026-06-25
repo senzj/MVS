@@ -19,7 +19,8 @@ return new class extends Migration
             $table->string('lang')->default('en');
             $table->boolean('change_password')->default(false);
             $table->date('birth_date');  // used for password reset verification
-            $table->integer('pin_code')->unsigned(); // used for password reset verification
+            $table->unsignedInteger('pin_code'); // used for password reset verification
+            $table->enum('theme', ['system', 'light', 'dark'])->default('system');
             $table->timestamps();
         });
 
@@ -44,12 +45,6 @@ return new class extends Migration
             $table->longText('payload');
             $table->integer('last_activity')->index();
         });
-
-        Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
-        });
     }
 
     /**
@@ -58,9 +53,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('users');
-        Schema::dropIfExists('remember_tokens');
         Schema::dropIfExists('remember_devices');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
     }
 };

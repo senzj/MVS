@@ -23,10 +23,11 @@ class User extends Authenticatable
         'name',
         'username',
         'password',
-        'lang',
         'change_password',
         'pin_code',
         'birth_date',
+        'lang',
+        'theme',
     ];
 
     /**
@@ -37,7 +38,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'change_password',
-        'pin_code', 
+        'pin_code',
         'birth_date',
     ];
 
@@ -49,7 +50,6 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'change_password' => 'boolean',
             'pin_code' => 'integer',
