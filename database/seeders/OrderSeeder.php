@@ -25,6 +25,7 @@ class OrderSeeder extends Seeder
         $employeeIds = Employee::query()->where('status', 'active')->where('is_archived', false)->pluck('id');
 
         if ($userIds->isEmpty() || $customerIds->isEmpty()) {
+            $this->command->warn('Skipping OrderSeeder: no users or customers found. Run UserSeeder and CustomerSeeder first.');
             return;
         }
 
@@ -93,6 +94,7 @@ class OrderSeeder extends Seeder
 
             if ($products->isEmpty()) {
                 $order->delete();
+                $this->command->warn("Order #{$i} skipped: no products with stock.");
                 continue;
             }
 
@@ -169,6 +171,6 @@ class OrderSeeder extends Seeder
             $ordersCreated++;
         }
 
-        $this->command->line("{$ordersCreated} orders added");
+        $this->command->line("{$ordersCreated}/{$random} orders created.");
     }
 }
