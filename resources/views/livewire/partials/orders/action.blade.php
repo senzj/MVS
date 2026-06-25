@@ -51,8 +51,8 @@
     // completed+refunded / cancelled → no primary action
 @endphp
 
-<div class="grid grid-cols-4 items-center gap-6 px-3
-            {{ $style === 'card' ? 'pt-1 border-t border-zinc-100 dark:border-zinc-700' : '' }}">
+<div class="grid grid-cols-4 items-center gap-6
+            {{ $style === 'card' ? 'pt-3 border-t border-zinc-100 dark:border-zinc-900' : '' }}">
 
     {{-- ── SLOT 1: View ─────────────────────────────────────────── --}}
     <div class="flex justify-center px-2">
