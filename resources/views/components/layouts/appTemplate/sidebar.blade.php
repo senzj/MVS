@@ -5,13 +5,22 @@
         @include('partials.head')
         @stack('styles')
     </head>
-    <body class="min-h-screen bg-gray-50 dark:bg-gray-900">
+
+    {{-- Appearance --}}
+    @php
+        $appearance = Auth::check()
+            ? (Auth::user()->theme ?: session('theme', config('app.theme', 'system')))
+            : session('theme', config('app.theme', 'system'));
+    @endphp
+    <body class="min-h-screen bg-gray-50 dark:bg-gray-900"
+      x-data
+      x-init="$flux.appearance = @js($appearance)">
 
         @php
             $dashboardCurrent = request()->routeIs('dashboard');
-            $ordersCurrent = request()->routeIs('orders');
+            $ordersCurrent = request()->routeIs('orders', 'orders.create', 'orders.edit', 'orders.add');
             $ordersHistoryCurrent = request()->routeIs('orders.history');
-            $productsCurrent = request()->routeIs('products');
+            $productsCurrent = request()->routeIs('products', 'products.overview');
             $productsCategoriesCurrent = request()->routeIs('products.categories');
             $customersCurrent = request()->routeIs('customers', 'customers.*');
             $employeesCurrent = request()->routeIs('employees', 'employees.*');

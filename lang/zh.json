@@ -963,6 +963,29 @@
     "box": "箱",
     "liter": "升",
     "dozen": "打",
+
+    "Cost of Goods Sold": "销售成本",
+    "Based on weighted average cost": "基于加权平均成本",
+    "Stock In Today": "今日入库",
+    "Stock Out Today": "今日出库",
+    "Units restocked or adjusted in the last 24 hours": "过去24小时内补货或调整的单位",
+    "Units sold, refunded, or adjusted out in the last 24 hours": "过去24小时内售出、退款或调整的单位",
+    "Sales": "销售",
+    "Net Loss": "净损益",
+    "Gross Profit": "毛利润",
+    "Discounts Applied Today": "今日应用的折扣",
+    "Average Discount per Order": "每单平均折扣",
+    "Among discounted orders only": "仅在折扣订单中",
+    "Orders with Discounts": "有折扣的订单",
+    "of all orders": "所有订单中",
+    "Revenue Impact": "收入影响",
+    "of potential revenue forfeited to discounts": "潜在收入因折扣而损失的比例",
+    "Total Discounts Applied": "总折扣应用",
+    "Item-level": "项目级别",
+    "Order-level": "订单级别",
+    "Discount Analytics": "折扣分析",
+    "Amount": "金额",
+
     "":""
 }
 

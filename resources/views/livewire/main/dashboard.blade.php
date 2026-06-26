@@ -4,7 +4,7 @@
     {{-- Header --}}
     <div class="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:justify-between">
         <div>
-                <h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+            <h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 fas fa-chart-bar"></i>{{ __('Dashboard') }}
             </h2>
             <p class="text-sm text-zinc-600 dark:text-zinc-400">{{ __("Welcome back! Here's what's happening today.") }}</p>
@@ -17,6 +17,7 @@
         <div>
             <h3 class="mb-2 text-sm font-semibold tracking-wide uppercase text-zinc-600 dark:text-zinc-300">{{ __('Sales KPIs') }}</h3>
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {{-- Revenue Today --}}
                 <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
                     <div class="flex items-start justify-between">
                         <div>
@@ -33,6 +34,7 @@
                     </div>
                 </div>
 
+                {{-- Revenue This Month --}}
                 <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
                     <div class="flex items-start justify-between">
                         <div>
@@ -49,6 +51,7 @@
                     </div>
                 </div>
 
+                {{-- Orders Today --}}
                 <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
                     <div class="flex items-start justify-between">
                         <div>
@@ -63,6 +66,7 @@
                     </div>
                 </div>
 
+                {{-- Average Order Value --}}
                 <div class="p-5 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
                     <div class="flex items-start justify-between">
                         <div>
@@ -139,8 +143,10 @@
 
     {{-- Business Health and Operations --}}
     <div class="grid grid-cols-1 gap-3 mb-6 xl:grid-cols-2">
+
+        {{-- Money & Growth Snapshot — real cost/profit --}}
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-emerald-500 fas fa-coins"></i>{{ __('Money & Growth Snapshot') }}
             </h3>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -151,13 +157,26 @@
                     </p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Last 30 days') }}</p>
                 </div>
+
+                <div class="p-4 rounded-lg bg-rose-50 dark:bg-rose-900/10">
+                    <p class="text-xs uppercase text-rose-700 dark:text-rose-300">{{ __('Cost of Goods Sold') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                        {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['month_cost'] ?? 0, 2) }}
+                    </p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Based on weighted average cost') }}</p>
+                </div>
+
                 <div class="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/10">
-                    <p class="text-xs uppercase text-amber-700 dark:text-amber-300">{{ __('Estimated Profit') }}</p>
+                    <p class="text-xs uppercase text-amber-700 dark:text-amber-300">{{ __('Gross Profit') }}</p>
                     <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                         {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['month_profit'] ?? 0, 2) }}
                     </p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Based on a 25% margin') }}</p>
+                    @php $profitGrowth = (float) ($businessInsights['month_profit_growth'] ?? 0); @endphp
+                    <p class="text-sm {{ $profitGrowth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
+                        {{ $profitGrowth >= 0 ? '+' : '' }}{{ number_format($profitGrowth, 1) }}% &nbsp;·&nbsp; {{ number_format($businessInsights['month_profit_margin_pct'] ?? 0, 1) }}% {{ __('margin') }}
+                    </p>
                 </div>
+
                 <div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10">
                     <p class="text-xs uppercase text-blue-700 dark:text-blue-300">{{ __('Average Order Value') }}</p>
                     <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
@@ -165,42 +184,69 @@
                     </p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Per completed order') }}</p>
                 </div>
-                <div class="p-4 rounded-lg bg-violet-50 dark:bg-violet-900/10">
-                    <p class="text-xs uppercase text-violet-700 dark:text-violet-300">{{ __('Average Daily Sales') }}</p>
-                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-                        {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['average_daily_sales'] ?? 0, 2) }}
-                    </p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('30-day run rate') }}</p>
-                </div>
             </div>
         </div>
 
+        {{-- Product Health & Operations --}}
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-orange-500 fas fa-box-open"></i>{{ __('Product Health & Operations') }}
             </h3>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                {{-- Products Sold --}}
                 <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
                     <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Products Sold') }}</p>
                     <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['month_units_sold'] ?? 0) }}</p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Units moved in the last 30 days') }}</p>
                 </div>
+
+                {{-- Active Products --}}
                 <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
                     <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Active Products') }}</p>
                     <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['active_products'] ?? 0) }}</p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Currently in stock') }}</p>
                 </div>
+
+                {{-- Low Stock Items --}}
                 <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
                     <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Low Stock Items') }}</p>
                     <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['low_stock_products'] ?? 0) }}</p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Need restocking soon') }}</p>
                 </div>
+
+                {{-- Order Completion Rate --}}
                 <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
-                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Order Completion Rate') }}
+                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Order Completion Rate') }}</p>
                     <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['completion_rate'] ?? 0, 1) }}%</p>
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Delivered and completed orders') }}</p>
                 </div>
+
+                {{-- Stock In Today --}}
+                <div class="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/10">
+                    <p class="text-xs uppercase text-emerald-700 dark:text-emerald-300">{{ __('Stock In Today') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">+{{ number_format($businessInsights['inventory_in_today'] ?? 0) }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Units restocked or adjusted in the last 24 hours') }}</p>
+                </div>
+
+                {{-- Stock Out Today --}}
+                <div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10">
+                    <p class="text-xs uppercase text-blue-700 dark:text-blue-300">{{ __('Stock Out Today') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">-{{ number_format($businessInsights['inventory_out_today'] ?? 0) }}</p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Units sold, refunded, or adjusted out in the last 24 hours') }}</p>
+                </div>
             </div>
+
+            @if(($businessInsights['inventory_top_product_units'] ?? 0) > 0)
+            <div class="flex items-center justify-between gap-3 p-3 mt-4 text-sm rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                <span class="text-zinc-600 dark:text-zinc-400">
+                    <i class="mr-1.5 text-purple-500 fas fa-arrow-right-arrow-left"></i>{{ __('Most active product (30 days)') }}
+                </span>
+                <span class="font-medium text-zinc-900 truncate dark:text-zinc-100">
+                    {{ Str::limit($businessInsights['inventory_top_product_name'] ?? '', 24) }} · {{ number_format($businessInsights['inventory_top_product_units']) }} {{ __('units') }}
+                </span>
+            </div>
+        @endif
         </div>
     </div>
 
@@ -209,100 +255,111 @@
 
         {{-- Today's Best Sellers --}}
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-yellow-500 fas fa-trophy"></i>{{ __('Today\'s Best Seller') }}
             </h3>
-            @if(!empty($topSellingProducts['today']))
-                <div class="space-y-3">
-                    @foreach($topSellingProducts['today'] as $index => $product)
-                        <div class="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-3 dark:border-zinc-700 dark:bg-zinc-900/40">
-                            <div class="flex items-center space-x-3 min-w-0">
-                                <span class="flex items-center justify-center w-7 h-7 text-xs font-semibold rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">{{ $index + 1 }}</span>
-                                <div class="min-w-0">
-                                    <p class="font-medium text-zinc-900 dark:text-zinc-100 truncate">{{ Str::limit($product['name'] ?? '', 18) }}</p>
-                                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __($product['category_label'] ?? __('Uncategorized')) }}</p>
+
+            <div class="flex items-center justify-center h-72 md:h-90 w-full">
+                @if(!empty($topSellingProducts['today']))
+                    <div class="space-y-3 w-full">
+                        @foreach($topSellingProducts['today'] as $index => $product)
+                            <div class="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-3 dark:border-zinc-700 dark:bg-zinc-900/40">
+                                <div class="flex items-center space-x-3 min-w-0">
+                                    <span class="flex items-center justify-center w-7 h-7 text-xs font-semibold rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">{{ $index + 1 }}</span>
+                                    <div class="min-w-0">
+                                        <p class="font-medium text-zinc-900 dark:text-zinc-100 truncate">{{ $product['name'] ?? '' }}</p>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __($product['category_label'] ?? __('Uncategorized')) }}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($product['total_sold'] ?? 0) }} {{ __('sold') }}</p>
+                                    <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                        {{ config('storeconfig.currency_symbol') }}{{ number_format($product['total_revenue'] ?? 0, 2) }}
+                                    </p>
                                 </div>
                             </div>
-                            <div class="text-right">
-                                <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($product['total_sold'] ?? 0) }} {{ __('sold') }}</p>
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                                    {{ config('storeconfig.currency_symbol') }}{{ number_format($product['total_revenue'] ?? 0, 2) }}
-                                </p>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                <div class="py-8 text-center">
-                    <i class="mb-3 text-4xl fas fa-chart-line text-zinc-300 dark:text-zinc-600"></i>
-                    <p class="text-zinc-500 dark:text-zinc-400">{{ __('No sales recorded today') }}</p>
-                </div>
-            @endif
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center">
+                        <i class="mb-3 text-4xl fas fa-chart-line text-zinc-300 dark:text-zinc-600"></i>
+                        <p class="text-zinc-500 dark:text-zinc-400">
+                            {{ __('No sales recorded today') }}
+                        </p>
+                    </div>
+                @endif
+            </div>
         </div>
 
         {{-- This Week's Best Sellers --}}
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-blue-500 fas fa-chart-bar"></i>{{ __('This Week\'s Top Seller') }}
             </h3>
 
-            @if(!empty($topSellingProducts['week']))
-                <div class="space-y-3">
-                    @foreach($topSellingProducts['week'] as $index => $product)
-                        <div class="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-3 dark:border-zinc-700 dark:bg-zinc-900/40">
-                            <div class="flex items-center space-x-3 min-w-0">
-                                <span class="flex items-center justify-center w-7 h-7 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">{{ $index + 1 }}</span>
-                                <div class="min-w-0">
-                                    <p class="font-medium text-zinc-900 dark:text-zinc-100 truncate">{{ Str::limit($product['name'] ?? '', 18) }}</p>
-                                    <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __($product['category_label'] ?? __('Uncategorized')) }}</p>
+            <div class="flex items-center justify-center h-72 md:h-90 w-full">
+                @if(!empty($topSellingProducts['week']))
+                    <div class="space-y-3 w-full">
+                        @foreach($topSellingProducts['week'] as $index => $product)
+                            <div class="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-3 dark:border-zinc-700 dark:bg-zinc-900/40">
+                                <div class="flex items-center space-x-3 min-w-0">
+                                    <span class="flex items-center justify-center w-7 h-7 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">{{ $index + 1 }}</span>
+                                    <div class="min-w-0">
+                                        <p class="font-medium text-zinc-900 dark:text-zinc-100 truncate">{{ $product['name'] ?? '' }}</p>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __($product['category_label'] ?? __('Uncategorized')) }}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($product['total_sold'] ?? 0) }} {{ __('units sold') }}</p>
+                                    <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                        {{ config('storeconfig.currency_symbol') }}{{ number_format($product['total_revenue'] ?? 0, 2) }}
+                                    </p>
                                 </div>
                             </div>
-                            <div class="text-right">
-                                <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($product['total_sold'] ?? 0) }} {{ __('units sold') }}</p>
-                                <p class="text-xs text-zinc-500 dark:text-zinc-400">
-                                    {{ config('storeconfig.currency_symbol') }}{{ number_format($product['total_revenue'] ?? 0, 2) }}
-                                </p>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                <div class="py-8 text-center">
-                    <i class="mb-3 text-4xl fas fa-chart-line text-zinc-300 dark:text-zinc-600"></i>
-                    <p class="text-zinc-500 dark:text-zinc-400">{{ __('No sales recorded this week') }}</p>
-                </div>
-            @endif
-
+                        @endforeach
+                    </div>
+                @else
+                    <div class="py-8 text-center">
+                        <i class="mb-3 text-4xl fas fa-chart-line text-zinc-300 dark:text-zinc-600"></i>
+                        <p class="text-zinc-500 dark:text-zinc-400">{{ __('No sales recorded this week') }}</p>
+                    </div>
+                @endif
+            </div>
         </div>
 
-        {{-- Average Top Performers --}}
+        {{-- This Month's Top Sellers --}}
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
-                <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-purple-500 fas fa-medal"></i>{{ __("This Month's Top Sellers") }}
             </h3>
 
-            @if(!empty($topSellingProducts['average']))
-                <div class="space-y-3">
-                    @foreach($topSellingProducts['average'] as $index => $product)
-                        <div class="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-3 dark:border-zinc-700 dark:bg-zinc-900/40">
-                            <div class="flex items-center space-x-3">
-                                <span class="flex items-center justify-center w-6 h-6 text-xs font-medium rounded-full bg-zinc-100 dark:bg-zinc-700">{{ $index + 1 }}</span>
-                                <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ Str::limit($product['name'] ?? '', 15) }}</span>
-                            </div>
-                            <div class="text-right">
-                                <span class="block text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($product['avg_weekly'] ?? 0, 1) }}/{{ __('week') }}</span>
-                                <span class="text-xs text-zinc-400 dark:text-zinc-500">{{ number_format($product['total_sold'] ?? 0) }} {{ __('total') }} • {{ config('storeconfig.currency_symbol') }}{{ number_format($product['total_revenue'] ?? 0, 2) }}</span>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                <div class="py-8 text-center">
-                    <i class="mb-3 text-4xl fas fa-chart-line text-zinc-300 dark:text-zinc-600"></i>
-                    <p class="text-zinc-500 dark:text-zinc-400">{{ __('No data available') }}</p>
-                </div>
-            @endif
+            <div class="flex items-center justify-center h-72 md:h-90 w-full">
+                @if(!empty($topSellingProducts['average']))
+                    <div class="space-y-3 w-full">
+                        @foreach($topSellingProducts['average'] as $index => $product)
+                            <div class="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50/80 px-3 py-3 dark:border-zinc-700 dark:bg-zinc-900/40">
+                                <div class="flex items-center space-x-3">
+                                    <span class="flex items-center justify-center w-6 h-6 text-xs font-medium rounded-full bg-zinc-100 dark:bg-zinc-700">{{ $index + 1 }}</span>
 
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ $product['name'] ?? '' }}</p>
+                                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __($product['category_label'] ?? __('Uncategorized')) }}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="block text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($product['avg_weekly'] ?? 0, 1) }}/{{ __('week') }}</span>
+                                    <span class="text-xs text-zinc-400 dark:text-zinc-500">{{ number_format($product['total_sold'] ?? 0) }} {{ __('total') }} • {{ config('storeconfig.currency_symbol') }}{{ number_format($product['total_revenue'] ?? 0, 2) }}</span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="py-8 text-center">
+                        <i class="mb-3 text-4xl fas fa-chart-line text-zinc-300 dark:text-zinc-600"></i>
+                        <p class="text-zinc-500 dark:text-zinc-400">{{ __('No data available') }}</p>
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -314,7 +371,7 @@
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-blue-500 fas fa-chart-line"></i>{{ __('Store Trend (Last 30 Days)') }}
             </h3>
-            <div class="h-80" wire:ignore>
+            <div class="h-64 sm:h-72 lg:h-80" wire:ignore>
                 <canvas id="salesVsProfitChart"></canvas>
             </div>
         </div>
@@ -324,7 +381,7 @@
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-green-500 fas fa-calendar-alt"></i>{{ __('Orders by Day (Current vs Previous Week)') }}
             </h3>
-            <div class="h-80" wire:ignore>
+            <div class="h-64 sm:h-72 lg:h-80" wire:ignore>
                 <canvas id="ordersByDayChart"></canvas>
             </div>
         </div>
@@ -335,57 +392,37 @@
                 <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                     <i class="mr-2 text-indigo-500 fas fa-chart-column"></i>{{ __('Peak Analytics') }}
                 </h3>
-
-                <div id="busiest-metrics-toggle" class="inline-flex p-1 rounded-lg bg-zinc-100 dark:bg-zinc-700/60">
-                    <button type="button" data-busiest-target="year" aria-pressed="true" class="px-3 py-1.5 text-sm font-medium transition rounded-md bg-indigo-600 text-white dark:bg-indigo-500">
-                        {{ __('Year') }}
-                    </button>
-                    <button type="button" data-busiest-target="month" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">
-                        {{ __('Month') }}
-                    </button>
-                    <button type="button" data-busiest-target="weekday" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">
-                        {{ __('Weekday') }}
-                    </button>
-                    <button type="button" data-busiest-target="hour" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">
-                        {{ __('Hour') }}
-                    </button>
+                <div id="busiest-metrics-toggle" class="grid grid-cols-4 gap-1 p-1 rounded-lg bg-zinc-100 dark:bg-zinc-700/60">
+                    <button type="button" data-busiest-target="year" aria-pressed="true" class="px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium transition rounded-md bg-indigo-600 text-white dark:bg-indigo-500">{{ __('Year') }}</button>
+                    <button type="button" data-busiest-target="month" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">{{ __('Month') }}</button>
+                    <button type="button" data-busiest-target="weekday" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">{{ __('Weekday') }}</button>
+                    <button type="button" data-busiest-target="hour" aria-pressed="false" class="px-3 py-1.5 text-sm font-medium transition rounded-md text-zinc-700 dark:text-zinc-200">{{ __('Hour') }}</button>
                 </div>
             </div>
 
             <div data-busiest-panel="year">
-                <div class="h-80" wire:ignore>
-                    <canvas id="busiestByYearChart"></canvas>
-                </div>
+                <div class="h-64 sm:h-72 lg:h-80" wire:ignore><canvas id="busiestByYearChart"></canvas></div>
                 <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
                     <div id="year-summary-most-orders"></div>
                     <div id="year-summary-most-profit"></div>
                 </div>
             </div>
-
             <div data-busiest-panel="month" class="hidden">
-                <div class="h-80" wire:ignore>
-                    <canvas id="busiestByMonthChart"></canvas>
-                </div>
+                <div class="h-64 sm:h-72 lg:h-80" wire:ignore><canvas id="busiestByMonthChart"></canvas></div>
                 <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
                     <div id="month-summary-most-orders"></div>
                     <div id="month-summary-most-profit"></div>
                 </div>
             </div>
-
             <div data-busiest-panel="weekday" class="hidden">
-                <div class="h-80" wire:ignore>
-                    <canvas id="busiestByWeekdayChart"></canvas>
-                </div>
+                <div class="h-64 sm:h-72 lg:h-80" wire:ignore><canvas id="busiestByWeekdayChart"></canvas></div>
                 <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
                     <div id="weekday-summary-most-orders"></div>
                     <div id="weekday-summary-most-profit"></div>
                 </div>
             </div>
-
             <div data-busiest-panel="hour" class="hidden">
-                <div class="h-80" wire:ignore>
-                    <canvas id="busiestByHourChart"></canvas>
-                </div>
+                <div class="h-64 sm:h-72 lg:h-80" wire:ignore><canvas id="busiestByHourChart"></canvas></div>
                 <div class="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
                     <div id="hour-summary-most-orders"></div>
                     <div id="hour-summary-most-profit"></div>
@@ -398,7 +435,7 @@
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-orange-500 fas fa-chart-bar"></i>{{ __('Sales by Category (Last 30 Days)') }}
             </h3>
-            <div class="h-94" wire:ignore>
+            <div class="h-72 sm:h-80 lg:h-96" wire:ignore>
                 <canvas id="categoryBreakdownChart"></canvas>
             </div>
         </div>
@@ -406,11 +443,14 @@
 
     {{-- Insights --}}
     <div class="grid grid-cols-1 gap-3 mb-6 xl:grid-cols-3">
+
+        {{-- Insights (2/3 width) --}}
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 xl:col-span-2">
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-indigo-500 fas fa-lightbulb"></i>{{ __('Insights') }}
             </h3>
-            <div class="space-y-4">
+            <div class="space-y-3">
+                {{-- Best Category --}}
                 <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
                     <div>
                         <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Best Category') }}</p>
@@ -423,6 +463,8 @@
                         </p>
                     </div>
                 </div>
+
+                {{-- Best Product --}}
                 <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
                     <div>
                         <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Best Product This Month') }}</p>
@@ -433,6 +475,8 @@
                         <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ number_format($businessInsights['top_product_sales'] ?? 0) }} {{ __('units') }}</p>
                     </div>
                 </div>
+
+                {{-- Payment Rate --}}
                 <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
                     <div>
                         <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Payment Rate') }}</p>
@@ -443,6 +487,8 @@
                         <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Cash flow health') }}</p>
                     </div>
                 </div>
+
+                {{-- Refund Rate --}}
                 <div class="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
                     <div>
                         <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Refund Rate') }}</p>
@@ -450,70 +496,144 @@
                     </div>
                     <div class="text-right">
                         <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['refund_rate'] ?? 0, 1) }}%</p>
-                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Lower is better') }}
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ __('Lower is better') }}</p>
                     </div>
                 </div>
             </div>
+
+            {{-- Discount Analytics --}}
+            <h3 class="mt-6 mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                <i class="mr-2 text-pink-500 fas fa-tag"></i>{{ __('Discount Analytics') }}
+                <span class="ml-2 text-xs font-normal text-zinc-400 dark:text-zinc-500">{{ __('Last 30 days') }}</span>
+            </h3>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {{-- Total Discounts Given --}}
+                <div class="p-4 rounded-lg bg-pink-50 dark:bg-pink-900/10">
+                    <p class="text-xs uppercase text-pink-700 dark:text-pink-300">{{ __('Total Discounts Applied') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                        {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['month_total_discounts'] ?? 0, 2) }}
+                    </p>
+                    <div class="text-xs text-zinc-500 dark:text-zinc-400 space-between col-span-2">
+                        <p>
+                            {{ __('Item-level') }}:
+                            <span class="font-semibold">
+                                {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['month_item_discounts'] ?? 0, 2) }}
+                            </span>
+                        </p>
+
+                        <p>
+                            {{ __('Order-level') }}:
+                            <span class="font-semibold">
+                                {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['month_order_discounts'] ?? 0, 2) }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+
+                {{-- Revenue Impact --}}
+                <div class="p-4 rounded-lg bg-rose-50 dark:bg-rose-900/10">
+                    <p class="text-xs uppercase text-rose-700 dark:text-rose-300">{{ __('Revenue Impact') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                        {{ number_format($businessInsights['discount_impact_pct'] ?? 0, 1) }}%
+                    </p>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        {{ __('of potential revenue forfeited to discounts') }}
+                    </p>
+                </div>
+
+                {{-- Orders with Discounts --}}
+                <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Orders with Discounts') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                        {{ number_format($businessInsights['discounted_orders'] ?? 0) }}
+                    </p>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        {{ number_format($businessInsights['discount_rate'] ?? 0, 1) }}% {{ __('of all orders') }}
+                    </p>
+                </div>
+
+                {{-- Avg Discount per Discounted Order --}}
+                <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
+                    <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Average Discount per Order') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                        {{ config('storeconfig.currency_symbol') }}{{ number_format($businessInsights['avg_discount_per_order'] ?? 0, 2) }}
+                    </p>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        {{ __('Among discounted orders only') }}
+                    </p>
+                </div>
+            </div>
         </div>
+
+        {{-- Stock Watch (1/3 width) --}}
         <div class="p-6 bg-white border rounded-lg shadow-sm dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700">
             <h3 class="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 <i class="mr-2 text-red-500 fas fa-triangle-exclamation"></i>{{ __('Stock Watch') }}
             </h3>
             <div class="space-y-4">
+                {{-- Low Stock --}}
                 <div class="p-4 rounded-lg bg-red-50 dark:bg-red-900/10">
                     <p class="text-xs uppercase text-red-700 dark:text-red-300">{{ __('Low Stock') }}</p>
                     <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['low_stock_products'] ?? 0) }}</p>
                 </div>
+
+                {{-- Out of Stock --}}
                 <div class="p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/40">
                     <p class="text-xs uppercase text-zinc-500 dark:text-zinc-400">{{ __('Out of Stock') }}</p>
                     <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($businessInsights['out_of_stock_products'] ?? 0) }}</p>
                 </div>
+
+                {{-- Units Sold --}}
                 <div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10">
-                    <p class="text-xs uppercase text-blue-700 dark:text-blue-300">{{ __('Units Sold') }}</p>
+                    <p class="text-xs uppercase text-blue-700 dark:text-blue-300">{{ __('Units Sold') . ' (' .__('Today') . ')' }}</p>
                     <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{{ number_format($todayStats['units_sold'] ?? 0) }}</p>
-                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ __('Today') }}</p>
+                </div>
+
+                {{-- Today's discounts --}}
+                <div class="p-4 rounded-lg bg-pink-50 dark:bg-pink-900/10">
+                    <p class="text-xs uppercase text-pink-700 dark:text-pink-300">{{ __('Discounts Applied Today') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                        {{ config('storeconfig.currency_symbol') }}{{ number_format($todayStats['total_discounts'] ?? 0, 2) }}
+                    </p>
+                </div>
+
+                {{-- Today's profit snapshot --}}
+                <div class="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-900/10">
+                    <p class="text-xs uppercase text-emerald-700 dark:text-emerald-300">{{ __('Today\'s Profit') }}</p>
+                    <p class="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+                        {{ config('storeconfig.currency_symbol') }}{{ number_format($todayStats['profit'] ?? 0, 2) }}
+                    </p>
+                    <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ number_format($todayStats['profit_margin_pct'] ?? 0, 1) }}% {{ __('margin') }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-{{-- Add chart labels for JS --}}
-<script>
-  window.__dashboardI18n = {
-      sales:                 "{{ __('Sales') }}",
-      estimated_profit:      "{{ __('Estimated Profit') }}",
-      orders:                "{{ __('Orders') }}",
-      current_week:          "{{ __('Current Week') }}",
-      previous_week:         "{{ __('Previous Week') }}",
-      monthly_sales:         "{{ __('Monthly Sales') }}",
-      monthly_orders:        "{{ __('Monthly Orders') }}",
-      amount_currency:       "{{ __('Amount') }}",
-      num_orders:            "{{ __('Number of Orders') }}",
-      new_customers:         "{{ __('New Customers') }}",
-      count_axis:            "{{ __('Orders / Customers') }}",
-      sales_amount_currency: "{{ __('Sales Amount') }}",
-      most_busy: "{{ __('Peak Activity') }}",
-      most_profitable: "{{ __('Peak Profit') }}",
-  };
+    {{-- JS i18n & chart data --}}
+    <script>
+      window.__dashboardI18n = {
+          sales:                 "{{ __('Sales') }}",
+          netloss:               "{{ __('Net Loss') }}",
+          gross_profit:          "{{ __('Gross Profit') }}",
+          orders:                "{{ __('Orders') }}",
+          discounts:             "{{ __('Discounts') }}",
+          current_week:          "{{ __('Current Week') }}",
+          previous_week:         "{{ __('Previous Week') }}",
+          monthly_sales:         "{{ __('Monthly Sales') }}",
+          monthly_orders:        "{{ __('Monthly Orders') }}",
+          amount_currency:       "{{ __('Amount') }}",
+          num_orders:            "{{ __('Number of Orders') }}",
+          new_customers:         "{{ __('New Customers') }}",
+          count_axis:            "{{ __('Orders / Customers') }}",
+          sales_amount_currency: "{{ __('Sales Amount') }}",
+          most_busy:             "{{ __('Peak Activity') }}",
+          most_profitable:       "{{ __('Peak Profit') }}",
+          estimated_profit:      "{{ __('Estimated Profit') }}",
+      };
 
-  // Pass current locale to JavaScript
-  window.__appLocale = "{{ app()->getLocale() }}";
+      window.__appLocale = "{{ app()->getLocale() }}";
+      window.__currencySymbol = @json(config('storeconfig.currency_symbol'));
 
-  // Known category translations (fallback if backend didn't localize)
-  window.__categoryMap = {
-      "Meat & Poultry": "{{ __('Meat & Poultry') }}",
-      "Vegetables": "{{ __('Vegetables') }}",
-      "Fruits": "{{ __('Fruits') }}",
-      "Dairy": "{{ __('Dairy') }}",
-      "Eggs": "{{ __('Eggs') }}",
-      "Seafood": "{{ __('Seafood') }}",
-      "Beverages": "{{ __('Beverages') }}",
-      "Snacks": "{{ __('Snacks') }}",
-      "Condiments & Spices": "{{ __('Condiments & Spices') }}",
-      "Grains & Cereals": "{{ __('Grains & Cereals') }}",
-      "Frozen Goods": "{{ __('Frozen Goods') }}",
-      "Bakery Goods": "{{ __('Bakery Goods') }}",
-      "Gas": "{{ __('Gas') }}",
-      "Other": "{{ __('Other') }}",
-  };
-</script>
+      window.__categoryMap = "";
+    </script>
+</div>
