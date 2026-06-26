@@ -342,7 +342,7 @@ class Create extends Component
                 ],
             ], [
                 'amountReceived.required' => __('Please enter the amount received.'),
-                'amountReceived.min'      => __('Amount received must be at least ₱') . number_format($this->finalTotal, 2),
+                'amountReceived.min'      => __('Amount received must be at least ') . config('storeconfig.currency_symbol') . number_format($this->finalTotal, 2),
             ]);
         }
 

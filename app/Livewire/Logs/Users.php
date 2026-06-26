@@ -76,7 +76,7 @@ class Users extends Component
                 'required', 'string', 'max:255',
                 function ($attribute, $value, $fail) {
                     if (User::whereRaw('LOWER(username) = LOWER(?)', [ucwords($value)])->exists()) {
-                        $fail(__('The username has already been taken.'));
+                        $fail(__('The username has already been taken!'));
                     }
                 },
             ],
@@ -98,7 +98,7 @@ class Users extends Component
 
         $this->showCreateModal = false;
         $this->loadData($auditLogsService);
-        session()->flash('success', __('Account created successfully.'));
+        session()->flash('success', __('Account created successfully!'));
     }
 
     // ── Delete modal ────────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ class Users extends Component
 
         $this->closeDeleteModal();
         $this->loadData($auditLogsService);
-        session()->flash('success', __('Account deleted successfully.'));
+        session()->flash('success', __('Account deleted successfully!'));
 
         // If admin deleted their own account, log them out too
         if (Auth::id() === $user->id) {

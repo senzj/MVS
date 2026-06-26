@@ -114,7 +114,7 @@ class Payment extends Component
 
         $this->close();
 
-        $this->dispatch('show-success', ['message' => __('Payment confirmed for order ":receipt"!', [
+        $this->dispatch('show-success', ['message' => __('Payment confirmed for order :receipt!', [
             'receipt' => $receipt,
         ])]);
 

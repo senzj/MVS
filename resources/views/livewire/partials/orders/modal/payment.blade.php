@@ -18,7 +18,7 @@
         x-transition:leave="transition ease-in duration-100"
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
-        class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40"
+        class="fixed inset-0 z-200 flex items-center justify-center bg-black/40"
         style="display: none;">
         <div class="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 max-w-sm mx-4">
             <div class="relative w-12 h-12 flex items-center justify-center">
@@ -53,7 +53,7 @@
                     x-transition:leave-end="opacity-0 scale-95">
 
                     {{-- Modal Content --}}
-                    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg p-5 space-y-4">
+                    <div class="bg-white dark:bg-zinc-800 rounded-xl shadow-lg p-1 space-y-4">
                         {{-- Header --}}
                         <div class="flex items-center justify-between px-5 py-4 border-b border-zinc-100 dark:border-zinc-700 shrink-0">
                             <h3 class="text-lg font-semibold text-zinc-800 dark:text-zinc-100">

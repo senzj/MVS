@@ -655,7 +655,7 @@ class Dashboard extends Component
             $order->save();
         });
 
-        $this->dispatch('show-success', ['message' => __('Order ":receipt" cancelled.', ['receipt' => $order->receipt_number])]);
+        $this->dispatch('show-success', ['message' => __('Order #:receipt has been cancelled.', ['receipt' => $order->receipt_number])]);
     }
 
     public function closeDeleteModal(): void
@@ -690,7 +690,7 @@ class Dashboard extends Component
             $order->delete();
 
             // flash message
-            session()->flash('success', __('Order ":receipt" deleted successfully and inventory restored.', ['receipt' => $receiptNumber]));
+            session()->flash('success', __('Order #:receipt deleted.', ['receipt' => $receiptNumber]));
         });
 
         $this->closeDeleteModal();

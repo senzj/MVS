@@ -574,10 +574,15 @@
     "Order \":receipt\" has been marked as paid!": "订单“:receipt”已标记为已付款！",
     "Order \":receipt\" has been marked as delivered!": "订单“:receipt”已标记为已送达！",
     "Order \":receipt\" has been marked as finished!": "订单“:receipt”已标记为已完成！",
-    "Order \":receipt\" deleted successfully and inventory restored.": "订单“:receipt”已成功删除，库存已恢复。",
+    "Order \":receipt\" deleted successfully.": "订单“:receipt”已成功删除。",
     "Order #:receipt cannot be edited once it is :status.": "订单#:receipt 在状态为 :status 时无法编辑。",
     "This order cannot be edited.": "此订单无法编辑。",
+    "This order cannot be cancelled.": "此订单无法取消。",
     "Order #:receipt updated.": "订单#:receipt 已更新。",
+    "Order #:receipt deleted.": "订单#:receipt 已删除。",
+    "Order #:receipt has been cancelled.": "订单#:receipt 已取消。",
+    "Refund processed. Review and save the order if needed.": "退款已处理。如有需要，请审核并保存订单。",
+    "This order is already cancelled.": "此订单已取消。",
 
     "Updating...": "正在更新...",
 
@@ -605,6 +610,9 @@
     "Cannot permanently delete product with order history!": "无法永久删除有订单历史的产品！",
     "Product :name permanently deleted!": "产品 :name 已永久删除！",
     "Check logs for category debug info": "请查看日志以获取类别调试信息",
+    "Unable to update stock.": "无法更新库存。",
+    "Manual stock deduction from product dashboard.": "从产品仪表盘手动扣减库存。",
+    "Manual restock from product dashboard.": "从产品仪表盘手动补货。",
 
     "Order number, customer, delivered by": "订单号、客户、配送员",
     "Search Orders": "搜索订单",
@@ -748,6 +756,8 @@
     "Category deleted successfully!": "类别删除成功！",
     "Category name is required.": "类别名称是必填项。",
     "This category name is already in use.": "此类别名称已被使用。",
+    "Cannot delete a category that still has products assigned to it!": "无法删除仍有产品分配给它的类别！",
+
 
     "Discount Presets": "折扣预设",
     "Create Discount Presets": "创建折扣预设",
@@ -957,6 +967,7 @@
     "Label Color": "标签颜色",
     "optional, unique color for this product": "可选的，此产品的唯一颜色",
     "Random Color": "随机颜色",
+    "Unable to update product.": "无法更新产品。",
     "pcs": "件",
     "kg": "公斤",
     "g": "克",
@@ -985,6 +996,28 @@
     "Order-level": "订单级别",
     "Discount Analytics": "折扣分析",
     "Amount": "金额",
+    "Exact": "确切",
+    "Round up": "向上取整",
+    "Round 5s": "向上取5",
+    "Proof of Payment": "支付凭证",
+    "Amount Short": "金额不足",
+    "Payment confirmed for order :receipt!": "订单 :receipt 的支付已确认！",
+    "Refunds can only be processed for completed, paid orders.": "退款只能针对已完成、已付款的订单处理。",
+    "All items on this order have already been fully refunded.": "此订单上的所有商品已全部退款。",
+    "This order can no longer be refunded.": "此订单无法再退款。",
+    "Enter a return quantity for at least one item.": "请至少为一件商品输入退货数量。",
+    "Cannot return more than :n remaining units.": "不能退回超过 :n 剩余单位。",
+    "Refund quantity exceeds available units for :product.": "退款数量超过 :product 的可用单位。",
+    "Refund processed for order #:receipt.": "订单 #:receipt 的退款已处理。",
+    "Refund processed successfully.": "退款处理成功。",
+
+    "Please enter the amount received.": "请输入收到的金额。",
+    "Amount received must be at least ": "收到的金额必须至少为 ",
+    "Order deleted successfully.": "订单删除成功。",
+    "The username has already been taken.": "用户名已被占用。",
+    "Account created successfully!": "账户创建成功！",
+    "Account deleted successfully!": "账户删除成功！",
+    "Customer :name deleted successfully!": "客户创建成功！",
 
     "":""
 }
