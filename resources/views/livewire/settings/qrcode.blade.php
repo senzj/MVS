@@ -1,657 +1,821 @@
 <?php
 
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Livewire\WithFileUploads;
 use Livewire\Volt\Component;
-use Carbon\Carbon;
+use App\Models\Paymentqr;
 use App\Helpers\PaymentImageHelper;
 
 new class extends Component {
     use WithFileUploads;
 
-    public $image;
-    public $currentImage = '';
-    public $showDeleteConfirm = false;
-    public $uploadProgress = 0;
-    public $showCropper = false;
-    public $croppedImageData = null;
+    public array $paymentQrs = [];
 
-    protected $rules = [
-        'image' => 'required|image|mimes:png,jpg,jpeg,webp|max:10000',
-    ];
+    // Add / Edit form (shared)
+    public bool    $showForm          = false;
+    public ?int    $editingId         = null;
+    public string  $name              = '';
+    public $image                     = null;
+    public bool    $showCropper       = false;
+    public ?string $croppedImageData  = null;
+    public ?string $existingImagePath = null;
 
-    public function mount()
+    // Delete confirm
+    public bool $showDeleteConfirm = false;
+    public ?int $deletingId        = null;
+
+    public function mount(): void
     {
-        $files = Storage::disk('public')->files('image/payment');
-        $this->currentImage = collect($files)->first() ?? '';
+        $this->loadQrCodes();
     }
 
-    public function updatedImage()
+    private function loadQrCodes(): void
     {
-        $this->validateOnly('image');
+        $this->paymentQrs = Paymentqr::query()
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Paymentqr $qr) => [
+                'id'        => $qr->id,
+                'name'      => $qr->name,
+                'image_url' => PaymentImageHelper::getPaymentImageUrl($qr->image),
+                'is_active' => (bool) $qr->is_active,
+            ])
+            ->all();
+    }
+
+    public function startAdd(): void
+    {
+        $this->resetForm();
+        $this->showForm = true;
+    }
+
+    public function startEdit(int $id): void
+    {
+        $qr = Paymentqr::query()->find($id);
+        if (! $qr) return;
+
+        $this->resetForm();
+        $this->editingId         = $qr->id;
+        $this->name              = $qr->name;
+        $this->existingImagePath = $qr->image;
+        $this->showForm          = true;
+    }
+
+    public function cancelForm(): void
+    {
+        $this->resetForm();
+        $this->showForm = false;
+    }
+
+    private function resetForm(): void
+    {
+        $this->reset(['editingId', 'name', 'image', 'showCropper', 'croppedImageData', 'existingImagePath']);
+    }
+
+    public function updatedImage(): void
+    {
+        $this->validateOnly('image', [
+            'image' => 'image|mimes:png,jpg,jpeg,webp|max:50240000',
+        ]);
         if ($this->image) {
             $this->showCropper = true;
         }
     }
 
-    public function resetUpload()
+    public function resetUpload(): void
     {
         $this->reset(['image', 'croppedImageData', 'showCropper']);
     }
 
-    public function setCroppedImage($imageData)
+    public function setCroppedImage($imageData): void
     {
         $this->croppedImageData = $imageData;
-        $this->showCropper = false;
+        $this->showCropper      = false;
     }
 
-    public function cancelCrop()
+    public function cancelCrop(): void
     {
         $this->showCropper = false;
         $this->reset(['image', 'croppedImageData']);
     }
 
-    public function save()
+    public function save(): void
     {
-        $this->validate();
+        $this->validate([
+            'name' => [
+                'required', 'string', 'max:255',
+                Rule::unique('payment_qr', 'name')->ignore($this->editingId),
+            ],
+            'image' => $this->editingId
+                ? 'nullable|image|mimes:png,jpg,jpeg,webp|max:50240000'
+                : 'required|image|mimes:png,jpg,jpeg,webp|max:50240000',
+        ]);
 
-        // Remove previous file(s)
-        $oldFiles = Storage::disk('public')->files('image/payment');
-        foreach ($oldFiles as $f) {
-            Storage::disk('public')->delete($f);
+        $path           = $this->existingImagePath;
+        $replacingImage = (bool) ($this->croppedImageData || $this->image);
+
+        if ($replacingImage) {
+            $newPath = $this->storeImage();
+
+            if ($this->editingId && $this->existingImagePath) {
+                Storage::disk('public')->delete($this->existingImagePath);
+            }
+
+            $path = $newPath;
         }
 
-        // Handle cropped image or original
-        if ($this->croppedImageData) {
-            // Process base64 cropped image
-            $imageData = str_replace('data:image/png;base64,', '', $this->croppedImageData);
-            $imageData = str_replace(' ', '+', $imageData);
-            $decodedImage = base64_decode($imageData);
+        if (! $path) {
+            $this->addError('image', __('Please upload a QR code image.'));
+            return;
+        }
 
-            $filename = 'gcash-' . now()->format('YmdHis') . '.png';
-            $path = 'image/payment/' . $filename;
-
-            Storage::disk('public')->put($path, $decodedImage);
-            $this->currentImage = $path;
+        if ($this->editingId) {
+            Paymentqr::query()->whereKey($this->editingId)->update([
+                'name'  => $this->name,
+                'image' => $path,
+            ]);
+            session()->flash('message', __('Payment QR updated successfully.'));
         } else {
-            // Process original image
-            $ext = $this->image->getClientOriginalExtension();
-            $filename = 'gcash-' . now()->format('YmdHis') . '.' . $ext;
-            $path = $this->image->storeAs('image/payment', $filename, 'public');
-            $this->currentImage = $path;
+            Paymentqr::create([
+                'name'      => $this->name,
+                'image'     => $path,
+                'is_active' => true,
+            ]);
+            session()->flash('message', __('Payment QR added successfully.'));
         }
 
-        $this->reset(['image', 'croppedImageData']);
-        session()->flash('message', __('QR Code Image uploaded successfully'));
+        $this->cancelForm();
+        $this->loadQrCodes();
     }
 
-    public function confirmDelete()
+    private function storeImage(): string
     {
+        $slug = Str::slug($this->name) ?: 'qr';
+
+        if ($this->croppedImageData) {
+            $imageData    = str_replace('data:image/png;base64,', '', $this->croppedImageData);
+            $imageData    = str_replace(' ', '+', $imageData);
+            $decodedImage = base64_decode($imageData);
+            $filename     = $slug . '-' . now()->format('YmdHis') . '.png';
+            $path         = 'image/payment/' . $filename;
+            Storage::disk('public')->put($path, $decodedImage);
+            return $path;
+        }
+
+        $ext      = $this->image->getClientOriginalExtension();
+        $filename = $slug . '-' . now()->format('YmdHis') . '.' . $ext;
+
+        return $this->image->storeAs('image/payment', $filename, 'public');
+    }
+
+    public function confirmDelete(int $id): void
+    {
+        $this->deletingId        = $id;
         $this->showDeleteConfirm = true;
     }
 
-    public function delete()
+    public function delete(): void
     {
-        if ($this->currentImage) {
-            Storage::disk('public')->delete($this->currentImage);
-            $this->currentImage = '';
-            session()->flash('message', __('QR Code Image deleted successfully'));
+        $qr = Paymentqr::query()->find($this->deletingId);
+
+        if ($qr) {
+            Storage::disk('public')->delete($qr->image);
+            $qr->delete();
+            session()->flash('message', __('Payment QR deleted.'));
         }
+
+        $this->deletingId        = null;
+        $this->showDeleteConfirm = false;
+        $this->loadQrCodes();
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->deletingId        = null;
         $this->showDeleteConfirm = false;
     }
 
-    public function cancelDelete()
+    public function toggleActive(int $id): void
     {
-        $this->showDeleteConfirm = false;
-    }
-
-    public function with()
-    {
-        return [
-            'showDeleteConfirm' => $this->showDeleteConfirm,
-            'currentImage' => $this->currentImage,
-            'image' => $this->image,
-            'uploadProgress' => $this->uploadProgress,
-            'showCropper' => $this->showCropper,
-            'croppedImageData' => $this->croppedImageData,
-        ];
+        $qr = Paymentqr::query()->find($id);
+        $qr?->update(['is_active' => ! $qr->is_active]);
+        $this->loadQrCodes();
     }
 }; ?>
 
-<section class="w-full" x-data="{ uploadProgress: 0, showImagePreview: false }">
+<section class="w-full">
     @include('partials.settings-heading')
 
     <x-settings.layout>
 
-        {{-- Header Section --}}
-        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8 border border-blue-100">
-            <div class="flex items-start gap-4">
-                <div class="p-3 bg-blue-100 rounded-lg">
-                    <i class="fa-brands fa-paypal text-2xl text-blue-600"></i>
+        {{-- ── Page header ──────────────────────────────────────────── --}}
+        <div class="rounded-2xl border border-blue-100 dark:border-blue-900/50
+                    bg-gradient-to-br from-blue-50 via-indigo-50/60 to-white
+                    dark:from-blue-950/40 dark:via-indigo-950/20 dark:to-zinc-900/0
+                    p-4 sm:p-6 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+
+                {{-- Icon + copy --}}
+                <div class="flex items-start gap-3 flex-1 min-w-0">
+                    <div class="shrink-0 p-2.5 sm:p-3 rounded-xl
+                                bg-blue-100 dark:bg-blue-900/50
+                                ring-1 ring-blue-200 dark:ring-blue-800/60">
+                        <i class="fa-solid fa-qrcode text-xl sm:text-2xl text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="text-base sm:text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-tight">
+                            {{ __('QR Code Payment Settings') }}
+                        </h2>
+                        <p class="mt-1 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                            {{ __('One QR per payment account. The cashier picks which to show at checkout.') }}
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h2 class="text-xl font-bold text-gray-900 mb-1">{{ __('QR Code Payment Settings') }}</h2>
-                    <p class="text-gray-600 text-sm leading-relaxed">
-                        {{ __('Upload your GCash QR code or payment reference image like instaPay. This will be displayed to customers when they choose GCash as their payment method.') }}
-                    </p>
-                </div>
+
+                {{-- Add button --}}
+                @unless($showForm)
+                    <button wire:click="startAdd"
+                            class="cursor-pointer self-start shrink-0 inline-flex items-center gap-2
+                                   px-4 py-2.5 rounded-xl text-sm font-semibold
+                                   bg-blue-600 hover:bg-blue-700 active:scale-95
+                                   dark:bg-blue-500 dark:hover:bg-blue-600
+                                   text-white shadow-sm shadow-blue-500/25
+                                   transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        <span>{{ __('Add QR') }}</span>
+                    </button>
+                @endunless
             </div>
         </div>
 
-        {{-- Success/Error Messages --}}
+        {{-- ── Flash / Error banners ────────────────────────────────── --}}
         @if (session()->has('message'))
-            <div class="flex items-center gap-3 p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 mb-6">
-                <div class="flex-shrink-0">
-                    <i class="fa-solid fa-circle-check text-green-500"></i>
-                </div>
-                <span class="font-medium">{{ session('message') }}</span>
+            <div class="flex items-center gap-3 px-4 py-3 mb-5 rounded-xl
+                        bg-emerald-50 dark:bg-emerald-900/20
+                        border border-emerald-200 dark:border-emerald-800/60
+                        text-emerald-800 dark:text-emerald-300"
+                 x-data x-init="setTimeout(() => $el.remove(), 4000)">
+                <i class="fa-solid fa-circle-check text-emerald-500 dark:text-emerald-400 shrink-0"></i>
+                <span class="text-sm font-medium">{{ session('message') }}</span>
             </div>
         @endif
 
-        @if ($errors->has('image'))
-            <div class="flex items-center gap-3 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 mb-6">
-                <div class="flex-shrink-0">
-                    <i class="fa-solid fa-triangle-exclamation text-red-500"></i>
-                </div>
-                <span class="font-medium">{{ $errors->first('image') }}</span>
+        @if ($errors->has('name') || $errors->has('image'))
+            <div class="flex items-start gap-3 px-4 py-3 mb-5 rounded-xl
+                        bg-red-50 dark:bg-red-900/20
+                        border border-red-200 dark:border-red-800/60
+                        text-red-800 dark:text-red-300">
+                <i class="fa-solid fa-triangle-exclamation text-red-500 dark:text-red-400 shrink-0 mt-0.5"></i>
+                <span class="text-sm font-medium">{{ $errors->first('name') ?: $errors->first('image') }}</span>
             </div>
         @endif
 
-        {{-- Main Content Card --}}
-        <div class="overflow-hidden">
-            {{-- Current Image Section --}}
-            @if ($currentImage)
-                <div class="p-6 border border-gray-200 bg-white rounded-xl shadow-sm">
-                    <h3 class="text-lg font-semibold text-gray-900 flex items-center justify-center gap-2 mb-4">
-                        <i class="fa-solid fa-image text-blue-500"></i>
-                        {{ __('Payment QR Code') }}
-                    </h3>
+        {{-- ── Add / Edit form ──────────────────────────────────────── --}}
+        @if ($showForm)
+            <div class="mb-6 rounded-2xl border
+                        border-zinc-200 dark:border-zinc-700
+                        bg-white dark:bg-zinc-900
+                        shadow-sm overflow-hidden"
+                 x-data x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 -translate-y-2"
+                 x-transition:enter-end="opacity-100 translate-y-0">
 
-                    {{-- Centered Image --}}
-                    <div class="flex justify-center mb-4">
-                        <div class="relative group">
-                            <img src="{{ PaymentImageHelper::getPaymentImageUrl($currentImage) }}"
-                                alt="Current GCash Image"
-                                class="w-full max-w-xs h-auto rounded-lg shadow-md border-2 border-gray-100 object-contain bg-gray-50 cursor-pointer"
-                                x-on:click="showImagePreview = true">
-
-                            {{-- Quick Actions Overlay --}}
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-lg flex items-center justify-center">
-                                <div class="flex gap-2">
-                                    <button x-on:click="showImagePreview = true"
-                                            class="p-2 bg-white/90 hover:bg-white text-gray-700 rounded-lg shadow-sm">
-                                        <i class="fa-solid fa-expand text-sm"></i>
-                                    </button>
-                                    <button wire:click="confirmDelete"
-                                            class="p-2 bg-red-500/90 hover:bg-red-600 text-white rounded-lg shadow-sm">
-                                        <i class="fa-solid fa-trash text-sm"></i>
-                                    </button>
-                                </div>
-                            </div>
+                {{-- Form header --}}
+                <div class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4
+                            border-b border-zinc-100 dark:border-zinc-800
+                            bg-zinc-50/80 dark:bg-zinc-800/50">
+                    <div class="flex items-center gap-2">
+                        <div class="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                            <i class="fa-solid fa-{{ $editingId ? 'pen' : 'cloud-arrow-up' }} text-sm text-blue-600 dark:text-blue-400"></i>
                         </div>
+                        <h3 class="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                            {{ $editingId ? __('Edit Payment QR') : __('Add Payment QR') }}
+                        </h3>
                     </div>
-
-                    {{-- Status + Info + Buttons --}}
-                    <div class="flex flex-col items-center gap-3">
-                        {{-- Active Status Badge --}}
-                        <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <i class="fa-solid fa-circle-check"></i>
-                            {{ __('QR Code in use') }}
-                        </span>
-
-                        {{-- Image Info --}}
-                        <div class="text-sm text-gray-600 flex items-center gap-2">
-                            <i class="fa-solid fa-file text-blue-500"></i>
-                            <span class="font-medium">{{ __('Format') }}:</span>
-                            <span class="uppercase">{{ pathinfo($currentImage, PATHINFO_EXTENSION) }}</span>
-                        </div>
-
-                        {{-- Action Buttons --}}
-                        <div class="flex gap-2">
-                            <button wire:click="confirmDelete"
-                                    class="inline-flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg text-sm font-medium transition-colors">
-                                <i class="fa-solid fa-trash"></i>
-                                {{ __('Remove Image') }}
-                            </button>
-                        </div>
-                    </div>
+                    <button type="button" wire:click="cancelForm"
+                            class="cursor-pointer w-8 h-8 inline-flex items-center justify-center rounded-lg
+                                   text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300
+                                   hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
+                        <i class="fa-solid fa-times text-sm"></i>
+                    </button>
                 </div>
-            @endif
 
+                {{-- Form body --}}
+                <form wire:submit.prevent="save"
+                      class="p-4 sm:p-6 space-y-5"
+                      enctype="multipart/form-data">
 
-            {{-- Upload Section --}}
-            @if(!$currentImage)
-                <div class="p-6 mt-5 border border-gray-200 bg-white rounded-xl shadow-sm">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-cloud-arrow-up text-blue-500"></i>
-                        {{ __('Upload Payment QR Code') }}
-                    </h3>
+                    {{-- Account name --}}
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                            {{ __('Account Name') }}
+                        </label>
+                        <input type="text"
+                               wire:model="name"
+                               placeholder="{{ __('e.g. GCash – Juan Dela Cruz') }}"
+                               autocomplete="off"
+                               class="w-full rounded-xl border px-3.5 py-2.5 text-sm
+                                      border-zinc-300 dark:border-zinc-600
+                                      bg-white dark:bg-zinc-800
+                                      text-zinc-900 dark:text-zinc-100
+                                      placeholder-zinc-400 dark:placeholder-zinc-500
+                                      focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 dark:focus:border-blue-500
+                                      transition-colors">
+                        @error('name')
+                            <p class="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                                <i class="fa-solid fa-circle-exclamation"></i> {{ $message }}
+                            </p>
+                        @enderror
+                        <p class="text-xs text-zinc-400 dark:text-zinc-500">
+                            {{ __('Shown in cashier dropdown') }}
+                        </p>
+                    </div>
 
-                    <form wire:submit.prevent="save" class="space-y-6"
-                          x-on:livewire-upload-start="uploadProgress = 0"
-                          x-on:livewire-upload-progress="uploadProgress = $event.detail.progress"
-                          x-on:livewire-upload-finish="uploadProgress = 0"
-                          x-on:livewire-upload-error="uploadProgress = 0"
-                          enctype="multipart/form-data">
-                        {{-- Image upload Drag & Drop Zone --}}
-                        @if (!$showCropper && !$croppedImageData)
-                            <div x-data="{
-                                    dragging: false,
-                                    handleDrop(e) {
-                                        this.dragging = false;
-                                        const files = e.dataTransfer.files;
-                                        if(files && files[0]) {
-                                            $refs.fileInput.files = files;
-                                            $refs.fileInput.dispatchEvent(new Event('input'));
-                                        }
-                                    }
-                                }"
-                                x-on:dragover.prevent="dragging = true"
-                                x-on:dragleave.prevent="dragging = false"
-                                x-on:drop.prevent="handleDrop($event)"
-                                class="relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 min-h-[200px] flex flex-col items-center justify-center"
-                                :class="dragging ? 'border-blue-400 bg-blue-50 scale-[1.02]' : 'border-gray-300 bg-gray-50 hover:border-blue-300 hover:bg-blue-25'">
-
-                                <input type="file"
-                                    x-ref="fileInput"
-                                    wire:model="image"
-                                    accept="image/png,image/jpeg,image/jpg,image/webp"
-                                    class="hidden">
-
-                                <div x-on:click="$refs.fileInput.click()" class="space-y-4">
-                                    <div class="p-4 bg-blue-100 rounded-full w-fit mx-auto">
-                                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-blue-600"></i>
-                                    </div>
-
-                                    <div class="space-y-2">
-                                        <p class="text-lg font-medium text-gray-700">
-                                            <span class="text-blue-600 underline">{{ __('Click to browse') }}</span> {{ __('or drag & drop your image') }}
-                                        </p>
-                                        <p class="text-sm text-gray-500">
-                                            {{ __('Supports PNG, JPG, JPEG, WEBP | Maximum 10MB') }}
-                                        </p>
-                                    </div>
-
-                                    {{-- <div class="flex items-center justify-center gap-4 text-xs text-gray-400 pt-2">
-                                        <div class="flex items-center gap-1">
-                                            <i class="fa-solid fa-shield-check"></i>
-                                            <span>Secure Upload</span>
-                                        </div>
-                                        <div class="flex items-center gap-1">
-                                            <i class="fa-solid fa-crop text-blue-500"></i>
-                                            <span>Auto Crop</span>
-                                        </div>
-                                        <div class="flex items-center gap-1">
-                                            <i class="fa-solid fa-zap"></i>
-                                            <span>Instant Preview</span>
-                                        </div>
-                                    </div> --}}
-                                </div>
+                    {{-- Current image (edit mode) --}}
+                    @if ($editingId && $existingImagePath && !$image && !$croppedImageData)
+                        <div class="flex items-center gap-4 p-1 rounded-xl
+                                    bg-zinc-50 dark:bg-zinc-800/60
+                                    border border-zinc-200 dark:border-zinc-700">
+                            <img src="{{ PaymentImageHelper::getPaymentImageUrl($existingImagePath) }}"
+                                 class="w-52 h-52 object-contain rounded-lg
+                                        border border-zinc-200 dark:border-zinc-700
+                                        bg-white dark:bg-zinc-900"
+                                 alt="{{ __('Current QR') }}">
+                            <div>
+                                <p class="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                                    {{ __('Current QR Image') }}
+                                </p>
+                                <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+                                    {{ __('Upload below to replace it.') }}
+                                </p>
                             </div>
-                        @endif
-
-                        {{-- Cropped Image Preview --}}
-                        @if ($croppedImageData)
-                            <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                                <h4 class="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                                    <i class="fa-solid fa-crop text-green-500"></i>
-                                    {{ __('Cropped Preview') }}
-                                </h4>
-
-                                <div class="flex flex-col items-center gap-6">
-                                    <div class="flex-shrink-0">
-                                        <img src="{{ $croppedImageData }}"
-                                            alt="Cropped Preview"
-                                            class="w-full max-w-xs h-auto rounded-lg border-2 border-white shadow-md object-contain bg-white mx-auto">
-                                    </div>
-
-                                    <div class="w-full space-y-4 text-center">
-                                        <div class="flex items-center gap-2 text-green-600 text-sm justify-center">
-                                            <i class="fa-solid fa-circle-check"></i>
-                                            <span class="font-medium">{{ __('Image cropped! Ready to upload.') }}</span>
-                                        </div>
-
-                                        <button type="button"
-                                                wire:click="$set('showCropper', true)"
-                                                class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-sm font-medium transition-colors">
-                                            <i class="fa-solid fa-crop"></i>
-                                            {{ __('Crop Again') }}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-
-                        {{-- Loading State --}}
-                        <div wire:loading.flex wire:target="image" class="items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <div class="flex items-center gap-2 text-blue-700">
-                                <i class="fa-solid fa-spinner fa-spin"></i>
-                                <span class="font-medium">{{ __('Processing your image...') }}</span>
-                            </div>
-                        </div>
-
-                        {{-- Upload Progress Bar --}}
-                        <div x-show="uploadProgress > 0" class="space-y-2" x-cloak>
-                            <div class="flex justify-between items-center text-sm">
-                                <span class="font-medium text-gray-700 flex items-center gap-2">
-                                    <i class="fa-solid fa-upload text-blue-500"></i>
-                                    {{ __('Uploading...') }}
-                                </span>
-                                <span class="font-bold text-blue-600" x-text="uploadProgress + '%'"></span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                                <div class="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-300 ease-out"
-                                     :style="'width: ' + uploadProgress + '%'"></div>
-                            </div>
-                        </div>
-
-                        {{-- Action Buttons --}}
-                        <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4">
-                            @if (!empty($image) || !empty($croppedImageData))
-                                <button type="button"
-                                        wire:click="resetUpload"
-                                        class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors duration-200">
-                                    <i class="fa-solid fa-rotate-left"></i>
-                                    {{ __('Reset') }}
-                                </button>
-                            @endif
-
-                            <button type="submit"
-                                    wire:loading.attr="disabled"
-                                    wire:target="save,image"
-                                    :disabled="!($wire.image || $wire.croppedImageData)"
-                                    class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 focus:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed">
-                                <span wire:loading.remove wire:target="save" class="flex items-center gap-2">
-                                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                                    {{ __('Upload Image') }}
-                                </span>
-                                <span wire:loading wire:target="save" class="flex items-center gap-2">
-                                    <i class="fa-solid fa-spinner fa-spin"></i>
-                                    {{ __('Uploading...') }}
-                                </span>
-                            </button>
-
-                        </div>
-                    </form>
-
-                    {{-- Help Section --}}
-                    @if (!$currentImage && !$image && !$croppedImageData)
-                        <div class="mt-8 p-4 bg-amber-50 rounded-lg border border-amber-200">
-                            <h4 class="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
-                                <i class="fa-solid fa-lightbulb"></i>
-                                {{ __('Tips for best results') }}
-                            </h4>
-                            <ul class="text-sm text-amber-700 space-y-1">
-                                <li>• {{ __('Use a clear, high-resolution image of your Payment QR code') }}</li>
-                                <li>• {{ __('Ensure the QR code is easily scannable') }}</li>
-                                <li>• {{ __('Include your Payment name/number for reference') }}</li>
-                                <li>• {{ __('Avoid using images with excessive glare or shadows') }}</li>
-                            </ul>
                         </div>
                     @endif
+
+                    {{-- Upload zone --}}
+                    @if (!$showCropper && !$croppedImageData)
+                        <div x-data="{
+                                dragging: false,
+                                handleDrop(e) {
+                                    this.dragging = false;
+                                    const files = e.dataTransfer.files;
+                                    if (files && files[0]) {
+                                        $refs.fileInput.files = files;
+                                        $refs.fileInput.dispatchEvent(new Event('input'));
+                                    }
+                                }
+                             }"
+                             x-on:dragover.prevent="dragging = true"
+                             x-on:dragleave.prevent="dragging = false"
+                             x-on:drop.prevent="handleDrop($event)"
+                             x-on:click="$refs.fileInput.click()"
+                             :class="dragging
+                                ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20 scale-[1.01]'
+                                : 'border-zinc-300 dark:border-zinc-600 bg-zinc-50 dark:bg-zinc-800/40 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-900/10'"
+                             class="relative border-2 border-dashed rounded-xl
+                                    p-6 sm:p-8 text-center cursor-pointer
+                                    transition-all duration-200 min-h-[140px] sm:min-h-[160px]
+                                    flex flex-col items-center justify-center gap-3">
+
+                            <input type="file" x-ref="fileInput" wire:model="image"
+                                   accept="image/png,image/jpeg,image/jpg,image/webp" class="hidden">
+
+                            <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900/50 ring-1 ring-blue-200 dark:ring-blue-800/60">
+                                <i class="fa-solid fa-cloud-arrow-up text-lg text-blue-600 dark:text-blue-400"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                    <span class="text-blue-600 dark:text-blue-400 underline underline-offset-2">{{ __('Click to browse') }}</span>
+                                    <span class="hidden sm:inline"> {{ __('or drag & drop') }}</span>
+                                </p>
+                                <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-1">{{ __('PNG, JPG, JPEG, WEBP · Max 100 MB') }}</p>
+                            </div>
+                        </div>
+
+                        @error('image')
+                            <p class="text-xs text-red-600 dark:text-red-400 flex items-center gap-1 -mt-2">
+                                <i class="fa-solid fa-circle-exclamation"></i> {{ $message }}
+                            </p>
+                        @enderror
+                    @endif
+
+                    {{-- Upload loading --}}
+                    <div wire:loading.flex wire:target="image"
+                         class="hidden items-center gap-3 px-4 py-3 rounded-xl
+                                bg-blue-50 dark:bg-blue-900/20
+                                border border-blue-200 dark:border-blue-800/50">
+                        <i class="fa-solid fa-spinner fa-spin text-blue-600 dark:text-blue-400"></i>
+                        <span class="text-sm font-medium text-blue-700 dark:text-blue-300">{{ __('Processing image') }}</span>
+                    </div>
+
+                    {{-- Cropped preview --}}
+                    @if ($croppedImageData)
+                        <div class="rounded-xl border border-emerald-200 dark:border-emerald-800/60
+                                    bg-emerald-50 dark:bg-emerald-900/10 p-4 sm:p-5">
+                            <p class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                <i class="fa-solid fa-crop-simple"></i>{{ __('Cropped Image Preview') }}
+                            </p>
+                            <div class="flex flex-col sm:flex-row items-center gap-4">
+                                <img src="{{ $croppedImageData }}"
+                                     class="w-full max-w-40 sm:max-w-50 h-auto rounded-lg
+                                            border border-white dark:border-zinc-700 shadow-md object-contain
+                                            bg-white dark:bg-zinc-900">
+                                <div class="flex flex-col gap-2 w-full sm:w-auto">
+                                    <button type="button" wire:click="$set('showCropper', true)"
+                                            class="cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2
+                                                   rounded-lg text-sm font-medium
+                                                   bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700
+                                                   text-zinc-700 dark:text-zinc-300
+                                                   hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                                        <i class="fa-solid fa-crop text-xs"></i>{{ __('Crop Image') }}
+                                    </button>
+                                    <button type="button" wire:click="resetUpload"
+                                            class="cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2
+                                                   rounded-lg text-sm font-medium
+                                                   text-red-600 dark:text-red-400
+                                                   hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                        <i class="fa-solid fa-trash text-xs"></i>{{ __('Remove') }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Form actions --}}
+                    <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 pt-1">
+                        <button type="button" wire:click="cancelForm"
+                                class="cursor-pointer inline-flex items-center justify-center gap-2
+                                       px-5 py-2.5 rounded-xl text-sm font-semibold
+                                       border border-zinc-300 dark:border-zinc-600
+                                       bg-white dark:bg-zinc-800
+                                       text-zinc-700 dark:text-zinc-300
+                                       hover:bg-zinc-50 dark:hover:bg-zinc-700
+                                       transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:ring-offset-2 dark:focus:ring-offset-zinc-900">
+                            {{ __('Cancel') }}
+                        </button>
+                        <button type="submit"
+                                wire:loading.attr="disabled"
+                                wire:target="save"
+                                class="cursor-pointer inline-flex items-center justify-center gap-2
+                                       px-5 py-2.5 rounded-xl text-sm font-semibold
+                                       bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600
+                                       text-white shadow-sm shadow-blue-500/25
+                                       disabled:opacity-60 disabled:cursor-not-allowed
+                                       transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900">
+                            <span wire:loading.remove wire:target="save" class="flex items-center gap-2">
+                                <i class="fa-solid fa-check text-xs"></i>{{ __('Save') }}
+                            </span>
+                            <span wire:loading wire:target="save" class="flex items-center gap-2">
+                                <i class="fa-solid fa-spinner fa-spin text-xs"></i>{{ __('Saving') }}
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        @endif
+
+        {{-- ── QR code grid ─────────────────────────────────────────── --}}
+        @if (empty($paymentQrs) && !$showForm)
+            <div class="flex flex-col items-center justify-center gap-3 py-14 sm:py-20
+                        rounded-2xl border-2 border-dashed
+                        border-zinc-200 dark:border-zinc-700
+                        bg-zinc-50 dark:bg-zinc-800/30 text-center px-4">
+                <div class="p-4 rounded-2xl bg-zinc-100 dark:bg-zinc-800">
+                    <i class="fa-solid fa-qrcode text-3xl text-zinc-300 dark:text-zinc-600"></i>
                 </div>
-            @endif
-        </div>
+                <div>
+                    <p class="text-sm font-semibold text-zinc-600 dark:text-zinc-400">{{ __('No QR codes yet') }}</p>
+                    <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-1">{{ __('Add your first payment account to get started.') }}</p>
+                </div>
+                <button wire:click="startAdd"
+                        class="cursor-pointer mt-1 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
+                               bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600
+                               text-white shadow-sm transition-all active:scale-95">
+                    <i class="fa-solid fa-plus text-xs"></i>{{ __('Add QR Code') }}
+                </button>
+            </div>
 
-        {{-- Image Crop Modal --}}
+        @elseif (!empty($paymentQrs))
+            <div class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-2 gap-2">
+                @foreach ($paymentQrs as $qr)
+                    <div class="group flex flex-col rounded-2xl border transition-all duration-200
+                                {{ $qr['is_active']
+                                    ? 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-blue-200 dark:hover:border-blue-800/60 hover:shadow-md dark:hover:shadow-blue-900/10'
+                                    : 'border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/50 opacity-60' }}">
+
+                        {{-- QR Image --}}
+                        <div class="flex items-center justify-center
+                                    bg-zinc-50 dark:bg-zinc-800/60 rounded-t-2xl
+                                    border-b border-zinc-100 dark:border-zinc-800">
+                            <img src="{{ $qr['image_url'] }}"
+                                 alt="{{ $qr['name'] }}"
+                                 class="w-64 h-64 object-contain rounded-lg
+                                        bg-white dark:bg-zinc-900
+                                        border border-zinc-100 dark:border-zinc-700">
+                        </div>
+
+                        {{-- Card body --}}
+                        <div class="flex flex-col flex-1 p-3 sm:p-4 gap-3">
+
+                            {{-- Name + badge --}}
+                            <div class="flex items-start justify-between gap-2 min-w-0">
+                                <p class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate leading-snug">
+                                    {{ $qr['name'] }}
+                                </p>
+                                <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold
+                                    {{ $qr['is_active']
+                                        ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400' }}">
+                                    {{ $qr['is_active'] ? __('Active') : __('Disabled') }}
+                                </span>
+                            </div>
+
+                            {{-- Actions --}}
+                            <div class="flex items-center gap-1.5 mt-auto justify-between">
+                                {{-- Toggle --}}
+                                <button wire:click="toggleActive({{ $qr['id'] }})"
+                                        wire:loading.attr="disabled"
+                                        wire:target="toggleActive({{ $qr['id'] }})"
+                                        title="{{ $qr['is_active'] ? __('Disable') : __('Enable') }}"
+                                        class="cursor-pointer flex-1 inline-flex items-center justify-center gap-1.5
+                                               px-3 py-2 rounded-xl text-xs font-semibold
+                                               border transition-colors
+                                               {{ $qr['is_active']
+                                                    ? 'border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                                                    : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800' }}">
+                                    <i class="fa-solid fa-{{ $qr['is_active'] ? 'toggle-on' : 'toggle-off' }} text-sm"></i>
+                                    <span class="hidden xs:inline">{{ $qr['is_active'] ? __('Disable') : __('Enable') }}</span>
+                                </button>
+
+                                {{-- Edit --}}
+                                <button wire:click="startEdit({{ $qr['id'] }})"
+                                        title="{{ __('Edit') }}"
+                                        class="cursor-pointer inline-flex items-center justify-center
+                                               w-9 h-9 rounded-xl border text-xs
+                                               border-blue-200 dark:border-blue-800/60
+                                               text-blue-600 dark:text-blue-400
+                                               hover:bg-blue-50 dark:hover:bg-blue-900/20
+                                               transition-colors">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+
+                                {{-- Delete --}}
+                                <button wire:click="confirmDelete({{ $qr['id'] }})"
+                                        title="{{ __('Delete') }}"
+                                        class="cursor-pointer inline-flex items-center justify-center
+                                               w-9 h-9 rounded-xl border text-xs
+                                               border-red-200 dark:border-red-800/60
+                                               text-red-500 dark:text-red-400
+                                               hover:bg-red-50 dark:hover:bg-red-900/20
+                                               transition-colors">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        {{-- ── Crop modal ────────────────────────────────────────────── --}}
         @if($showCropper && $image)
-            <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center
+                        bg-black/60 dark:bg-black/75 backdrop-blur-sm p-0 sm:p-4"
+                 x-data x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100">
 
-                    {{-- Crop Header --}}
-                    <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
-                        <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                            <i class="fa-solid fa-crop text-blue-500"></i>
-                            {{ __('Crop Your Image') }}
-                        </h3>
+                <div class="relative w-full sm:max-w-3xl
+                            bg-white dark:bg-zinc-900
+                            rounded-t-2xl sm:rounded-2xl shadow-2xl
+                            max-h-[92dvh] sm:max-h-[90vh]
+                            flex flex-col overflow-hidden"
+                     x-transition:enter="transition ease-out duration-250"
+                     x-transition:enter-start="translate-y-4 sm:translate-y-0 sm:scale-95 opacity-0"
+                     x-transition:enter-end="translate-y-0 sm:scale-100 opacity-100">
+
+                    {{-- Modal header --}}
+                    <div class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4
+                                border-b border-zinc-200 dark:border-zinc-800
+                                bg-zinc-50 dark:bg-zinc-800/60 shrink-0">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-crop text-blue-500 dark:text-blue-400"></i>
+                            <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Crop Image') }}</h3>
+                        </div>
                         <button wire:click="cancelCrop"
-                                class="p-2 hover:bg-gray-200 rounded-lg transition-colors">
-                            <i class="fa-solid fa-times text-gray-400"></i>
+                                class="cursor-pointer w-8 h-8 flex items-center justify-center rounded-lg
+                                       text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200
+                                       hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
+                            <i class="fa-solid fa-times"></i>
                         </button>
                     </div>
 
-                    {{-- Crop Content --}}
-                    <div class="p-6"
+                    {{-- Cropper canvas --}}
+                    <div class="flex-1 overflow-y-auto p-4 sm:p-6"
                          x-data="{
-                            canvas: null,
-                            ctx: null,
-                            img: null,
-                            isDrawing: false,
-                            startX: 0,
-                            startY: 0,
-                            currentX: 0,
-                            currentY: 0,
-                            cropX: 0,
-                            cropY: 0,
-                            cropWidth: 0,
-                            cropHeight: 0,
-
+                            canvas: null, ctx: null, img: null, isDrawing: false,
+                            startX: 0, startY: 0, currentX: 0, currentY: 0,
+                            cropX: 0, cropY: 0, cropWidth: 0, cropHeight: 0,
                             initCropper() {
                                 this.canvas = this.$refs.cropCanvas;
-                                this.ctx = this.canvas.getContext('2d');
-                                this.img = new Image();
-
+                                this.ctx    = this.canvas.getContext('2d');
+                                this.img    = new Image();
                                 this.img.onload = () => {
-                                    const maxWidth = 600;
-                                    const maxHeight = 400;
+                                    const maxW = Math.min(560, window.innerWidth - 48);
+                                    const maxH = Math.min(380, window.innerHeight * 0.45);
                                     let { width, height } = this.img;
-
-                                    if (width > maxWidth) {
-                                        height = (height * maxWidth) / width;
-                                        width = maxWidth;
-                                    }
-                                    if (height > maxHeight) {
-                                        width = (width * maxHeight) / height;
-                                        height = maxHeight;
-                                    }
-
-                                    this.canvas.width = width;
-                                    this.canvas.height = height;
+                                    if (width > maxW)  { height = (height * maxW)  / width;  width  = maxW;  }
+                                    if (height > maxH) { width  = (width  * maxH)  / height; height = maxH;  }
+                                    this.canvas.width  = Math.round(width);
+                                    this.canvas.height = Math.round(height);
+                                    this.cropX = 0; this.cropY = 0;
+                                    this.cropWidth = this.canvas.width; this.cropHeight = this.canvas.height;
                                     this.drawImage();
-
-                                    // Set initial crop to full image
-                                    this.cropX = 0;
-                                    this.cropY = 0;
-                                    this.cropWidth = width;
-                                    this.cropHeight = height;
                                     this.drawCropRect();
                                 };
-
                                 this.img.src = '{{ $image->temporaryUrl() }}';
                             },
-
                             drawImage() {
                                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                                 this.ctx.drawImage(this.img, 0, 0, this.canvas.width, this.canvas.height);
                             },
-
                             drawCropRect() {
                                 this.drawImage();
-
-                                // Draw overlay
-                                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                                this.ctx.fillStyle = 'rgba(0,0,0,0.48)';
                                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-                                // Clear crop area
                                 this.ctx.clearRect(this.cropX, this.cropY, this.cropWidth, this.cropHeight);
-                                this.ctx.drawImage(this.img, 0, 0, this.canvas.width, this.canvas.height);
-
-                                // Draw crop border
+                                this.ctx.drawImage(
+                                    this.img,
+                                    (this.cropX / this.canvas.width) * this.img.naturalWidth,
+                                    (this.cropY / this.canvas.height) * this.img.naturalHeight,
+                                    (this.cropWidth / this.canvas.width) * this.img.naturalWidth,
+                                    (this.cropHeight / this.canvas.height) * this.img.naturalHeight,
+                                    this.cropX, this.cropY, this.cropWidth, this.cropHeight
+                                );
                                 this.ctx.strokeStyle = '#3b82f6';
                                 this.ctx.lineWidth = 2;
                                 this.ctx.strokeRect(this.cropX, this.cropY, this.cropWidth, this.cropHeight);
-
-                                // Draw corner handles
-                                const handleSize = 8;
+                                const hs = 8;
                                 this.ctx.fillStyle = '#3b82f6';
-                                this.ctx.fillRect(this.cropX - handleSize/2, this.cropY - handleSize/2, handleSize, handleSize);
-                                this.ctx.fillRect(this.cropX + this.cropWidth - handleSize/2, this.cropY - handleSize/2, handleSize, handleSize);
-                                this.ctx.fillRect(this.cropX - handleSize/2, this.cropY + this.cropHeight - handleSize/2, handleSize, handleSize);
-                                this.ctx.fillRect(this.cropX + this.cropWidth - handleSize/2, this.cropY + this.cropHeight - handleSize/2, handleSize, handleSize);
+                                [[this.cropX, this.cropY],[this.cropX+this.cropWidth, this.cropY],
+                                 [this.cropX, this.cropY+this.cropHeight],[this.cropX+this.cropWidth, this.cropY+this.cropHeight]]
+                                    .forEach(([x,y]) => this.ctx.fillRect(x-hs/2, y-hs/2, hs, hs));
                             },
-
                             startCrop(e) {
                                 const rect = this.canvas.getBoundingClientRect();
-                                this.startX = e.clientX - rect.left;
-                                this.startY = e.clientY - rect.top;
+                                const scaleX = this.canvas.width / rect.width;
+                                const scaleY = this.canvas.height / rect.height;
+                                this.startX = (e.clientX - rect.left) * scaleX;
+                                this.startY = (e.clientY - rect.top)  * scaleY;
                                 this.isDrawing = true;
                             },
-
                             updateCrop(e) {
                                 if (!this.isDrawing) return;
-
                                 const rect = this.canvas.getBoundingClientRect();
-                                this.currentX = e.clientX - rect.left;
-                                this.currentY = e.clientY - rect.top;
-
+                                const scaleX = this.canvas.width / rect.width;
+                                const scaleY = this.canvas.height / rect.height;
+                                this.currentX = Math.max(0, Math.min((e.clientX - rect.left) * scaleX, this.canvas.width));
+                                this.currentY = Math.max(0, Math.min((e.clientY - rect.top)  * scaleY, this.canvas.height));
                                 this.cropX = Math.min(this.startX, this.currentX);
                                 this.cropY = Math.min(this.startY, this.currentY);
-                                this.cropWidth = Math.abs(this.currentX - this.startX);
+                                this.cropWidth  = Math.abs(this.currentX - this.startX);
                                 this.cropHeight = Math.abs(this.currentY - this.startY);
-
                                 this.drawCropRect();
                             },
-
-                            endCrop() {
-                                this.isDrawing = false;
-                            },
-
+                            endCrop() { this.isDrawing = false; },
                             applyCrop() {
                                 if (this.cropWidth < 10 || this.cropHeight < 10) {
-                                    alert('Please select a larger area to crop');
+                                    alert('{{ __('Please select a larger area to crop.') }}');
                                     return;
                                 }
-
-                                const tempCanvas = document.createElement('canvas');
-                                const tempCtx = tempCanvas.getContext('2d');
-
-                                // Calculate scale factors
-                                const scaleX = this.img.naturalWidth / this.canvas.width;
-                                const scaleY = this.img.naturalHeight / this.canvas.height;
-
-                                const actualCropX = this.cropX * scaleX;
-                                const actualCropY = this.cropY * scaleY;
-                                const actualCropWidth = this.cropWidth * scaleX;
-                                const actualCropHeight = this.cropHeight * scaleY;
-
-                                tempCanvas.width = actualCropWidth;
-                                tempCanvas.height = actualCropHeight;
-
-                                tempCtx.drawImage(
-                                    this.img,
-                                    actualCropX, actualCropY, actualCropWidth, actualCropHeight,
-                                    0, 0, actualCropWidth, actualCropHeight
-                                );
-
-                                const croppedDataUrl = tempCanvas.toDataURL('image/png');
-                                $wire.setCroppedImage(croppedDataUrl);
+                                const tmp = document.createElement('canvas');
+                                const tc  = tmp.getContext('2d');
+                                const sX  = this.img.naturalWidth  / this.canvas.width;
+                                const sY  = this.img.naturalHeight / this.canvas.height;
+                                tmp.width  = this.cropWidth  * sX;
+                                tmp.height = this.cropHeight * sY;
+                                tc.drawImage(this.img, this.cropX*sX, this.cropY*sY, tmp.width, tmp.height, 0, 0, tmp.width, tmp.height);
+                                $wire.setCroppedImage(tmp.toDataURL('image/png'));
                             },
-
                             resetCrop() {
-                                this.cropX = 0;
-                                this.cropY = 0;
-                                this.cropWidth = this.canvas.width;
-                                this.cropHeight = this.canvas.height;
+                                this.cropX = 0; this.cropY = 0;
+                                this.cropWidth = this.canvas.width; this.cropHeight = this.canvas.height;
                                 this.drawCropRect();
                             }
                          }"
                          x-init="$nextTick(() => initCropper())">
 
-                        <div class="space-y-4">
-                            <div class="text-center">
-                                <p class="text-sm text-gray-600 mb-4">
-                                    {{ __('Click and drag to select the area you want to keep. Focus on your QR code and important details.') }}
-                                </p>
+                        <p class="text-xs text-zinc-500 dark:text-zinc-400 text-center mb-4">
+                            {{ __('Click and drag on the image to select the crop area.') }}
+                        </p>
 
-                                <div class="inline-block border-2 border-gray-200 rounded-lg overflow-hidden bg-white">
-                                    <canvas x-ref="cropCanvas"
-                                            x-on:mousedown="startCrop($event)"
-                                            x-on:mousemove="updateCrop($event)"
-                                            x-on:mouseup="endCrop()"
-                                            x-on:mouseleave="endCrop()"
-                                            class="cursor-crosshair">
-                                    </canvas>
-                                </div>
-                            </div>
+                        {{-- Scrollable canvas wrapper --}}
+                        <div class="w-full overflow-auto rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 flex justify-center">
+                            <canvas x-ref="cropCanvas"
+                                    x-on:mousedown="startCrop($event)"
+                                    x-on:mousemove="updateCrop($event)"
+                                    x-on:mouseup="endCrop()"
+                                    x-on:mouseleave="endCrop()"
+                                    class="cursor-crosshair max-w-full"></canvas>
+                        </div>
 
-                            {{-- Crop Controls --}}
-                            <div class="flex flex-col sm:flex-row gap-3 justify-center">
-
-                                <button type="button" wire:click="cancelCrop"
-                                        class="cursor-pointer inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-medium rounded-lg transition-colors">
-                                    <i class="fa-solid fa-times"></i>
-                                    {{ __('Cancel') }}
-                                </button>
-
-                                <button type="button" x-on:click="resetCrop()"
-                                        class="cursor-pointer inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
-                                    <i class="fa-solid fa-expand"></i>
-                                    {{ __('Reset') }}
-                                </button>
-
-                                <button type="button" x-on:click="applyCrop()"
-                                        class="cursor-pointer inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-sm transition-colors">
-                                    <i class="fa-solid fa-check"></i>
-                                    {{ __('Apply') }}
-                                </button>
-
-                            </div>
+                        {{-- Crop buttons --}}
+                        <div class="flex flex-col sm:flex-row gap-2.5 justify-center mt-4">
+                            <button type="button" wire:click="cancelCrop"
+                                    class="cursor-pointer inline-flex items-center justify-center gap-2
+                                           px-5 py-2.5 rounded-xl text-sm font-semibold
+                                           border border-red-200 dark:border-red-800/60
+                                           text-red-600 dark:text-red-400
+                                           hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                <i class="fa-solid fa-times text-xs"></i>{{ __('Cancel') }}
+                            </button>
+                            <button type="button" x-on:click="resetCrop()"
+                                    class="cursor-pointer inline-flex items-center justify-center gap-2
+                                           px-5 py-2.5 rounded-xl text-sm font-semibold
+                                           border border-zinc-300 dark:border-zinc-600
+                                           text-zinc-700 dark:text-zinc-300
+                                           bg-white dark:bg-zinc-800
+                                           hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                                <i class="fa-solid fa-expand text-xs"></i>{{ __('Reset') }}
+                            </button>
+                            <button type="button" x-on:click="applyCrop()"
+                                    class="cursor-pointer inline-flex items-center justify-center gap-2
+                                           px-5 py-2.5 rounded-xl text-sm font-semibold
+                                           bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600
+                                           text-white shadow-sm transition-all active:scale-95">
+                                <i class="fa-solid fa-check text-xs"></i>{{ __('Apply Crop') }}
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         @endif
 
-        {{-- Image Preview Modal --}}
-        <div x-show="showImagePreview"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4"
-            x-on:keydown.escape="showImagePreview = false"
-            style="display: none;">
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" x-on:click="showImagePreview = false"></div>
-            <div class="relative bg-white rounded-xl shadow-2xl max-w-2xl max-h-[90vh] overflow-auto">
-                <div class="flex items-center justify-between p-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">GCash Image Preview</h3>
-                    <button x-on:click="showImagePreview = false"
-                            class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <i class="fa-solid fa-times text-gray-400"></i>
-                    </button>
-                </div>
-                <div class="p-4">
-                    @if ($currentImage)
-                        <img src="{{ PaymentImageHelper::getPaymentImageUrl($currentImage) }}"
-                            alt="GCash Image Preview"
-                            class="w-full h-auto rounded-lg">
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        {{-- Enhanced Delete Confirmation Modal --}}
+        {{-- ── Delete confirmation modal ─────────────────────────────── --}}
         @if($showDeleteConfirm)
-            <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-                <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" wire:click="cancelDelete"></div>
-                <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md">
-                    <div class="p-6">
-                        <div class="flex items-center gap-3 mb-4">
-                            <div class="p-2 bg-red-100 rounded-lg">
-                                <i class="fa-solid fa-triangle-exclamation text-red-600 text-lg"></i>
+            <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center
+                        bg-black/60 dark:bg-black/75 backdrop-blur-sm p-0 sm:p-4"
+                 wire:click.self="cancelDelete"
+                 x-data x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100">
+
+                <div class="relative w-full sm:max-w-md
+                            bg-white dark:bg-zinc-900
+                            rounded-t-2xl sm:rounded-2xl shadow-2xl
+                            overflow-hidden"
+                     x-transition:enter="transition ease-out duration-250"
+                     x-transition:enter-start="translate-y-4 sm:translate-y-0 sm:scale-95 opacity-0"
+                     x-transition:enter-end="translate-y-0 sm:scale-100 opacity-100">
+
+                    {{-- Drag handle (mobile) --}}
+                    <div class="flex justify-center pt-3 pb-1 sm:hidden">
+                        <div class="w-10 h-1 rounded-full bg-zinc-300 dark:bg-zinc-600"></div>
+                    </div>
+
+                    <div class="p-5 sm:p-6 space-y-5">
+                        {{-- Icon + title --}}
+                        <div class="flex items-start gap-4">
+                            <div class="shrink-0 p-2.5 rounded-xl bg-red-100 dark:bg-red-900/30 ring-1 ring-red-200 dark:ring-red-800/50">
+                                <i class="fa-solid fa-triangle-exclamation text-red-600 dark:text-red-400 text-lg"></i>
                             </div>
-                            <h4 class="text-lg font-semibold text-gray-900">Delete GCash Image</h4>
+                            <div class="min-w-0">
+                                <h4 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                                    {{ __('Delete Payment QR') }}
+                                </h4>
+                                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                                    {{ __('This QR code will be permanently removed. This action cannot be undone.') }}
+                                </p>
+                            </div>
                         </div>
 
-                        <p class="text-gray-600 mb-6 leading-relaxed">
-                            Are you sure you want to delete the current GCash image? This action cannot be undone and customers won't be able to see your payment details.
-                        </p>
-
-                        <div class="flex gap-3">
+                        {{-- Buttons --}}
+                        <div class="flex flex-col-reverse sm:flex-row gap-2.5">
                             <button wire:click="cancelDelete"
-                                    class="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
-                                Cancel
+                                    class="cursor-pointer flex-1 inline-flex items-center justify-center px-5 py-2.5
+                                           rounded-xl text-sm font-semibold
+                                           border border-zinc-300 dark:border-zinc-600
+                                           bg-white dark:bg-zinc-800
+                                           text-zinc-700 dark:text-zinc-300
+                                           hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
+                                {{ __('Keep it') }}
                             </button>
                             <button wire:click="delete"
-                                    class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-trash"></i>
-                                Delete
+                                    wire:loading.attr="disabled"
+                                    wire:target="delete"
+                                    class="cursor-pointer flex-1 inline-flex items-center justify-center gap-2
+                                           px-5 py-2.5 rounded-xl text-sm font-semibold
+                                           bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600
+                                           text-white shadow-sm transition-all active:scale-95
+                                           disabled:opacity-60 disabled:cursor-not-allowed">
+                                <span wire:loading.remove wire:target="delete" class="flex items-center gap-2">
+                                    <i class="fa-solid fa-trash text-xs"></i>{{ __('Yes, delete') }}
+                                </span>
+                                <span wire:loading wire:target="delete" class="flex items-center gap-2">
+                                    <i class="fa-solid fa-spinner fa-spin text-xs"></i>{{ __('Deleting…') }}
+                                </span>
                             </button>
                         </div>
                     </div>

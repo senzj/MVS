@@ -74,7 +74,7 @@
     // expose $paymentType (camelCase), Edit exposes $payment_type (snake).
     // Falls back to the review label only if neither raw property is in scope.
     $rawPaymentType = strtolower((string) ($paymentType ?? $payment_type ?? $reviewPaymentLabel ?? ''));
-    $isCashPayment  = $rawPaymentType === 'cash' || $rawPaymentType === strtolower(__('Cash'));
+    $isCashPayment  = $rawPaymentType === 'cash' || $rawPaymentType === strtolower(__('Cash')) || $rawPaymentType === '';
 
     // Edit's page passes this explicitly — its review modal shows existing
     // proof for reference only and never allows uploading/replacing it here.
@@ -183,12 +183,13 @@
                             @if($modalMode === 'walkin')
                                 <div class="rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden">
 
-                                    {{-- Payment Details --}}
+                                    {{-- Section label --}}
                                     <div class="px-4 py-2.5 bg-zinc-100 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-700">
-                                        <p class="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
-                                            <i class="fas fa-money-bill-wave mr-1"></i>{{ __('Payment') }}
-                                            <span class="ml-1 font-mono font-normal normal-case text-zinc-700 dark:text-zinc-300">
-                                                {{ $walkinPaymentType }}
+                                        <p class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide flex items-center gap-1.5">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                            {{ __('Payment') }}
+                                            <span class="font-mono font-normal normal-case text-zinc-700 dark:text-zinc-300 ml-0.5">
+                                                — {{ ucwords(str_replace('_', ' ', $walkinPaymentType)) }}
                                             </span>
                                         </p>
                                     </div>
@@ -210,25 +211,116 @@
                                             @endif
 
                                         {{-- Non Cash (unpaid walk-in) + proof upload --}}
-                                        @elseif($walkinPaymentType != 'cash')
-                                            @if($showQr && $walkinImage)
-                                                <div class="text-center space-y-2">
-                                                    {{-- QR Code --}}
-                                                    <div class="inline-block rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                                                        <img src="{{ $walkinImage }}" alt="{{ __('GCash QR') }}" class="max-w-90 max-h-96 object-contain">
-                                                    </div>
+                                        @else
+                                            @php
+                                                $qrOptions    = $paymentQrOptions ?? [];
+                                                $hasQrOptions = ! empty($qrOptions);
+                                                $selectedQrId = $paymentQrId ?? null;
+                                            @endphp
 
-                                                    {{-- Payment Amount --}}
-                                                    <p class="text-sm text-zinc-500 dark:text-zinc-400">
-                                                        {{ __('Scan to pay') }}:
-                                                        <span class="font-semibold text-zinc-900 dark:text-zinc-100">
-                                                            {{ config('storeconfig.currency_symbol') }}{{ number_format($reviewTotal, 2) }}
-                                                        </span>
-                                                    </p>
+                                            @if($hasQrOptions)
+                                                <div class="space-y-4">
+
+                                                    {{-- QR account picker (only when >1 option) --}}
+                                                    @if(count($qrOptions) > 1)
+                                                        <div class="space-y-2">
+                                                            <p class="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                                                <i class="fas fa-hand-pointer mr-1"></i>{{ __('Select Payment QR') }}
+                                                            </p>
+
+                                                            {{-- Pill buttons — one per QR account --}}
+                                                            <div class="flex flex-wrap gap-2">
+                                                                @foreach($qrOptions as $qrOpt)
+                                                                    <button type="button"
+                                                                            wire:click="$set('paymentQrId', {{ $qrOpt['id'] }})"
+                                                                            wire:loading.attr="disabled"
+                                                                            wire:target="$set('paymentQrId', {{ $qrOpt['id'] }})"
+                                                                            class="cursor-pointer inline-flex items-center gap-1.5
+                                                                                px-3 py-1.5 rounded-xl text-xs font-semibold
+                                                                                border transition-all duration-150
+                                                                                {{ $selectedQrId == $qrOpt['id']
+                                                                                    ? 'bg-blue-600 dark:bg-blue-500 text-white border-blue-600 dark:border-blue-500 shadow-sm shadow-blue-500/25'
+                                                                                    : 'bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-300 dark:border-zinc-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10' }}">
+                                                                        <i class="fas fa-qrcode text-xs
+                                                                            {{ $selectedQrId == $qrOpt['id'] ? 'text-white' : 'text-zinc-400 dark:text-zinc-500' }}">
+                                                                        </i>
+                                                                        {{ $qrOpt['name'] }}
+                                                                    </button>
+                                                                @endforeach
+                                                            </div>
+                                                        </div>
+                                                    @endif
+
+                                                    {{-- QR image + scan hint --}}
+                                                    @if($walkinImage)
+                                                        <div class="flex flex-col items-center gap-3 pt-1">
+
+                                                            {{-- QR card --}}
+                                                            <div class="rounded-2xl border-2 border-dashed
+                                                                        border-blue-200 dark:border-blue-800/60
+                                                                        bg-linear-to-b from-blue-50/60 to-white
+                                                                        dark:from-blue-900/10 dark:to-zinc-800/20
+                                                                        p-4 flex flex-col items-center gap-3 w-full">
+
+                                                                {{-- Image wrapper --}}
+                                                                <div class="rounded-xl overflow-hidden
+                                                                            border border-zinc-200 dark:border-zinc-700
+                                                                            bg-white dark:bg-zinc-900
+                                                                            shadow-sm">
+                                                                    <img src="{{ $walkinImage }}"
+                                                                        alt="{{ __('Payment QR Code') }}"
+                                                                        class="w-58 h-68 object-contain">
+                                                                </div>
+
+                                                                {{-- Amount --}}
+                                                                <div class="text-center">
+                                                                    <p class="text-xs text-zinc-500 dark:text-zinc-400">
+                                                                        <i class="fas fa-mobile-screen-button mr-1 text-blue-400"></i>
+                                                                        {{ __('Scan to pay') }}
+                                                                    </p>
+                                                                    <p class="text-xl font-black font-mono text-zinc-900 dark:text-zinc-100 mt-0.5">
+                                                                        {{ config('storeconfig.currency_symbol') }}{{ number_format($reviewTotal, 2) }}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+
+                                                            {{-- Switch hint when only 1 option --}}
+                                                            @if(count($qrOptions) === 1)
+                                                                <p class="text-xs text-center text-zinc-400 dark:text-zinc-500">
+                                                                    {{ $qrOptions[0]['name'] }}
+                                                                </p>
+                                                            @endif
+                                                        </div>
+
+                                                    @else
+                                                        {{-- No QR selected yet (shouldn't normally appear since auto-select runs, but safe fallback) --}}
+                                                        <div class="flex flex-col items-center gap-2 py-6 text-center
+                                                                    text-zinc-400 dark:text-zinc-500">
+                                                            <i class="fas fa-qrcode text-3xl opacity-20"></i>
+                                                            <p class="text-xs">{{ __('Select an account above to show its QR code.') }}</p>
+                                                        </div>
+                                                    @endif
+
+                                                </div>
+
+                                            @else
+                                                {{-- No QR codes configured at all --}}
+                                                <div class="flex items-start gap-3 p-4 rounded-xl
+                                                            bg-amber-50 dark:bg-amber-900/10
+                                                            border border-amber-200 dark:border-amber-700/50">
+                                                    <i class="fas fa-triangle-exclamation text-amber-500 dark:text-amber-400 shrink-0 mt-0.5"></i>
+                                                    <div>
+                                                        <p class="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                                                            {{ __('No QR codes configured') }}
+                                                        </p>
+                                                        <p class="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
+                                                            {{ __('Add payment QR codes in Settings → Payment QR.') }}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             @endif
 
-                                            {{-- Proof of payment upload --}}
+                                            {{-- Proof of payment upload (always shown for non-cash) --}}
                                             @include('livewire.partials.orders.payment.proof', [
                                                 'compact'          => true,
                                                 'existingProofUrl' => null,

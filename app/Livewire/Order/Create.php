@@ -9,6 +9,7 @@ use App\Models\DiscountPreset;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Paymentqr;
 use App\Services\Products\InventoryService;
 use App\Services\System\AuditLogsService;
 use Illuminate\Support\Facades\Auth;
@@ -38,7 +39,7 @@ class Create extends Component
     public array   $errorFields          = [];
     public bool    $showConfirmModal     = false;
     public string  $modalMode            = 'confirm';
-    public array $confirmData = [];
+    public array   $confirmData          = [];
     public ?int    $discountPresetId     = null;
     public string  $discountType         = 'none';
     public string|float $discountValue   = 0;
@@ -50,7 +51,7 @@ class Create extends Component
     public bool    $processingPayment = false;
     public ?string $currentImage      = null;
 
-    // Proof of payment (not cash)
+    // Proof of payment (non-cash)
     public $proofOfPayment = null;
 
     // Product form
@@ -61,7 +62,10 @@ class Create extends Component
     public string       $productCategory    = 'other';
     public string|int   $productStocks      = 1;
     public string|float $productPrice       = 0;
-    public string       $defaultPaymentType  = 'cash';
+    public string       $defaultPaymentType = 'cash';
+
+    public array $paymentQrOptions = [];
+    public ?int  $paymentQrId      = null;
 
     protected $rules = [
         'orderType'               => 'required|in:deliver,walk_in',
@@ -87,11 +91,45 @@ class Create extends Component
     public function mount(): void
     {
         $this->defaultPaymentType = config('storeconfig.default_payment_type');
-        $this->orderType   = config('storeconfig.default_order_type',   'walk_in');
+        $this->orderType   = config('storeconfig.default_order_type', 'walk_in');
         $this->paymentType = $this->defaultPaymentType;
         $this->orderNumber = $this->generateReceiptNumber();
         $this->loadDiscountPresets();
+        $this->loadPaymentQrOptions();
+
+        // Auto-select first QR if default payment type is non-cash walk-in
+        if ($this->paymentType !== 'cash' && $this->orderType === 'walk_in') {
+            $this->autoSelectFirstQr();
+        }
+
         $this->addOrderItem();
+    }
+
+    private function loadPaymentQrOptions(): void
+    {
+        $this->paymentQrOptions = Paymentqr::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'image'])
+            ->map(fn (Paymentqr $qr) => [
+                'id'        => $qr->id,
+                'name'      => $qr->name,
+                'image_url' => PaymentImageHelper::getPaymentImageUrl($qr->image),
+            ])
+            ->all();
+    }
+
+    /**
+     * Select the first available QR code and load its image.
+     * Called whenever payment type switches to non-cash with no QR already selected.
+     */
+    private function autoSelectFirstQr(): void
+    {
+        if (! empty($this->paymentQrOptions) && ! $this->paymentQrId) {
+            $first              = $this->paymentQrOptions[0];
+            $this->paymentQrId  = $first['id'];
+            $this->currentImage = $first['image_url'];
+        }
     }
 
     private function loadDiscountPresets(): void
@@ -109,8 +147,8 @@ class Create extends Component
 
         if (! $presetId) {
             $this->discountPresetId = null;
-            $this->discountType = 'none';
-            $this->discountValue = 0;
+            $this->discountType     = 'none';
+            $this->discountValue    = 0;
             return;
         }
 
@@ -121,21 +159,21 @@ class Create extends Component
 
         if (! $preset) {
             $this->discountPresetId = null;
-            $this->discountType = 'none';
-            $this->discountValue = 0;
+            $this->discountType     = 'none';
+            $this->discountValue    = 0;
             return;
         }
 
         $this->discountPresetId = $preset->id;
-        $this->discountType = $preset->type;
-        $this->discountValue = (float) $preset->value;
+        $this->discountType     = $preset->type;
+        $this->discountValue    = (float) $preset->value;
     }
 
     private function resolveDiscountConfig(): array
     {
         $presetId = null;
-        $type = (string) $this->discountType;
-        $value = (float) $this->discountValue;
+        $type     = (string) $this->discountType;
+        $value    = (float) $this->discountValue;
 
         if ($this->discountPresetId) {
             $preset = collect($this->discountPresets)
@@ -144,18 +182,14 @@ class Create extends Component
             if (! $preset) {
                 $model = DiscountPreset::query()->whereKey((int) $this->discountPresetId)->first(['id', 'type', 'value']);
                 if ($model) {
-                    $preset = [
-                        'id' => $model->id,
-                        'type' => $model->type,
-                        'value' => $model->value,
-                    ];
+                    $preset = ['id' => $model->id, 'type' => $model->type, 'value' => $model->value];
                 }
             }
 
             if ($preset) {
                 $presetId = (int) ($preset['id'] ?? 0);
-                $type = (string) ($preset['type'] ?? 'none');
-                $value = (float) ($preset['value'] ?? 0);
+                $type     = (string) ($preset['type'] ?? 'none');
+                $value    = (float) ($preset['value'] ?? 0);
             }
         }
 
@@ -163,23 +197,17 @@ class Create extends Component
             return ['preset_id' => null, 'type' => 'none', 'value' => 0.0];
         }
 
-        return [
-            'preset_id' => $presetId,
-            'type' => $type,
-            'value' => $value,
-        ];
+        return ['preset_id' => $presetId, 'type' => $type, 'value' => $value];
     }
 
     private function calculateOrderDiscountFor(float $baseTotal, string $type, float $value): float
     {
-        if ($baseTotal <= 0) {
-            return 0;
-        }
+        if ($baseTotal <= 0) return 0;
 
         return match ($type) {
             'percentage' => min($baseTotal, max(0, $baseTotal * ($value / 100))),
-            'fixed' => min($baseTotal, max(0, $value)),
-            default => 0,
+            'fixed'      => min($baseTotal, max(0, $value)),
+            default      => 0,
         };
     }
 
@@ -188,8 +216,8 @@ class Create extends Component
         $config = $this->resolveDiscountConfig();
 
         $this->discountPresetId = $config['preset_id'];
-        $this->discountType = $config['type'];
-        $this->discountValue = (float) $config['value'];
+        $this->discountType     = $config['type'];
+        $this->discountValue    = (float) $config['value'];
 
         return $config;
     }
@@ -212,14 +240,14 @@ class Create extends Component
             return '-' . config('storeconfig.currency_symbol') . '0';
         }
 
-        $formattedAmount = config('storeconfig.currency_symbol') . $this->formatMoneyCompact($amount);
+        $formatted = config('storeconfig.currency_symbol') . $this->formatMoneyCompact($amount);
 
         if ($this->discountType === 'percentage') {
             $percent = rtrim(rtrim(number_format((float) $this->discountValue, 2, '.', ''), '0'), '.');
-            return '-' . $formattedAmount . ' (' . $percent . '%)';
+            return '-' . $formatted . ' (' . $percent . '%)';
         }
 
-        return '-' . $formattedAmount;
+        return '-' . $formatted;
     }
 
     private function formatMoneyCompact(float $value): string
@@ -231,10 +259,7 @@ class Create extends Component
 
     public function updatedOrderItems($value, $key): void
     {
-        if (! $key) {
-            return;
-        }
-
+        if (! $key) return;
         $this->handleUpdatedOrderItem($value, $key);
     }
 
@@ -247,17 +272,41 @@ class Create extends Component
             $this->customerName = $this->customerUnit = $this->customerAddress = $this->customerContact = '';
             $this->dispatch('customer-validation-clear');
         }
+
+        // Refresh QR display when switching order type
+        if ($this->orderType === 'walk_in' && $this->paymentType !== 'cash') {
+            $this->autoSelectFirstQr();
+        } else {
+            $this->currentImage = null;
+        }
+
         $this->resetErrorBag();
     }
 
     public function updatedPaymentType(): void
     {
-        // Only clear the proof when switching TO cash — switching between
-        // non-cash methods (e.g. gcash -> maya) should keep whatever was
-        // already uploaded.
         if ($this->paymentType === 'cash') {
+            // Switching to cash — clear QR and proof
             $this->proofOfPayment = null;
+            $this->paymentQrId    = null;
+            $this->currentImage   = null;
+        } else {
+            // Switching to non-cash — auto-select first QR if none chosen yet
+            $this->autoSelectFirstQr();
         }
+    }
+
+    public function updatedPaymentQrId(): void
+    {
+        $this->resetErrorBag('paymentQrId');
+
+        if (! $this->paymentQrId) {
+            $this->currentImage = null;
+            return;
+        }
+
+        $selected           = collect($this->paymentQrOptions)->firstWhere('id', (int) $this->paymentQrId);
+        $this->currentImage = $selected['image_url'] ?? null;
     }
 
     public function updatedProofOfPayment(): void
@@ -306,12 +355,15 @@ class Create extends Component
             $this->modalMode      = 'walkin';
             $this->amountReceived = null;
             $this->changeAmount   = 0;
-            $this->currentImage   = PaymentImageHelper::getPaymentImageUrl();
+
+            // Ensure QR image is populated from the selected QR
+            $selected           = collect($this->paymentQrOptions)->firstWhere('id', (int) $this->paymentQrId);
+            $this->currentImage = $selected['image_url'] ?? null;
         } else {
             $this->modalMode = 'confirm';
         }
 
-        $this->confirmData = $this->buildConfirmData();
+        $this->confirmData      = $this->buildConfirmData();
         $this->showConfirmModal = true;
     }
 
@@ -337,9 +389,7 @@ class Create extends Component
 
         if ($this->paymentType === 'cash' && (float) $this->finalTotal > 0) {
             $this->validate([
-                'amountReceived' => [
-                    'required', 'numeric', 'min:' . $this->finalTotal,
-                ],
+                'amountReceived' => ['required', 'numeric', 'min:' . $this->finalTotal],
             ], [
                 'amountReceived.required' => __('Please enter the amount received.'),
                 'amountReceived.min'      => __('Amount received must be at least ') . config('storeconfig.currency_symbol') . number_format($this->finalTotal, 2),
@@ -361,6 +411,7 @@ class Create extends Component
     protected function getSubmissionRules(): array
     {
         $rules = $this->rules;
+
         $allowedPaymentTypes = array_values(array_unique(array_filter(array_merge(
             [$this->defaultPaymentType, 'cash', 'gcash'],
             (array) config('storeconfig.other_payment_types', [])
@@ -425,9 +476,13 @@ class Create extends Component
     public function createOrder(): void
     {
         $discountConfig = $this->syncDiscountFromSelection();
-        $finalTotal = max(
+        $finalTotal     = max(
             0,
-            (float) $this->totalAmount - $this->calculateOrderDiscountFor((float) $this->totalAmount, $discountConfig['type'], (float) $discountConfig['value'])
+            (float) $this->totalAmount - $this->calculateOrderDiscountFor(
+                (float) $this->totalAmount,
+                $discountConfig['type'],
+                (float) $discountConfig['value']
+            )
         );
 
         // Stock pre-check
@@ -449,61 +504,58 @@ class Create extends Component
             }
         }
 
-        // Store proof image (if any). Generalized from "=== 'gcash'" to
-        // "!== 'cash'" so any configured non-cash method can attach proof.
+        // Store proof image (non-cash)
         $proofPath     = null;
         $paymentStatus = 'unpaid';
 
         if ($this->paymentType === 'cash') {
-            // Cash walk-in is always paid at POS
             $paymentStatus = $this->orderType === 'walk_in' ? 'paid' : 'unpaid';
         } elseif ($this->proofOfPayment) {
-            $ext          = strtolower($this->proofOfPayment->getClientOriginalExtension() ?: 'png');
-            $dir          = 'order/' . $this->orderNumber;
-            $proofPath    = $this->proofOfPayment->storeAs($dir, $this->orderNumber . '.' . $ext, 'public');
+            $ext           = strtolower($this->proofOfPayment->getClientOriginalExtension() ?: 'png');
+            $dir           = 'order/' . $this->orderNumber;
+            $proofPath     = $this->proofOfPayment->storeAs($dir, $this->orderNumber . '.' . $ext, 'public');
             $paymentStatus = 'paid';
         }
 
         DB::transaction(function () use ($proofPath, $paymentStatus, $discountConfig, $finalTotal) {
-            $inventory = app(InventoryService::class);
+            $inventory  = app(InventoryService::class);
             $customerId = $this->persistCustomer();
             $isWalkIn   = $this->orderType === 'walk_in';
 
             $order = Order::create([
-                'customer_id'     => $customerId,
-                'created_by'      => Auth::id(),
-                'delivered_by'    => $isWalkIn ? null : $this->selectedEmployeeId,
-            'order_total'     => $finalTotal,
-            'discount_preset_id' => $discountConfig['type'] === 'none' ? null : $discountConfig['preset_id'],
-            'discount_type'   => $discountConfig['type'],
-            'discount_value'  => $discountConfig['type'] === 'none' ? 0 : (float) $discountConfig['value'],
-                'order_type'      => $this->orderType,
-                'payment_type'    => $this->paymentType,
-                'payment_status'  => $paymentStatus,
-                'status'          => $isWalkIn ? 'completed' : 'pending',
-                'receipt_number'  => $this->orderNumber,
-                'amount_received' => $isWalkIn ? $this->amountReceived : null,
-                'change_amount'   => $isWalkIn ? $this->changeAmount   : null,
-                'proof_of_payment'=> $proofPath,
+                'customer_id'        => $customerId,
+                'created_by'         => Auth::id(),
+                'delivered_by'       => $isWalkIn ? null : $this->selectedEmployeeId,
+                'order_total'        => $finalTotal,
+                'discount_preset_id' => $discountConfig['type'] === 'none' ? null : $discountConfig['preset_id'],
+                'discount_type'      => $discountConfig['type'],
+                'discount_value'     => $discountConfig['type'] === 'none' ? 0 : (float) $discountConfig['value'],
+                'order_type'         => $this->orderType,
+                'payment_type'       => $this->paymentType,
+                'payment_status'     => $paymentStatus,
+                'status'             => $isWalkIn ? 'completed' : 'pending',
+                'receipt_number'     => $this->orderNumber,
+                'amount_received'    => $isWalkIn ? $this->amountReceived : null,
+                'change_amount'      => $isWalkIn ? $this->changeAmount   : null,
+                'proof_of_payment'   => $proofPath,
             ]);
 
             foreach ($this->orderItems as $item) {
                 if (! ($item['product_id'] ?? null)) continue;
 
-                $qty      = (int) $item['quantity'];
-
+                $qty       = (int) $item['quantity'];
                 $isFree    = (bool) ($item['is_free'] ?? false);
                 $unitPrice = $isFree ? 0 : max(0, (float) ($item['price'] ?? 0));
                 $discount  = $isFree ? 0 : min(max(0, (float) ($item['discount'] ?? 0)), $qty * $unitPrice);
                 $lineTotal = max(0, ($qty * $unitPrice) - $discount);
 
                 OrderItem::create([
-                    'order_id'    => $order->id,
-                    'product_id'  => $item['product_id'],
-                    'quantity'    => $qty,
-                    'unit_price'  => $unitPrice,
+                    'order_id'        => $order->id,
+                    'product_id'      => $item['product_id'],
+                    'quantity'        => $qty,
+                    'unit_price'      => $unitPrice,
                     'discount_amount' => $discount,
-                    'total_price' => $lineTotal,
+                    'total_price'     => $lineTotal,
                 ]);
 
                 $inventory->deduct(
@@ -515,7 +567,6 @@ class Create extends Component
                 );
             }
 
-            // Record audit log
             app(AuditLogsService::class)->recordOrderCreated(Auth::user(), $order, request());
         });
 
