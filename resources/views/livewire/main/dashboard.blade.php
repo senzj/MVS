@@ -259,7 +259,7 @@
                 <i class="mr-2 text-yellow-500 fas fa-trophy"></i>{{ __('Today\'s Best Seller') }}
             </h3>
 
-            <div class="flex items-center justify-center h-72 md:h-90 w-full">
+            <div class="flex flex-col justify-center min-h-72 md:min-h-90 w-full">
                 @if(!empty($topSellingProducts['today']))
                     <div class="space-y-3 w-full">
                         @foreach($topSellingProducts['today'] as $index => $product)
@@ -297,7 +297,7 @@
                 <i class="mr-2 text-blue-500 fas fa-chart-bar"></i>{{ __('This Week\'s Top Seller') }}
             </h3>
 
-            <div class="flex items-center justify-center h-72 md:h-90 w-full">
+            <div class="flex flex-col justify-center min-h-72 md:min-h-90 w-full">
                 @if(!empty($topSellingProducts['week']))
                     <div class="space-y-3 w-full">
                         @foreach($topSellingProducts['week'] as $index => $product)
@@ -333,7 +333,7 @@
                 <i class="mr-2 text-purple-500 fas fa-medal"></i>{{ __("This Month's Top Sellers") }}
             </h3>
 
-            <div class="flex items-center justify-center h-72 md:h-90 w-full">
+            <div class="flex flex-col justify-center min-h-72 md:min-h-90 w-full">
                 @if(!empty($topSellingProducts['average']))
                     <div class="space-y-3 w-full">
                         @foreach($topSellingProducts['average'] as $index => $product)
@@ -361,6 +361,7 @@
                 @endif
             </div>
         </div>
+
     </div>
 
     {{-- Descriptive Analytics Chart Section --}}

@@ -63,6 +63,47 @@ php -v
 
 If the version number appears, PHP is ready and `php artisan` should work normally.
 
+
+### Enable Required PHP Extensions
+
+MVS needs a few PHP extensions that are sometimes disabled by default. Open your `php.ini` file (find its exact location by running `php --ini` in a terminal) with Notepad and check the following lines:
+
+```ini
+extension=gd
+extension=zip
+```
+
+If either line has a semicolon (`;`) in front of it, remove the semicolon to enable it. For example, change:
+
+```ini
+;extension=gd
+;extension=zip
+```
+
+to:
+
+```ini
+extension=gd
+extension=zip
+```
+
+- `gd` is required for product image uploads and cropping — without it, uploading a product image will fail.
+- `zip` is required for some Composer packages and export/backup features.
+
+### Increase Upload Size Limits
+
+Product images and file uploads can be large, so it's a good idea to raise PHP's default upload limits. In the same `php.ini` file, find (or add) these settings:
+
+```ini
+upload_max_filesize = 1G
+post_max_size = 1G
+```
+
+If these lines have a semicolon in front of them, remove it so the values take effect.
+
+**Important:** After editing `php.ini`, you must restart your web server (Apache in XAMPP, or **Stop All** then **Start All** in Laragon) for the changes to apply.
+
+
 ### Choosing Between XAMPP and Laragon
 
 **XAMPP** (Recommended for beginners)
@@ -198,9 +239,24 @@ From `.env.example`, these values control business defaults:
 - `ORDER_EDIT_LOCK_STATUS`: Comma-separated order statuses where editing should be locked
 	- Example: `in_transit,delivered,completed,cancelled`
 - `OTHER_PAYMENT_TYPES`: Additional Comma-separated payment types aside from cash
+- `CURRENCY_SYMBOL`: Currency symbol shown throughout the POS (e.g. `₱`, `$`)
+- `CURRENCY_CODE`: ISO currency code used for the store (e.g. `PHP`, `USD`)
+- `STOCK_LOW_THRESHOLD`: Stock quantity at or below which a product is flagged as low stock
 - `SESSION_EXPIRE_DAYS`: Sets a device or account to be auto-logged out for the set days.
 
 The dashboard weekday analytics chart uses `STORE_OPEN_DAYS`, so it only shows the days your store is actually open.
+
+#### Password Policy Config
+
+These settings control how strict account passwords must be when staff accounts are created or updated:
+
+- `PASSWORD_MIN_LENGTH`: Minimum number of characters required in a password
+- `PASSWORD_REQUIRE_LOWERCASE`: `true`/`false` — require at least one lowercase letter
+- `PASSWORD_REQUIRE_UPPERCASE`: `true`/`false` — require at least one uppercase letter
+- `PASSWORD_REQUIRE_NUMBER`: `true`/`false` — require at least one numeric digit
+- `PASSWORD_REQUIRE_SPECIAL`: `true`/`false` — require at least one special character (e.g. `!@#$%`)
+
+Adjust these based on how strict you want account security to be for your staff. For example, a small store with a handful of trusted employees might keep `PASSWORD_MIN_LENGTH` low and most requirements `false` for convenience, while a larger operation may want all requirements set to `true`.
 
 ### Recommended First `.env` Edits
 

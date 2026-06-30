@@ -43,12 +43,12 @@
     "scripts": {
         "setup": [
             "composer install",
+            "npm install",
+            "npm run build",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
-            "@php artisan migrate --force",
             "@php artisan storage:link",
-            "npm install",
-            "npm run build"
+            "@php artisan migrate"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
